@@ -9,6 +9,10 @@ import Bookings from "./pages/Bookings";
 import Guests from "./pages/Guests";
 import Billing from "./pages/Billing";
 import Housekeeping from "./pages/Housekeeping";
+import Calendar from "./pages/Calendar";
+import NewBooking from "./pages/NewBooking";
+import Settings from "./pages/Settings";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -23,9 +27,13 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/rooms" element={<Rooms />} />
           <Route path="/bookings" element={<Bookings />} />
+          <Route path="/bookings/new" element={<NewBooking />} />
           <Route path="/guests" element={<Guests />} />
           <Route path="/billing" element={<Billing />} />
           <Route path="/housekeeping" element={<Housekeeping />} />
+          <Route path="/calendar" element={<Calendar />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/notifications" element={<Notifications />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
