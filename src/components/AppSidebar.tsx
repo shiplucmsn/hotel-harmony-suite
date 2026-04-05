@@ -8,6 +8,8 @@ import {
   Settings,
   Bell,
   LogOut,
+  CalendarRange,
+  PlusCircle,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -29,6 +31,8 @@ const mainNav = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Rooms", url: "/rooms", icon: BedDouble },
   { title: "Bookings", url: "/bookings", icon: CalendarCheck },
+  { title: "New Booking", url: "/bookings/new", icon: PlusCircle },
+  { title: "Calendar", url: "/calendar", icon: CalendarRange },
   { title: "Guests", url: "/guests", icon: Users },
   { title: "Billing", url: "/billing", icon: Receipt },
   { title: "Housekeeping", url: "/housekeeping", icon: Sparkles },

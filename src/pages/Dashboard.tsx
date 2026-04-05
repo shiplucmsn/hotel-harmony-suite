@@ -1,5 +1,6 @@
 import { DashboardLayout } from "@/components/DashboardLayout";
 import { StatCard } from "@/components/StatCard";
+import { DashboardCharts } from "@/components/DashboardCharts";
 import { BedDouble, Users, CalendarCheck, DollarSign, TrendingUp, Clock } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -114,6 +115,9 @@ export default function Dashboard() {
             <p className="text-xs text-muted-foreground mt-2 text-center">120 total rooms</p>
           </motion.div>
         </div>
+
+        {/* Charts */}
+        <DashboardCharts />
       </div>
     </DashboardLayout>
   );
