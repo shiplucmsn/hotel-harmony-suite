@@ -10,6 +10,12 @@ import {
   LogOut,
   CalendarRange,
   PlusCircle,
+  UserCog,
+  LogIn,
+  ShoppingCart,
+  ClipboardList,
+  BarChart3,
+  Globe,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -28,19 +34,25 @@ import {
 } from "@/components/ui/sidebar";
 
 const mainNav = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Rooms", url: "/rooms", icon: BedDouble },
   { title: "Bookings", url: "/bookings", icon: CalendarCheck },
   { title: "New Booking", url: "/bookings/new", icon: PlusCircle },
   { title: "Calendar", url: "/calendar", icon: CalendarRange },
+  { title: "Check-in / out", url: "/check-in-out", icon: LogIn },
   { title: "Guests", url: "/guests", icon: Users },
+  { title: "POS", url: "/pos", icon: ShoppingCart },
+  { title: "Orders", url: "/orders", icon: ClipboardList },
   { title: "Billing", url: "/billing", icon: Receipt },
   { title: "Housekeeping", url: "/housekeeping", icon: Sparkles },
 ];
 
 const secondaryNav = [
+  { title: "Reports", url: "/reports", icon: BarChart3 },
+  { title: "Staff", url: "/staff", icon: UserCog },
   { title: "Notifications", url: "/notifications", icon: Bell },
   { title: "Settings", url: "/settings", icon: Settings },
+  { title: "Public Site", url: "/", icon: Globe },
 ];
 
 export function AppSidebar() {
@@ -76,7 +88,7 @@ export function AppSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/"}
+                      end={item.url === "/dashboard"}
                       className="hover:bg-surface-hover transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium border-r-2 border-primary"
                     >

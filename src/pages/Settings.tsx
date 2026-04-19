@@ -10,14 +10,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Save, Building2, CreditCard, Bell, Shield, Globe } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency, CurrencyCode } from "@/contexts/CurrencyContext";
 
 export default function Settings() {
   const { toast } = useToast();
+  const { currency: globalCurrency, setCurrency: setGlobalCurrency } = useCurrency();
   const [hotelName, setHotelName] = useState("Royale Hotel & Spa");
   const [address, setAddress] = useState("123 Grand Boulevard, Dubai, UAE");
   const [phone, setPhone] = useState("+971 4 123 4567");
   const [email, setEmail] = useState("info@royalehotel.com");
-  const [currency, setCurrency] = useState("USD");
+  const currency = globalCurrency.code;
+  const setCurrency = (c: string) => setGlobalCurrency(c as CurrencyCode);
   const [timezone, setTimezone] = useState("Asia/Dubai");
   const [taxRate, setTaxRate] = useState("12");
   const [checkInTime, setCheckInTime] = useState("14:00");
