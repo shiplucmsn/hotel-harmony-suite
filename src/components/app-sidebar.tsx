@@ -172,6 +172,17 @@ const menu: MenuSection[] = [
     ],
   },
   {
+    title: "Reports & Insights",
+    icon: FileBarChart,
+    items: [
+      { title: "Reports Hub", url: "/app/reports", icon: FileBarChart },
+      { title: "Analytics", url: "/app/analytics", icon: BarChart3 },
+      { title: "Finance Reports", url: "/app/finance/reports", icon: FileBarChart },
+      { title: "Production Analytics", url: "/app/prod/analytics", icon: LineChart },
+      { title: "Sales Analytics", url: "/app/crm/analytics", icon: LineChart },
+    ],
+  },
+  {
     title: "Administration",
     icon: Shield,
     items: [
@@ -179,6 +190,15 @@ const menu: MenuSection[] = [
       { title: "Roles", url: "/app/roles", icon: Shield },
       { title: "Tenants", url: "/app/tenants", icon: Building2 },
       { title: "Notifications", url: "/app/notifications", icon: Bell },
+    ],
+  },
+  {
+    title: "Super Admin",
+    icon: Sparkles,
+    items: [
+      { title: "Control Panel", url: "/app/super-admin", icon: Sparkles },
+      { title: "Tenants", url: "/app/tenants", icon: Building2 },
+      { title: "Subscriptions", url: "/app/subscription", icon: CreditCard },
     ],
   },
   {
