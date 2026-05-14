@@ -20,10 +20,12 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppTenantsRouteImport } from './routes/app.tenants'
+import { Route as AppSuperAdminRouteImport } from './routes/app.super-admin'
 import { Route as AppSubscriptionRouteImport } from './routes/app.subscription'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSalesRouteImport } from './routes/app.sales'
 import { Route as AppRolesRouteImport } from './routes/app.roles'
+import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
 import { Route as AppProductsRouteImport } from './routes/app.products'
 import { Route as AppProdRouteImport } from './routes/app.prod'
@@ -179,6 +181,11 @@ const AppTenantsRoute = AppTenantsRouteImport.update({
   path: '/tenants',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSuperAdminRoute = AppSuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppSubscriptionRoute = AppSubscriptionRouteImport.update({
   id: '/subscription',
   path: '/subscription',
@@ -197,6 +204,11 @@ const AppSalesRoute = AppSalesRouteImport.update({
 const AppRolesRoute = AppRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportsRoute = AppReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProfileRoute = AppProfileRouteImport.update({
@@ -724,10 +736,12 @@ export interface FileRoutesByFullPath {
   '/app/prod': typeof AppProdRouteWithChildren
   '/app/products': typeof AppProductsRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
+  '/app/super-admin': typeof AppSuperAdminRoute
   '/app/tenants': typeof AppTenantsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/app/crm/analytics': typeof AppCrmAnalyticsRoute
@@ -840,10 +854,12 @@ export interface FileRoutesByTo {
   '/app/prod': typeof AppProdRouteWithChildren
   '/app/products': typeof AppProductsRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
+  '/app/super-admin': typeof AppSuperAdminRoute
   '/app/tenants': typeof AppTenantsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/app/crm/analytics': typeof AppCrmAnalyticsRoute
@@ -957,10 +973,12 @@ export interface FileRoutesById {
   '/app/prod': typeof AppProdRouteWithChildren
   '/app/products': typeof AppProductsRoute
   '/app/profile': typeof AppProfileRoute
+  '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
+  '/app/super-admin': typeof AppSuperAdminRoute
   '/app/tenants': typeof AppTenantsRoute
   '/app/users': typeof AppUsersRouteWithChildren
   '/app/crm/analytics': typeof AppCrmAnalyticsRoute
@@ -1075,10 +1093,12 @@ export interface FileRouteTypes {
     | '/app/prod'
     | '/app/products'
     | '/app/profile'
+    | '/app/reports'
     | '/app/roles'
     | '/app/sales'
     | '/app/settings'
     | '/app/subscription'
+    | '/app/super-admin'
     | '/app/tenants'
     | '/app/users'
     | '/app/crm/analytics'
@@ -1191,10 +1211,12 @@ export interface FileRouteTypes {
     | '/app/prod'
     | '/app/products'
     | '/app/profile'
+    | '/app/reports'
     | '/app/roles'
     | '/app/sales'
     | '/app/settings'
     | '/app/subscription'
+    | '/app/super-admin'
     | '/app/tenants'
     | '/app/users'
     | '/app/crm/analytics'
@@ -1307,10 +1329,12 @@ export interface FileRouteTypes {
     | '/app/prod'
     | '/app/products'
     | '/app/profile'
+    | '/app/reports'
     | '/app/roles'
     | '/app/sales'
     | '/app/settings'
     | '/app/subscription'
+    | '/app/super-admin'
     | '/app/tenants'
     | '/app/users'
     | '/app/crm/analytics'
@@ -1489,6 +1513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppTenantsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/super-admin': {
+      id: '/app/super-admin'
+      path: '/super-admin'
+      fullPath: '/app/super-admin'
+      preLoaderRoute: typeof AppSuperAdminRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/subscription': {
       id: '/app/subscription'
       path: '/subscription'
@@ -1515,6 +1546,13 @@ declare module '@tanstack/react-router' {
       path: '/roles'
       fullPath: '/app/roles'
       preLoaderRoute: typeof AppRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/reports': {
+      id: '/app/reports'
+      path: '/reports'
+      fullPath: '/app/reports'
+      preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/profile': {
@@ -2498,10 +2536,12 @@ interface AppRouteChildren {
   AppProdRoute: typeof AppProdRouteWithChildren
   AppProductsRoute: typeof AppProductsRoute
   AppProfileRoute: typeof AppProfileRoute
+  AppReportsRoute: typeof AppReportsRoute
   AppRolesRoute: typeof AppRolesRoute
   AppSalesRoute: typeof AppSalesRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
+  AppSuperAdminRoute: typeof AppSuperAdminRoute
   AppTenantsRoute: typeof AppTenantsRoute
   AppUsersRoute: typeof AppUsersRouteWithChildren
 }
@@ -2523,10 +2563,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppProdRoute: AppProdRouteWithChildren,
   AppProductsRoute: AppProductsRoute,
   AppProfileRoute: AppProfileRoute,
+  AppReportsRoute: AppReportsRoute,
   AppRolesRoute: AppRolesRoute,
   AppSalesRoute: AppSalesRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,
+  AppSuperAdminRoute: AppSuperAdminRoute,
   AppTenantsRoute: AppTenantsRoute,
   AppUsersRoute: AppUsersRouteWithChildren,
 }
