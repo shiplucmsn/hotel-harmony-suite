@@ -1,32 +1,115 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Eye, Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Search, Plus, Download, MoreHorizontal, Pencil, Trash2, FileText } from "lucide-react";
-import { useState } from "react";
-import { journalEntries, accounts } from "@/lib/finance-mock";
+import { DataTable } from "@/shared/components/data-table/data-table";
+import { FinancialFilters } from "@/modules/finance/components/financial-filters";
+import { JournalStatusBadge } from "@/modules/finance/components/journal-status-badge";
+import { JournalEntrySheet } from "@/modules/finance/components/journal-entry-sheet";
+import { JournalDetailSheet } from "@/modules/finance/components/journal-detail-sheet";
+import { PaginationBar } from "@/modules/finance/components/pagination-bar";
+import { useFinanceAccounts } from "@/hooks/finance/use-finance-accounts";
+import { useJournalEntries } from "@/hooks/finance/use-journal-entries";
+import { formatMoney, journalLineTotals } from "@/modules/finance/utils";
+import type { JournalEntryDto, JournalStatus } from "@/modules/finance/types";
 
 export const Route = createFileRoute("/app/finance/journal")({ component: JournalPage });
 
-const statusColor: Record<string, string> = {
-  posted: "bg-success/15 text-success border-success/20",
-  draft: "bg-warning/15 text-warning border-warning/20",
-  void: "bg-muted text-muted-foreground",
-};
+const STATUS_OPTIONS = [
+  { value: "all", label: "All status" },
+  { value: "posted", label: "Posted" },
+  { value: "reversed", label: "Reversed" },
+  { value: "draft", label: "Draft" },
+];
 
 function JournalPage() {
-  const [q, setQ] = useState("");
-  const filtered = journalEntries.filter(j =>
-    j.number.toLowerCase().includes(q.toLowerCase()) || j.memo.toLowerCase().includes(q.toLowerCase())
-  );
+  const [search, setSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [status, setStatus] = useState("all");
+  const [page, setPage] = useState(1);
+  const [formOpen, setFormOpen] = useState(false);
+  const [detailEntry, setDetailEntry] = useState<JournalEntryDto | null>(null);
+  const perPage = 15;
+
+  const { data: accounts = [] } = useFinanceAccounts();
+  const { data: result, isLoading } = useJournalEntries(page, perPage);
+
+  const entries = result?.data ?? [];
+  const serverPagination = result?.pagination;
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return entries.filter((j) => {
+      const matchesSearch =
+        !q ||
+        j.entry_number.toLowerCase().includes(q) ||
+        (j.memo ?? "").toLowerCase().includes(q) ||
+        (j.reference_id ?? "").toLowerCase().includes(q);
+      const matchesStatus = status === "all" || j.status === status;
+      const matchesFrom = !dateFrom || j.entry_date >= dateFrom;
+      const matchesTo = !dateTo || j.entry_date <= dateTo;
+      return matchesSearch && matchesStatus && matchesFrom && matchesTo;
+    });
+  }, [entries, search, status, dateFrom, dateTo]);
+
+  const columns = [
+    {
+      id: "number",
+      header: "Number",
+      cell: (j: JournalEntryDto) => <span className="font-mono text-xs">{j.entry_number}</span>,
+    },
+    { id: "date", header: "Date", cell: (j: JournalEntryDto) => j.entry_date },
+    {
+      id: "reference",
+      header: "Reference",
+      cell: (j: JournalEntryDto) => (
+        <span className="text-muted-foreground">
+          {[j.reference_type, j.reference_id].filter(Boolean).join(" / ") || "—"}
+        </span>
+      ),
+    },
+    {
+      id: "memo",
+      header: "Memo",
+      cell: (j: JournalEntryDto) => <span className="font-medium">{j.memo ?? "—"}</span>,
+    },
+    {
+      id: "debit",
+      header: "Debit",
+      className: "text-right",
+      cell: (j: JournalEntryDto) => {
+        const { debit } = journalLineTotals(j.lines ?? []);
+        return <span className="tabular-nums">{formatMoney(debit)}</span>;
+      },
+    },
+    {
+      id: "credit",
+      header: "Credit",
+      className: "text-right",
+      cell: (j: JournalEntryDto) => {
+        const { credit } = journalLineTotals(j.lines ?? []);
+        return <span className="tabular-nums">{formatMoney(credit)}</span>;
+      },
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (j: JournalEntryDto) => <JournalStatusBadge status={j.status as JournalStatus} />,
+    },
+    {
+      id: "actions",
+      header: "",
+      className: "w-10",
+      cell: (j: JournalEntryDto) => (
+        <Button size="sm" variant="ghost" onClick={() => setDetailEntry(j)}>
+          <Eye className="h-4 w-4" />
+        </Button>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -34,100 +117,53 @@ function JournalPage() {
         title="Journal Entries"
         description="Manual debit/credit postings to your ledger."
         breadcrumbs={[{ label: "Finance" }, { label: "Journal" }]}
-        actions={<>
-          <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" />Export</Button>
-          <Sheet>
-            <SheetTrigger asChild><Button size="sm" className="gradient-primary text-primary-foreground border-0"><Plus className="mr-2 h-4 w-4" />New entry</Button></SheetTrigger>
-            <SheetContent className="sm:max-w-2xl overflow-y-auto">
-              <SheetHeader><SheetTitle>New journal entry</SheetTitle></SheetHeader>
-              <div className="mt-6 space-y-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Date</Label><Input type="date" /></div>
-                  <div><Label>Reference</Label><Input placeholder="INV-1042" /></div>
-                </div>
-                <div><Label>Memo</Label><Textarea rows={2} placeholder="Description…" /></div>
-                <div className="rounded-lg border">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Account</TableHead><TableHead className="text-right">Debit</TableHead><TableHead className="text-right">Credit</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {[0,1].map(i => (
-                        <TableRow key={i}>
-                          <TableCell>
-                            <Select><SelectTrigger><SelectValue placeholder="Select account" /></SelectTrigger>
-                              <SelectContent>{accounts.map(a => <SelectItem key={a.id} value={a.id}>{a.code} — {a.name}</SelectItem>)}</SelectContent>
-                            </Select>
-                          </TableCell>
-                          <TableCell><Input type="number" placeholder="0.00" className="text-right" /></TableCell>
-                          <TableCell><Input type="number" placeholder="0.00" className="text-right" /></TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-                <Button variant="outline" size="sm" className="w-full"><Plus className="mr-2 h-4 w-4" />Add line</Button>
-              </div>
-              <SheetFooter className="mt-6"><Button variant="outline">Save draft</Button><Button className="gradient-primary text-primary-foreground border-0">Post entry</Button></SheetFooter>
-            </SheetContent>
-          </Sheet>
-        </>}
+        actions={
+          <Button
+            size="sm"
+            className="gradient-primary border-0 text-primary-foreground"
+            onClick={() => setFormOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New entry
+          </Button>
+        }
       />
 
-      <Card className="p-3 flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-56">
-          <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search entries…" className="pl-9" />
+      <FinancialFilters
+        search={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Search entries…"
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        onDateFromChange={setDateFrom}
+        onDateToChange={setDateTo}
+        status={status}
+        onStatusChange={setStatus}
+        statusOptions={STATUS_OPTIONS}
+      />
+
+      <Card className="overflow-hidden p-0">
+        <div className="p-4">
+          <DataTable
+            columns={columns}
+            data={filtered}
+            loading={isLoading}
+            emptyTitle="No journal entries"
+            emptyDescription="Post a journal entry to see it here."
+            getRowId={(j) => String(j.id)}
+          />
         </div>
-        <Input type="date" className="w-44" />
-        <Input type="date" className="w-44" />
-        <Select defaultValue="all">
-          <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All status</SelectItem>
-            <SelectItem value="posted">Posted</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-            <SelectItem value="void">Void</SelectItem>
-          </SelectContent>
-        </Select>
+        {serverPagination && serverPagination.total > 0 ? (
+          <PaginationBar pagination={serverPagination} onPageChange={setPage} />
+        ) : null}
       </Card>
 
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead>Number</TableHead><TableHead>Date</TableHead><TableHead>Reference</TableHead>
-              <TableHead>Memo</TableHead><TableHead className="text-right">Debit</TableHead>
-              <TableHead className="text-right">Credit</TableHead><TableHead>Status</TableHead><TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(j => (
-              <TableRow key={j.id}>
-                <TableCell className="font-mono text-xs">{j.number}</TableCell>
-                <TableCell>{j.date}</TableCell>
-                <TableCell className="text-muted-foreground">{j.reference}</TableCell>
-                <TableCell className="font-medium">{j.memo}</TableCell>
-                <TableCell className="text-right tabular-nums">${j.debit.toLocaleString()}</TableCell>
-                <TableCell className="text-right tabular-nums">${j.credit.toLocaleString()}</TableCell>
-                <TableCell><Badge variant="outline" className={statusColor[j.status]}>{j.status}</Badge></TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem><FileText className="mr-2 h-4 w-4" />View</DropdownMenuItem>
-                      <DropdownMenuItem><Pencil className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="text-destructive"><Trash2 className="mr-2 h-4 w-4" />Void</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
+      <JournalEntrySheet open={formOpen} onOpenChange={setFormOpen} accounts={accounts} />
+      <JournalDetailSheet
+        entry={detailEntry}
+        open={detailEntry != null}
+        onOpenChange={(open) => !open && setDetailEntry(null)}
+      />
     </div>
   );
 }

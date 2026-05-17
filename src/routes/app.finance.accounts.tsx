@@ -1,37 +1,100 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
-import { Search, Plus, Download, MoreHorizontal, Pencil, Trash2, Filter } from "lucide-react";
-import { useState } from "react";
-import { accounts } from "@/lib/finance-mock";
-import { ConfirmDelete } from "@/components/confirm-delete";
+import { DataTable } from "@/shared/components/data-table/data-table";
+import { FinancialFilters } from "@/modules/finance/components/financial-filters";
+import { AccountTypeBadge } from "@/modules/finance/components/account-type-badge";
+import { AccountFormSheet } from "@/modules/finance/components/account-form-sheet";
+import { PaginationBar } from "@/modules/finance/components/pagination-bar";
+import { useFinanceAccounts } from "@/hooks/finance/use-finance-accounts";
+import { formatMoney, paginateClient } from "@/modules/finance/utils";
+import type { FinanceAccountDto } from "@/modules/finance/types";
 
 export const Route = createFileRoute("/app/finance/accounts")({ component: AccountsPage });
 
-const typeColor: Record<string, string> = {
-  Asset: "bg-info/15 text-info border-info/20",
-  Liability: "bg-warning/15 text-warning border-warning/20",
-  Equity: "bg-primary/15 text-primary border-primary/20",
-  Income: "bg-success/15 text-success border-success/20",
-  Expense: "bg-destructive/15 text-destructive border-destructive/20",
-};
+const TYPE_OPTIONS = [
+  { value: "all", label: "All types" },
+  { value: "asset", label: "Asset" },
+  { value: "liability", label: "Liability" },
+  { value: "equity", label: "Equity" },
+  { value: "revenue", label: "Revenue" },
+  { value: "expense", label: "Expense" },
+];
 
 function AccountsPage() {
-  const [q, setQ] = useState("");
+  const [search, setSearch] = useState("");
   const [type, setType] = useState("all");
-  const [del, setDel] = useState(false);
-  const filtered = accounts.filter(a =>
-    (type === "all" || a.type === type) &&
-    (a.name.toLowerCase().includes(q.toLowerCase()) || a.code.includes(q))
+  const [page, setPage] = useState(1);
+  const [formOpen, setFormOpen] = useState(false);
+  const perPage = 15;
+
+  const { data: accounts = [], isLoading } = useFinanceAccounts();
+
+  const filtered = useMemo(() => {
+    const q = search.toLowerCase();
+    return accounts.filter((a) => {
+      const matchesType = type === "all" || a.type === type;
+      const matchesSearch =
+        !q || a.code.toLowerCase().includes(q) || a.name.toLowerCase().includes(q);
+      return matchesType && matchesSearch;
+    });
+  }, [accounts, search, type]);
+
+  const { data: rows, pagination } = useMemo(
+    () => paginateClient(filtered, page, perPage),
+    [filtered, page, perPage]
   );
+
+  const columns = [
+    {
+      id: "code",
+      header: "Code",
+      cell: (a: FinanceAccountDto) => <span className="font-mono text-xs">{a.code}</span>,
+    },
+    {
+      id: "name",
+      header: "Name",
+      cell: (a: FinanceAccountDto) => <span className="font-medium">{a.name}</span>,
+    },
+    {
+      id: "type",
+      header: "Type",
+      cell: (a: FinanceAccountDto) => <AccountTypeBadge type={a.type} />,
+    },
+    {
+      id: "balance",
+      header: "Balance",
+      className: "text-right",
+      cell: (a: FinanceAccountDto) => (
+        <span className="font-semibold tabular-nums">{formatMoney(a.balance, a.currency_code)}</span>
+      ),
+    },
+    {
+      id: "currency",
+      header: "Currency",
+      cell: (a: FinanceAccountDto) => a.currency_code,
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (a: FinanceAccountDto) => (
+        <Badge
+          variant="outline"
+          className={
+            a.is_active
+              ? "border-success/20 bg-success/15 text-success"
+              : "border-border bg-muted text-muted-foreground"
+          }
+        >
+          {a.is_active ? "Active" : "Inactive"}
+        </Badge>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
@@ -39,88 +102,50 @@ function AccountsPage() {
         title="Chart of Accounts"
         description="Define and organize your general ledger accounts."
         breadcrumbs={[{ label: "Finance" }, { label: "Chart of Accounts" }]}
-        actions={<>
-          <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" />Export</Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button size="sm" className="gradient-primary text-primary-foreground border-0"><Plus className="mr-2 h-4 w-4" />New account</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader><DialogTitle>Create account</DialogTitle></DialogHeader>
-              <div className="grid gap-3">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label>Code</Label><Input placeholder="6400" /></div>
-                  <div>
-                    <Label>Type</Label>
-                    <Select><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>
-                        {["Asset","Liability","Equity","Income","Expense"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div><Label>Name</Label><Input placeholder="Travel Expense" /></div>
-                <div><Label>Currency</Label><Input defaultValue="USD" /></div>
-              </div>
-              <DialogFooter><Button variant="outline">Cancel</Button><Button className="gradient-primary text-primary-foreground border-0">Create</Button></DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </>}
+        actions={
+          <Button
+            size="sm"
+            className="gradient-primary border-0 text-primary-foreground"
+            onClick={() => setFormOpen(true)}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            New account
+          </Button>
+        }
       />
 
-      <Card className="p-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative flex-1 min-w-56">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input value={q} onChange={e => setQ(e.target.value)} placeholder="Search code or name…" className="pl-9" />
-          </div>
-          <Select value={type} onValueChange={setType}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All types</SelectItem>
-              {["Asset","Liability","Equity","Income","Expense"].map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="sm"><Filter className="mr-2 h-4 w-4" />Filters</Button>
+      <FinancialFilters
+        search={search}
+        onSearchChange={(v) => {
+          setSearch(v);
+          setPage(1);
+        }}
+        searchPlaceholder="Search code or name…"
+        type={type}
+        onTypeChange={(v) => {
+          setType(v);
+          setPage(1);
+        }}
+        typeOptions={TYPE_OPTIONS}
+      />
+
+      <Card className="overflow-hidden p-0">
+        <div className="p-4">
+          <DataTable
+            columns={columns}
+            data={rows}
+            loading={isLoading}
+            emptyTitle="No accounts"
+            emptyDescription="Create an account or seed the chart of accounts for this tenant."
+            getRowId={(a) => String(a.id)}
+          />
         </div>
+        {pagination.total > 0 ? (
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
+        ) : null}
       </Card>
 
-      <Card className="overflow-hidden">
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead>Code</TableHead><TableHead>Name</TableHead><TableHead>Type</TableHead>
-              <TableHead className="text-right">Balance</TableHead><TableHead>Currency</TableHead>
-              <TableHead>Status</TableHead><TableHead className="w-10" />
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map(a => (
-              <TableRow key={a.id}>
-                <TableCell className="font-mono text-xs">{a.code}</TableCell>
-                <TableCell className="font-medium">{a.name}</TableCell>
-                <TableCell><Badge variant="outline" className={typeColor[a.type]}>{a.type}</Badge></TableCell>
-                <TableCell className="text-right font-semibold tabular-nums">${a.balance.toLocaleString()}</TableCell>
-                <TableCell>{a.currency}</TableCell>
-                <TableCell>
-                  <Badge variant="outline" className={a.status === "active" ? "bg-success/15 text-success border-success/20" : "bg-muted text-muted-foreground"}>{a.status}</Badge>
-                </TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button size="sm" variant="ghost"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem><Pencil className="mr-2 h-4 w-4" />Edit</DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem className="text-destructive" onClick={() => setDel(true)}><Trash2 className="mr-2 h-4 w-4" />Delete</DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </Card>
-      <ConfirmDelete open={del} onOpenChange={setDel} title="Delete account?" description="This will archive the account permanently." />
+      <AccountFormSheet open={formOpen} onOpenChange={setFormOpen} />
     </div>
   );
 }

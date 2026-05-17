@@ -261,37 +261,34 @@ function RoleListItem({
   onDelete: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <div
       className={cn(
-        "w-full rounded-lg p-3 text-left transition-colors",
+        "flex w-full items-start gap-1 rounded-lg transition-colors",
         active ? "bg-primary/10 text-primary" : "hover:bg-muted"
       )}
     >
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-sm font-medium">{role.name}</span>
-        <Badge variant="secondary" className="text-[10px]">
-          {role.users_count ?? 0}
-        </Badge>
-      </div>
-      <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{role.description ?? role.slug}</p>
+      <button type="button" onClick={onSelect} className="min-w-0 flex-1 p-3 text-left">
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-sm font-medium">{role.name}</span>
+          <Badge variant="secondary" className="text-[10px]">
+            {role.users_count ?? 0}
+          </Badge>
+        </div>
+        <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{role.description ?? role.slug}</p>
+      </button>
       <PermissionGate permission="core.roles.manage">
         {!role.is_system ? (
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="mt-2 h-7 text-xs text-destructive"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            className="mt-2 mr-2 h-7 shrink-0 text-xs text-destructive"
+            onClick={onDelete}
           >
             Delete
           </Button>
         ) : null}
       </PermissionGate>
-    </button>
+    </div>
   );
 }
