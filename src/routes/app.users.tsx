@@ -1,4 +1,9 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { requirePermission } from "@/core/auth/require-permission";
+import { PermissionGate } from "@/shared/components/auth/permission-gate";
+import { useRbacUsers } from "@/hooks/rbac/use-roles";
+import { UserRolesDialog } from "@/components/user-roles-dialog";
+import type { RbacUserDto } from "@/modules/rbac/types";
 import { useMemo, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
@@ -11,13 +16,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, Eye, Download, Mail } from "lucide-react";
+import { Search, Filter, Plus, MoreHorizontal, Edit, Trash2, Eye, Download, Mail, Shield } from "lucide-react";
 import { mockUsers, type User } from "@/lib/mock-data";
 import { UserFormDialog } from "@/components/user-form-dialog";
 import { ConfirmDelete } from "@/components/confirm-delete";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/app/users")({ component: UsersPage });
+export const Route = createFileRoute("/app/users")({
+  beforeLoad: () => requirePermission("core.users.view"),
+  component: UsersPage,
+});
 
 const statusStyles: Record<string, string> = {
   active: "bg-success/15 text-success border-success/20",
@@ -32,11 +40,33 @@ function UsersPage() {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [selected, setSelected] = useState<string[]>([]);
+  const [rolesUser, setRolesUser] = useState<RbacUserDto | null>(null);
+  const [rolesOpen, setRolesOpen] = useState(false);
 
-  const filtered = useMemo(() => mockUsers.filter((u) =>
-    (role === "all" || u.role === role) &&
-    (u.name.toLowerCase().includes(q.toLowerCase()) || u.email.toLowerCase().includes(q.toLowerCase()))
-  ), [q, role]);
+  const { data: rbacUsersRes, isLoading } = useRbacUsers(q);
+  const apiUsers = rbacUsersRes?.data ?? [];
+
+  const filtered = useMemo(() => {
+    const source =
+      apiUsers.length > 0
+        ? apiUsers.map((u) => ({
+            id: String(u.id),
+            name: u.name,
+            email: u.email,
+            role: u.roles?.[0]?.name ?? u.user_type,
+            department: "—",
+            status: u.is_active ? ("active" as const) : ("suspended" as const),
+            lastActive: "—",
+            rbac: u,
+          }))
+        : mockUsers.map((u) => ({ ...u, rbac: null as RbacUserDto | null }));
+
+    return source.filter(
+      (u) =>
+        (role === "all" || u.role === role) &&
+        (u.name.toLowerCase().includes(q.toLowerCase()) || u.email.toLowerCase().includes(q.toLowerCase()))
+    );
+  }, [q, role, apiUsers]);
 
   const allChecked = selected.length === filtered.length && filtered.length > 0;
   const initials = (n: string) => n.split(" ").map(w => w[0]).slice(0, 2).join("");
@@ -132,6 +162,21 @@ function UsersPage() {
                     <DropdownMenuContent align="end">
                       <DropdownMenuItem asChild><Link to="/app/users/$userId" params={{ userId: u.id }} className="gap-2"><Eye className="h-4 w-4" />View</Link></DropdownMenuItem>
                       <DropdownMenuItem className="gap-2" onClick={() => { setEditing(u); setOpen(true); }}><Edit className="h-4 w-4" />Edit</DropdownMenuItem>
+                      <PermissionGate permission="core.users.manage">
+                        <DropdownMenuItem
+                          className="gap-2"
+                          disabled={!u.rbac}
+                          onClick={() => {
+                            if (u.rbac) {
+                              setRolesUser(u.rbac);
+                              setRolesOpen(true);
+                            }
+                          }}
+                        >
+                          <Shield className="h-4 w-4" />
+                          Assign roles
+                        </DropdownMenuItem>
+                      </PermissionGate>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem className="gap-2 text-destructive" onClick={() => setDeleteOpen(true)}><Trash2 className="h-4 w-4" />Delete</DropdownMenuItem>
                     </DropdownMenuContent>
@@ -158,6 +203,7 @@ function UsersPage() {
 
       <UserFormDialog open={open} onOpenChange={setOpen} user={editing} />
       <ConfirmDelete open={deleteOpen} onOpenChange={setDeleteOpen} title="Delete user?" description="This will permanently remove this user and all their access. This cannot be undone." />
+      <UserRolesDialog user={rolesUser} open={rolesOpen} onOpenChange={setRolesOpen} />
     </div>
   );
 }

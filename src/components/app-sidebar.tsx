@@ -21,13 +21,13 @@ import { isNavItemActive, mergeSectionsOpen, resolveNavMenu, sectionHasActiveRou
 import { useUiStore } from "@/stores/ui-store";
 import { useAuth } from "@/hooks/use-auth";
 
-const menu = resolveNavMenu();
-
+ 
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
+  const menu = useMemo(() => resolveNavMenu(undefined, user), [user]);
   const sidebarSectionsOpen = useUiStore((s) => s.sidebarSectionsOpen);
   const setSectionOpen = useUiStore((s) => s.setSectionOpen);
   const setSectionsOpen = useUiStore((s) => s.setSectionsOpen);
