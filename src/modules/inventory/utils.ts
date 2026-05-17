@@ -32,6 +32,39 @@ export function buildCategoryTree(
   });
 }
 
+export function formatMoney(amount: number, currency = "USD"): string {
+  return new Intl.NumberFormat(undefined, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function movementTypeLabel(type: string): string {
+  const map: Record<string, string> = {
+    in: "Receipt",
+    out: "Issue",
+    adjustment: "Adjustment",
+    transfer: "Transfer",
+    purchase_receipt: "Purchase",
+    sales_issue: "Sale",
+    transfer_in: "Transfer In",
+    transfer_out: "Transfer Out",
+  };
+  return map[type] ?? type.replace(/_/g, " ");
+}
+
+export function productDisplayStatus(
+  stock: number,
+  status: string,
+  reorderLevel = 10,
+): "active" | "inactive" | "low-stock" | "out-of-stock" {
+  if (status === "inactive" || status === "discontinued") return "inactive";
+  if (stock <= 0) return "out-of-stock";
+  if (stock <= reorderLevel) return "low-stock";
+  return "active";
+}
+
 export function countProductsByCategory(products: ProductDto[]): Record<number, number> {
   const counts: Record<number, number> = {};
   for (const product of products) {

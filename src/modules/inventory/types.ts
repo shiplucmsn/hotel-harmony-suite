@@ -81,7 +81,62 @@ export type CreateProductInput = {
   price?: number;
   cost_price?: number;
   opening_qty?: number;
+  default_warehouse_id?: number;
   status?: ProductStatus;
 };
 
 export type UpdateProductInput = Partial<CreateProductInput>;
+
+export type StockMovementDto = {
+  id: number;
+  sku: string;
+  product_id?: number | null;
+  warehouse_id?: number | null;
+  movement_type: string;
+  quantity: number;
+  quantity_delta: number;
+  qty_before: number;
+  qty_after: number;
+  unit_cost: number;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  correlation_id?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+};
+
+export type CreateWarehouseInput = {
+  code: string;
+  name: string;
+  location?: string;
+  status?: string;
+  is_default?: boolean;
+};
+
+export type AdjustStockInput = {
+  sku?: string;
+  product_id?: number;
+  warehouse_id?: number;
+  quantity: number;
+  unit_cost?: number;
+  notes?: string;
+  reference_type?: string;
+  reference_id?: string;
+};
+
+export type MovementListParams = {
+  page?: number;
+  per_page?: number;
+  sku?: string;
+  product_id?: number;
+  warehouse_id?: number;
+  movement_type?: string;
+};
+
+export type StockLevelListParams = {
+  page?: number;
+  per_page?: number;
+  sku?: string;
+  product_id?: number;
+  warehouse_id?: number;
+};

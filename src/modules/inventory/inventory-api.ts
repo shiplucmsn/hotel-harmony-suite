@@ -1,11 +1,17 @@
 import { api } from "@/lib/api-client";
 import type { ApiEnvelope } from "@/services/api/types";
 import type {
+  AdjustStockInput,
   CreateCategoryInput,
   CreateProductInput,
+  CreateWarehouseInput,
   InventoryCategoryDto,
+  MovementListParams,
   PaginatedResult,
   ProductDto,
+  StockLevelDto,
+  StockLevelListParams,
+  StockMovementDto,
   UpdateProductInput,
   WarehouseDto,
 } from "@/modules/inventory/types";
@@ -15,14 +21,15 @@ type ListParams = {
   per_page?: number;
   search?: string;
   status?: string;
+  category_id?: number;
 };
 
-function buildQuery(params?: ListParams): string {
+function buildQuery(params?: Record<string, string | number | undefined>): string {
   const q = new URLSearchParams();
-  if (params?.page) q.set("page", String(params.page));
-  if (params?.per_page) q.set("per_page", String(params.per_page));
-  if (params?.search) q.set("search", params.search);
-  if (params?.status) q.set("status", params.status);
+  if (!params) return "";
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== "") q.set(key, String(value));
+  }
   const qs = q.toString();
   return qs ? `?${qs}` : "";
 }
@@ -52,19 +59,38 @@ export const inventoryApi = {
     api.get<ApiEnvelope<ProductDto>>(`/v1/products/${id}`).then((r) => r.data),
 
   createProduct: (body: CreateProductInput) =>
-    api
-      .post<ApiEnvelope<ProductDto>>("/v1/products", body, { idempotent: true })
-      .then((r) => r),
+    api.post<ApiEnvelope<ProductDto>>("/v1/products", body, { idempotent: true }),
 
   updateProduct: (id: number | string, body: UpdateProductInput) =>
-    api
-      .patch<ApiEnvelope<ProductDto>>(`/v1/products/${id}`, body, { idempotent: true })
-      .then((r) => r),
+    api.patch<ApiEnvelope<ProductDto>>(`/v1/products/${id}`, body, { idempotent: true }),
 
-  warehouses: () =>
+  lookupBarcode: (barcode: string) =>
+    api.get<ApiEnvelope<ProductDto>>(`/v1/inventory/barcodes/${encodeURIComponent(barcode)}`).then((r) => r.data),
+
+  warehouses: (params?: { page?: number; per_page?: number }) =>
     api
-      .get<ApiEnvelope<WarehouseDto[]>>(`/v1/inventory/warehouses?per_page=100`)
+      .get<ApiEnvelope<WarehouseDto[]>>(`/v1/inventory/warehouses${buildQuery(params)}`)
       .then(paginated),
 
-  items: () => inventoryApi.products({ per_page: 100 }),
+  createWarehouse: (body: CreateWarehouseInput) =>
+    api
+      .post<ApiEnvelope<WarehouseDto>>("/v1/inventory/warehouses", body, { idempotent: true })
+      .then((r) => r.data),
+
+  stockLevels: (params?: StockLevelListParams) =>
+    api
+      .get<ApiEnvelope<StockLevelDto[]>>(`/v1/inventory/stock-levels${buildQuery(params)}`)
+      .then(paginated),
+
+  movements: (params?: MovementListParams) =>
+    api
+      .get<ApiEnvelope<StockMovementDto[]>>(`/v1/inventory/movements${buildQuery(params)}`)
+      .then(paginated),
+
+  adjustStock: (body: AdjustStockInput) =>
+    api.post<ApiEnvelope<{ sku: string; currentStock: number; movement: StockMovementDto }>>(
+      "/v1/inventory/adjustments",
+      body,
+      { idempotent: true },
+    ),
 };

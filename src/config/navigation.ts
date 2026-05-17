@@ -121,10 +121,11 @@ export const NAV_MENU: NavSectionMeta[] = [
     items: [
       { title: "Products", url: "/app/products", iconName: "package" },
       { title: "Categories", url: "/app/inv/categories", iconName: "folderOpen" },
-      { title: "SKU System", url: "/app/inv/sku", iconName: "hash" },
-      { title: "Barcodes", url: "/app/inv/barcode", iconName: "scanBarcode" },
       { title: "Warehouses", url: "/app/inv/warehouses", iconName: "warehouse" },
       { title: "Multi-Warehouse", url: "/app/inv/warehouses-dashboard", iconName: "building" },
+      { title: "Stock movements", url: "/app/inv/movements", iconName: "activity" },
+      { title: "Barcodes", url: "/app/inv/barcode", iconName: "scanBarcode" },
+      { title: "SKU System", url: "/app/inv/sku", iconName: "hash" },
       { title: "Stock Transfer", url: "/app/inv/transfers", iconName: "arrowRightLeft" },
       { title: "Stock Adjustment", url: "/app/inv/adjustments", iconName: "clipboardList" },
       { title: "Batch Tracking", url: "/app/inv/batches", iconName: "layers" },
