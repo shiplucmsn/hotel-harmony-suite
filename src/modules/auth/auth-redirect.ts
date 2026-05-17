@@ -10,7 +10,7 @@ export function getPostAuthRoute(user: AuthUser, redirect?: string): string {
     return "/app/super-admin";
   }
 
-  if (user.roles.includes("company-admin")) {
+  if (user.userType === "company_admin") {
     return DEFAULT_APP_ROUTE;
   }
 
@@ -21,4 +21,13 @@ export function userHasPermission(user: AuthUser | null, permission: string): bo
   if (!user) return false;
   if (user.permissions.includes("*")) return true;
   return user.permissions.includes(permission);
+}
+
+export function userHasModule(user: AuthUser | null, moduleKey?: string): boolean {
+  if (!moduleKey) return true;
+  if (!user) return false;
+  if (user.userType === "super_admin") return true;
+  const modules = user.enabledModules ?? [];
+  if (modules.length === 0) return true;
+  return modules.includes(moduleKey);
 }

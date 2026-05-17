@@ -4,29 +4,49 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Plus, MoreHorizontal, Users, CreditCard } from "lucide-react";
+import { Plus, MoreHorizontal, Users, CreditCard, Puzzle } from "lucide-react";
 import { erpApi } from "@/lib/erp-api";
 import { setTenantId } from "@/lib/api-auth";
+import { CompanyModulesDialog } from "@/components/company-modules-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/app/tenants")({ component: TenantsPage });
 
-type TenantRow = { id: number | string; name: string; slug: string; status: string };
+type TenantRow = {
+  id: number | string;
+  name: string;
+  slug: string;
+  status: string;
+  company_id?: number | null;
+};
 
 function TenantsPage() {
   const [tenantList, setTenantList] = useState<TenantRow[]>([]);
+  const [modulesOpen, setModulesOpen] = useState(false);
+  const [modulesTarget, setModulesTarget] = useState<TenantRow | null>(null);
 
   useEffect(() => {
     void erpApi.tenants.list().then((rows) => setTenantList(rows as TenantRow[])).catch(() => setTenantList([]));
   }, []);
 
+  const openModules = (t: TenantRow) => {
+    setModulesTarget(t);
+    setModulesOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Workspaces"
-        description="Switch between or create new workspaces."
+        description="Switch between workspaces or manage module access per company."
         breadcrumbs={[{ label: "Administration" }, { label: "Workspaces" }]}
         actions={
-          <Button size="sm" className="gradient-primary text-primary-foreground border-0">
+          <Button size="sm" className="gradient-primary border-0 text-primary-foreground">
             <Plus className="mr-2 h-4 w-4" />
             New workspace
           </Button>
@@ -41,9 +61,21 @@ function TenantsPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-primary text-base font-semibold text-primary-foreground shadow-glow">
                   {t.name.slice(0, 2).toUpperCase()}
                 </div>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {t.company_id ? (
+                      <DropdownMenuItem onClick={() => openModules(t)}>
+                        <Puzzle className="mr-2 h-4 w-4" />
+                        Manage modules
+                      </DropdownMenuItem>
+                    ) : null}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
               <h3 className="mt-4 font-semibold">{t.name}</h3>
               <Badge variant="outline" className="mt-1">
@@ -65,13 +97,29 @@ function TenantsPage() {
                   <div className="font-semibold">{t.status}</div>
                 </div>
               </div>
-              <Button variant="outline" className="mt-4 w-full" onClick={() => setTenantId(t.slug)}>
-                Open workspace
-              </Button>
+              <div className="mt-4 flex gap-2">
+                <Button variant="outline" className="flex-1" onClick={() => setTenantId(t.slug)}>
+                  Open workspace
+                </Button>
+                {t.company_id ? (
+                  <Button variant="outline" size="icon" onClick={() => openModules(t)} title="Manage modules">
+                    <Puzzle className="h-4 w-4" />
+                  </Button>
+                ) : null}
+              </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {modulesTarget?.company_id ? (
+        <CompanyModulesDialog
+          companyId={modulesTarget.company_id}
+          companyName={modulesTarget.name}
+          open={modulesOpen}
+          onOpenChange={setModulesOpen}
+        />
+      ) : null}
     </div>
   );
 }

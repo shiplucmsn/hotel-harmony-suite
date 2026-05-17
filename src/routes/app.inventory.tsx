@@ -13,8 +13,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Search, Boxes, Plus, Pencil, MoreHorizontal, Save } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api-client";
-import { showSideEffects, type ApiEnvelope } from "@/lib/api-meta";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { showSideEffects } from "@/lib/api-meta";
+import { CategorySelectField } from "@/modules/inventory/components/category-select-field";
+import { inventoryApi } from "@/modules/inventory/inventory-api";
+import { useInventoryCategories } from "@/hooks/inventory/use-inventory-categories";
+import { apiStatusFromDisplay, mapProductToRow, type StockDisplayStatus } from "@/modules/inventory/utils";
 
 export const Route = createFileRoute("/app/inventory")({ component: InventoryPage });
 
@@ -23,18 +27,19 @@ type InventoryItem = {
   sku: string;
   name: string;
   category: string;
+  categoryId: string;
   warehouse: string;
   stock: number;
   reorderLevel: number;
   unitCost: number;
   sellingPrice: number;
-  status: "in-stock" | "low-stock" | "out-of-stock";
+  status: StockDisplayStatus;
 };
 
 type InventoryForm = {
   name: string;
   sku: string;
-  category: string;
+  categoryId: string;
   warehouse: string;
   stock: string;
   reorderLevel: string;
@@ -43,45 +48,6 @@ type InventoryForm = {
   status: InventoryItem["status"];
 };
 
-const inventoryItems: InventoryItem[] = [
-  {
-    id: "1",
-    sku: "RM-101",
-    name: "Premium Bed Sheet",
-    category: "Housekeeping",
-    warehouse: "Main Store",
-    stock: 78,
-    reorderLevel: 30,
-    unitCost: 850,
-    sellingPrice: 1200,
-    status: "in-stock",
-  },
-  {
-    id: "2",
-    sku: "KT-205",
-    name: "Coffee Beans 1kg",
-    category: "Kitchen",
-    warehouse: "Kitchen Store",
-    stock: 14,
-    reorderLevel: 20,
-    unitCost: 1100,
-    sellingPrice: 1500,
-    status: "low-stock",
-  },
-  {
-    id: "3",
-    sku: "MN-012",
-    name: "Room Shampoo 250ml",
-    category: "Amenities",
-    warehouse: "Amenities Store",
-    stock: 0,
-    reorderLevel: 50,
-    unitCost: 65,
-    sellingPrice: 110,
-    status: "out-of-stock",
-  },
-];
-
 const statusTone: Record<InventoryItem["status"], string> = {
   "in-stock": "bg-success/15 text-success border-success/20",
   "low-stock": "bg-warning/15 text-warning border-warning/20",
@@ -89,8 +55,10 @@ const statusTone: Record<InventoryItem["status"], string> = {
 };
 
 function InventoryPage() {
+  const { data: categories = [] } = useInventoryCategories();
   const [query, setQuery] = useState("");
-  const [inventoryList, setInventoryList] = useState<InventoryItem[]>(inventoryItems);
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
@@ -98,7 +66,7 @@ function InventoryPage() {
   const [form, setForm] = useState<InventoryForm>({
     name: "",
     sku: "",
-    category: "Housekeeping",
+    categoryId: "",
     warehouse: "Main Store",
     stock: "0",
     reorderLevel: "10",
@@ -107,31 +75,16 @@ function InventoryPage() {
     status: "in-stock",
   });
 
-  const mapInventoryItem = (item: Record<string, unknown>): InventoryItem => {
-    const stock = Number(item.stock ?? 0);
-    const status = stock <= 0 ? "out-of-stock" : stock <= 15 ? "low-stock" : "in-stock";
-    return {
-      id: String(item.id ?? ""),
-      sku: String(item.sku ?? ""),
-      name: String(item.name ?? ""),
-      category: String(item.category ?? "Uncategorized"),
-      warehouse: "Main Store",
-      stock,
-      reorderLevel: 10,
-      unitCost: Math.round(Number(item.price ?? 0) * 0.7),
-      sellingPrice: Number(item.price ?? 0),
-      status,
-    };
-  };
-
   const loadInventory = async () => {
     try {
-      const res = await api.get<ApiEnvelope<Record<string, unknown>[]> | Record<string, unknown>[]>("/v1/inventory/items");
-      const rows = Array.isArray(res) ? res : (res.data ?? []);
-      setInventoryList(rows.map(mapInventoryItem));
-    } catch {
+      setLoadError(null);
+      const { data } = await inventoryApi.items();
+      setInventoryList(data.map((p) => mapProductToRow(p, 10)));
+    } catch (err) {
       setInventoryList([]);
-      toast.error("Failed to load inventory");
+      const message = getApiErrorMessage(err, "Failed to load inventory");
+      setLoadError(message);
+      toast.error(message);
     }
   };
 
@@ -150,7 +103,7 @@ function InventoryPage() {
     setForm({
       name: "",
       sku: "",
-      category: "Housekeeping",
+      categoryId: "",
       warehouse: "Main Store",
       stock: "0",
       reorderLevel: "10",
@@ -168,7 +121,7 @@ function InventoryPage() {
     setForm({
       name: item.name,
       sku: item.sku,
-      category: item.category,
+      categoryId: item.categoryId,
       warehouse: item.warehouse,
       stock: String(item.stock),
       reorderLevel: String(item.reorderLevel),
@@ -181,52 +134,35 @@ function InventoryPage() {
   };
 
   const saveInventoryItem = async () => {
+    const openingQty = Number(form.stock) || 0;
+    const selectedCategory = categories.find((c) => String(c.id) === form.categoryId);
     const payload = {
-      name: form.name || "Untitled Item",
-      sku: form.sku || `SKU-${String(Date.now()).slice(-5)}`,
-      category: form.category,
+      name: form.name.trim() || "Untitled Item",
+      sku: form.sku.trim() || undefined,
+      category_id: form.categoryId ? Number(form.categoryId) : undefined,
+      category: selectedCategory?.name,
       brand: "N/A",
-      stock: Number(form.stock) || 0,
       price: Number(form.sellingPrice) || 0,
-      status: form.status === "out-of-stock" ? "draft" : form.status === "low-stock" ? "low-stock" : "active",
+      cost_price: Number(form.unitCost) || 0,
+      status: apiStatusFromDisplay(form.status),
+      ...(sheetMode === "create" && openingQty > 0 ? { opening_qty: openingQty } : {}),
     };
 
     try {
       if (sheetMode === "create") {
-        const res = await api.post<ApiEnvelope<Record<string, unknown>>>("/v1/products", payload, {
-          headers: { "X-Tenant-Id": "demo_tenant", "X-Request-Id": crypto.randomUUID(), "Idempotency-Key": crypto.randomUUID() },
-        });
+        const res = await inventoryApi.createProduct(payload);
         showSideEffects(res.meta);
         toast.success("Inventory item created");
       } else if (selectedItem) {
-        const res = await api.patch<ApiEnvelope<Record<string, unknown>>>(`/v1/products/${selectedItem.id}`, payload, {
-          headers: { "X-Tenant-Id": "demo_tenant", "X-Request-Id": crypto.randomUUID(), "Idempotency-Key": crypto.randomUUID() },
-        });
+        const res = await inventoryApi.updateProduct(selectedItem.id, payload);
         showSideEffects(res.meta);
         toast.success("Inventory item updated");
       }
       await loadInventory();
-    } catch {
-      toast.message("Saved locally (API unavailable)");
-      const fallback: InventoryItem = {
-        id: selectedItem?.id ?? `${Date.now()}`,
-        sku: payload.sku,
-        name: payload.name,
-        category: payload.category,
-        warehouse: form.warehouse,
-        stock: Number(form.stock) || 0,
-        reorderLevel: Number(form.reorderLevel) || 10,
-        unitCost: Number(form.unitCost) || 0,
-        sellingPrice: Number(form.sellingPrice) || 0,
-        status: form.status,
-      };
-      if (sheetMode === "create") {
-        setInventoryList((prev) => [fallback, ...prev]);
-      } else {
-        setInventoryList((prev) => prev.map((p) => (p.id === fallback.id ? fallback : p)));
-      }
+      setSheetOpen(false);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Could not save inventory item"));
     }
-    setSheetOpen(false);
   };
 
   return (
@@ -248,6 +184,10 @@ function InventoryPage() {
           </Button>
         }
       />
+
+      {loadError ? (
+        <Card className="border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">{loadError}</Card>
+      ) : null}
 
       <Card className="p-3">
         <div className="relative max-w-sm">
@@ -390,20 +330,11 @@ function InventoryPage() {
                 <Label>SKU *</Label>
                 <Input placeholder="e.g. RM-101" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} />
               </div>
-              <div className="grid gap-2">
-                <Label>Category *</Label>
-                <Select value={form.category} onValueChange={(value) => setForm((p) => ({ ...p, category: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Housekeeping">Housekeeping</SelectItem>
-                    <SelectItem value="Kitchen">Kitchen</SelectItem>
-                    <SelectItem value="Amenities">Amenities</SelectItem>
-                    <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <CategorySelectField
+                value={form.categoryId}
+                onChange={(categoryId) => setForm((p) => ({ ...p, categoryId }))}
+                required
+              />
               <div className="grid gap-2">
                 <Label>Warehouse *</Label>
                 <Select value={form.warehouse} onValueChange={(value) => setForm((p) => ({ ...p, warehouse: value }))}>

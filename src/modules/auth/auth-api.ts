@@ -21,6 +21,9 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     emailVerified: Boolean(raw.email_verified),
     roles: Array.isArray(raw.roles) ? (raw.roles as string[]) : [],
     permissions: Array.isArray(raw.permissions) ? (raw.permissions as string[]) : [],
+    enabledModules: Array.isArray(raw.enabled_modules)
+      ? (raw.enabled_modules as string[])
+      : [],
     company: (raw.company as AuthUser["company"]) ?? null,
     branch: (raw.branch as AuthUser["branch"]) ?? null,
   };

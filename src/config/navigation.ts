@@ -1,8 +1,12 @@
 import type { LucideIcon } from "lucide-react";
 import { getNavIcon, type NavIconName } from "@/config/navigation-icons";
-import { ROUTE_NAV_PERMISSION_MAP, SECTION_PERMISSION_MAP } from "@/config/navigation-permissions";
+import {
+  ROUTE_NAV_PERMISSION_MAP,
+  SECTION_MODULE_MAP,
+  SECTION_PERMISSION_MAP,
+} from "@/config/navigation-permissions";
 import type { AuthUser } from "@/modules/auth/types";
-import { userHasPermission } from "@/modules/auth/auth-redirect";
+import { userHasModule, userHasPermission } from "@/modules/auth/auth-redirect";
 
 export type NavItemMeta = {
   title: string;
@@ -19,6 +23,7 @@ export type NavSectionMeta = {
   items: NavItemMeta[];
   roles?: string[];
   permission?: string;
+  moduleKey?: string;
 };
 
 export type NavItem = {
@@ -41,6 +46,7 @@ export type NavSection = {
 function enrichNavPermissions(sections: NavSectionMeta[]): NavSectionMeta[] {
   return sections.map((section) => ({
     ...section,
+    moduleKey: section.moduleKey ?? SECTION_MODULE_MAP[section.title],
     permission: section.permission ?? SECTION_PERMISSION_MAP[section.title],
     items: section.items.map((item) => ({
       ...item,
@@ -49,21 +55,26 @@ function enrichNavPermissions(sections: NavSectionMeta[]): NavSectionMeta[] {
   }));
 }
 
-export function canAccessNav(user: AuthUser | null, permission?: string): boolean {
+export function canAccessNav(user: AuthUser | null, permission?: string, moduleKey?: string): boolean {
+  if (moduleKey && !userHasModule(user, moduleKey)) return false;
   if (!permission) return true;
   return userHasPermission(user, permission);
 }
 
 export function filterNavByPermissions(sections: NavSectionMeta[], user: AuthUser | null): NavSectionMeta[] {
   if (!user) return [];
-  if (user.userType === "super_admin") return enrichNavPermissions(sections);
 
   return enrichNavPermissions(sections)
     .map((section) => ({
       ...section,
-      items: section.items.filter((item) => canAccessNav(user, item.permission)),
+      items: section.items.filter((item) =>
+        canAccessNav(user, item.permission, section.moduleKey)
+      ),
     }))
-    .filter((section) => section.items.length > 0 && canAccessNav(user, section.permission));
+    .filter(
+      (section) =>
+        section.items.length > 0 && canAccessNav(user, section.permission, section.moduleKey)
+    );
 }
 
 export const NAV_MENU: NavSectionMeta[] = [

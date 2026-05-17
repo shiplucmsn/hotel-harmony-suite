@@ -1,0 +1,87 @@
+export type ProductStatus = "active" | "inactive" | "discontinued";
+
+export type InventoryCategoryDto = {
+  id: number;
+  uuid?: string;
+  parent_id?: number | null;
+  code: string;
+  name: string;
+  description?: string | null;
+  is_active: boolean;
+};
+
+export type CreateCategoryInput = {
+  code: string;
+  name: string;
+  description?: string;
+  parent_id?: number;
+  is_active?: boolean;
+};
+
+export type ProductDto = {
+  id: number;
+  uuid?: string;
+  sku: string;
+  barcode?: string | null;
+  name: string;
+  description?: string | null;
+  category_id?: number | null;
+  unit_id?: number | null;
+  category?: string | null;
+  brand?: string | null;
+  price: number;
+  cost_price?: number;
+  track_inventory?: boolean;
+  default_warehouse_id?: number | null;
+  stock: number;
+  status: ProductStatus | string;
+  category_ref?: { id: number; code: string; name: string } | null;
+  unit?: { id: number; code: string; name: string; symbol?: string | null } | null;
+  stock_levels?: StockLevelDto[];
+};
+
+export type StockLevelDto = {
+  id: number;
+  product_id: number;
+  warehouse_id: number;
+  qty_on_hand: number;
+  qty_reserved: number;
+  available_qty: number;
+  warehouse?: { id: number; code: string; name: string };
+};
+
+export type WarehouseDto = {
+  id: number;
+  uuid?: string;
+  code: string;
+  name: string;
+  location?: string | null;
+  status: string;
+  is_default: boolean;
+};
+
+export type PaginatedResult<T> = {
+  data: T[];
+  pagination?: {
+    page: number;
+    perPage: number;
+    total: number;
+    lastPage: number;
+  };
+};
+
+export type CreateProductInput = {
+  sku?: string;
+  name: string;
+  barcode?: string;
+  description?: string;
+  category?: string;
+  category_id?: number;
+  brand?: string;
+  price?: number;
+  cost_price?: number;
+  opening_qty?: number;
+  status?: ProductStatus;
+};
+
+export type UpdateProductInput = Partial<CreateProductInput>;

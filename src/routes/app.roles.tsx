@@ -214,7 +214,7 @@ function RolesPage() {
                               </div>
                               <Checkbox
                                 checked={selectedPermIds.has(perm.id)}
-                                disabled={activeRole.is_system || activeRole.slug === "super-admin"}
+                                disabled={activeRole.is_system}
                                 onCheckedChange={() => togglePerm(perm)}
                               />
                             </div>
@@ -229,11 +229,7 @@ function RolesPage() {
                   <div className="flex justify-end gap-2 pt-2">
                     <Button
                       className="border-0 gradient-primary text-primary-foreground"
-                      disabled={
-                        syncPerms.isPending ||
-                        activeRole.is_system ||
-                        activeRole.slug === "super-admin"
-                      }
+                      disabled={syncPerms.isPending || activeRole.is_system}
                       onClick={() => syncPerms.mutate([...selectedPermIds])}
                     >
                       {syncPerms.isPending ? "Saving…" : "Save changes"}

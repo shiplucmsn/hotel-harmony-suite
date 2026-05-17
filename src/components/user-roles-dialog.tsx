@@ -40,9 +40,7 @@ export function UserRolesDialog({ user, open, onOpenChange }: UserRolesDialogPro
           </DialogDescription>
         </DialogHeader>
         <div className="max-h-64 space-y-2 overflow-y-auto py-2">
-          {(roles ?? [])
-            .filter((r) => r.slug !== "super-admin")
-            .map((role) => (
+          {(roles ?? []).map((role) => (
               <label
                 key={role.id}
                 className="flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 hover:bg-muted/50"

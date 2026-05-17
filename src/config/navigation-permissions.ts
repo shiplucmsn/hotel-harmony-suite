@@ -1,3 +1,21 @@
+/** Section → purchasable module entitlement key. */
+export const SECTION_MODULE_MAP: Record<string, string> = {
+  Workspace: "workspace",
+  Operations: "operations",
+  "CRM & Sales": "crm",
+  Inventory: "inventory",
+  Purchases: "purchase",
+  Production: "production",
+  POS: "pos",
+  "Human Resources": "hr",
+  Projects: "projects",
+  Finance: "finance",
+  "Reports & Insights": "reports",
+  Administration: "admin",
+  "Super Admin": "platform",
+  Account: "workspace",
+};
+
 /** Section-level nav visibility permissions. */
 export const SECTION_PERMISSION_MAP: Record<string, string> = {
   Workspace: "nav.workspace.view",

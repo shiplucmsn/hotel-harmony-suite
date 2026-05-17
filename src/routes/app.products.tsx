@@ -13,8 +13,12 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Search, Package, Plus, Pencil, MoreHorizontal, Save } from "lucide-react";
 import { toast } from "sonner";
-import { api } from "@/lib/api-client";
-import { showSideEffects, type ApiEnvelope } from "@/lib/api-meta";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { showSideEffects } from "@/lib/api-meta";
+import { CategorySelectField } from "@/modules/inventory/components/category-select-field";
+import { inventoryApi } from "@/modules/inventory/inventory-api";
+import { useInventoryCategories } from "@/hooks/inventory/use-inventory-categories";
+import type { ProductStatus } from "@/modules/inventory/types";
 
 export const Route = createFileRoute("/app/products")({ component: ProductsPage });
 
@@ -23,16 +27,17 @@ type ProductItem = {
   sku: string;
   name: string;
   category: string;
+  categoryId: string;
   brand: string;
   stock: number;
   price: number;
-  status: "active" | "low-stock" | "draft";
+  status: ProductStatus | "low-stock";
 };
 
 type ProductFormState = {
   sku: string;
   name: string;
-  category: string;
+  categoryId: string;
   brand: string;
   stock: string;
   reorderLevel: string;
@@ -52,7 +57,7 @@ const statusTone: Record<ProductItem["status"], string> = {
 const emptyProductForm: ProductFormState = {
   sku: "",
   name: "",
-  category: "Room Essentials",
+  categoryId: "",
   brand: "",
   stock: "0",
   reorderLevel: "10",
@@ -64,6 +69,7 @@ const emptyProductForm: ProductFormState = {
 };
 
 function ProductsPage() {
+  const { data: categories = [] } = useInventoryCategories();
   const [query, setQuery] = useState("");
   const [productList, setProductList] = useState<ProductItem[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -78,6 +84,7 @@ function ProductsPage() {
     sku: String(item.sku ?? ""),
     name: String(item.name ?? ""),
     category: String(item.category ?? "Uncategorized"),
+    categoryId: String(item.categoryId ?? item.category_id ?? ""),
     brand: String(item.brand ?? "N/A"),
     stock: Number(item.stock ?? 0),
     price: Number(item.price ?? 0),
@@ -87,11 +94,24 @@ function ProductsPage() {
   const loadProducts = async () => {
     try {
       setLoadError(null);
-      const res = await api.get<ApiEnvelope<Record<string, unknown>[]> | Record<string, unknown>[]>("/v1/products");
-      const rows = Array.isArray(res) ? res : (res.data ?? []);
-      setProductList(rows.map(mapProduct));
+      const { data } = await inventoryApi.products({ per_page: 100 });
+      setProductList(
+        data.map((p) =>
+          mapProduct({
+            id: p.id,
+            sku: p.sku,
+            name: p.name,
+            category: p.category_ref?.name ?? p.category,
+            categoryId: p.category_id ?? p.category_ref?.id,
+            brand: p.brand,
+            stock: p.stock,
+            price: p.price,
+            status: p.status,
+          })
+        )
+      );
     } catch (err) {
-      setLoadError(err instanceof Error ? err.message : "Failed to load products");
+      setLoadError(getApiErrorMessage(err, "Failed to load products"));
       setProductList([]);
     }
   };
@@ -119,7 +139,7 @@ function ProductsPage() {
     setForm({
       sku: product.sku,
       name: product.name,
-      category: product.category,
+      categoryId: product.categoryId,
       brand: product.brand,
       stock: String(product.stock),
       reorderLevel: "10",
@@ -137,54 +157,40 @@ function ProductsPage() {
     const fallbackName = form.name.trim() || "Untitled Product";
     const fallbackSku = form.sku.trim() || `PRD-${String(Date.now()).slice(-5)}`;
 
+    const stockQty = Number(form.stock) || 0;
+    const apiStatus: ProductStatus =
+      form.status === "draft" ? "inactive" : form.status === "low-stock" ? "active" : (form.status as ProductStatus);
+
+    const selectedCategory = categories.find((c) => String(c.id) === form.categoryId);
     const payload = {
       sku: fallbackSku,
       name: fallbackName,
-      category: form.category,
+      category_id: form.categoryId ? Number(form.categoryId) : undefined,
+      category: selectedCategory?.name,
       brand: form.brand.trim() || "N/A",
-      stock: Number(form.stock) || 0,
       price: Number(form.price) || 0,
-      status: form.status,
+      cost_price: Number(form.purchasePrice) || 0,
+      barcode: form.barcode.trim() || undefined,
+      description: form.description.trim() || undefined,
+      status: apiStatus,
+      ...(sheetMode === "create" && stockQty > 0 ? { opening_qty: stockQty } : {}),
     };
 
     try {
       if (sheetMode === "create") {
-        const res = await api.post<ApiEnvelope<Record<string, unknown>>>("/v1/products", payload, {
-          headers: {
-            "X-Tenant-Id": "demo_tenant",
-            "X-Request-Id": crypto.randomUUID(),
-            "Idempotency-Key": crypto.randomUUID(),
-          },
-        });
+        const res = await inventoryApi.createProduct(payload);
         showSideEffects(res.meta);
         toast.success("Product created");
       } else if (selectedProduct) {
-        const res = await api.patch<ApiEnvelope<Record<string, unknown>>>(`/v1/products/${selectedProduct.id}`, payload, {
-          headers: {
-            "X-Tenant-Id": "demo_tenant",
-            "X-Request-Id": crypto.randomUUID(),
-            "Idempotency-Key": crypto.randomUUID(),
-          },
-        });
+        const res = await inventoryApi.updateProduct(selectedProduct.id, payload);
         showSideEffects(res.meta);
         toast.success("Product updated");
       }
       await loadProducts();
-    } catch {
-      // Local fallback to keep the flow usable before backend wiring completes.
-      const fallbackRow: ProductItem = {
-        id: selectedProduct?.id ?? `${Date.now()}`,
-        ...payload,
-      };
-      if (sheetMode === "create") {
-        setProductList((prev) => [fallbackRow, ...prev]);
-      } else {
-        setProductList((prev) => prev.map((item) => (item.id === fallbackRow.id ? fallbackRow : item)));
-      }
-      toast.message("Saved locally (API unavailable)");
+      setSheetOpen(false);
+    } catch (err) {
+      toast.error(getApiErrorMessage(err, "Could not save product"));
     }
-
-    setSheetOpen(false);
   };
 
   return (
@@ -343,20 +349,11 @@ function ProductsPage() {
                 <Label>SKU *</Label>
                 <Input placeholder="e.g. PRD-101" value={form.sku} onChange={(e) => setForm((prev) => ({ ...prev, sku: e.target.value }))} />
               </div>
-              <div className="grid gap-2">
-                <Label>Category *</Label>
-                <Select value={form.category} onValueChange={(value) => setForm((prev) => ({ ...prev, category: value }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Room Essentials">Room Essentials</SelectItem>
-                    <SelectItem value="Food & Beverage">Food & Beverage</SelectItem>
-                    <SelectItem value="Spa & Wellness">Spa & Wellness</SelectItem>
-                    <SelectItem value="Maintenance">Maintenance</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              <CategorySelectField
+                value={form.categoryId}
+                onChange={(categoryId) => setForm((prev) => ({ ...prev, categoryId }))}
+                required
+              />
               <div className="grid gap-2">
                 <Label>Brand</Label>
                 <Input placeholder="e.g. Harmony" value={form.brand} onChange={(e) => setForm((prev) => ({ ...prev, brand: e.target.value }))} />

@@ -2,8 +2,8 @@ const TENANT_KEY = "erp_tenant_id";
 const TOKEN_KEY = "erp_access_token";
 
 export function getTenantId(): string {
-  if (typeof window === "undefined") return "demo_tenant";
-  return localStorage.getItem(TENANT_KEY) ?? "demo_tenant";
+  if (typeof window === "undefined") return "acme";
+  return localStorage.getItem(TENANT_KEY) ?? "acme";
 }
 
 export function setTenantId(tenantId: string) {

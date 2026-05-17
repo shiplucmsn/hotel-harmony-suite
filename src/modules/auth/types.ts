@@ -26,6 +26,7 @@ export type AuthUser = {
   emailVerified: boolean;
   roles: string[];
   permissions: string[];
+  enabledModules: string[];
   company?: AuthCompany | null;
   branch?: AuthBranch | null;
 };
