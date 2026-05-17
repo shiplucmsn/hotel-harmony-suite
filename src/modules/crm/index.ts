@@ -1,8 +1,3 @@
-export const crmModule = {
-  id: "crm" as const,
-  queryKeys: {
-    customers: ["crm", "customers"] as const,
-    orders: ["crm", "orders"] as const,
-    invoices: ["crm", "invoices"] as const,
-  },
-};
+export { crmModule } from "@/modules/crm/registry";
+export { crmApi } from "@/modules/crm/crm-api";
+export * from "@/modules/crm/types";

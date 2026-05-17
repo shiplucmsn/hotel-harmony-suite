@@ -94,7 +94,7 @@ export const NAV_MENU: NavSectionMeta[] = [
       { title: "Sales", url: "/app/sales", iconName: "shoppingCart" },
       { title: "Inventory", url: "/app/inventory", iconName: "boxes" },
       { title: "Products", url: "/app/products", iconName: "package" },
-      { title: "Invoices", url: "/app/invoices", iconName: "fileText" },
+      { title: "Invoices", url: "/app/crm/invoices", iconName: "fileText" },
     ],
   },
   {
@@ -108,7 +108,7 @@ export const NAV_MENU: NavSectionMeta[] = [
       { title: "Pipeline", url: "/app/crm/pipeline", iconName: "kanban" },
       { title: "Quotations", url: "/app/crm/quotes", iconName: "fileSignature" },
       { title: "Sales Orders", url: "/app/crm/orders", iconName: "clipboardList" },
-      { title: "CRM Invoices", url: "/app/invoices", iconName: "fileText" },
+      { title: "CRM Invoices", url: "/app/crm/invoices", iconName: "fileText" },
       { title: "Customer Ledger", url: "/app/crm/ledger", iconName: "bookUser" },
       { title: "Payments", url: "/app/crm/payments", iconName: "handCoins" },
       { title: "Support Tickets", url: "/app/crm/tickets", iconName: "headphones" },

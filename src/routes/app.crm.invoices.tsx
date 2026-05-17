@@ -1,7 +1,6 @@
-import { createFileRoute, redirect } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { InvoicesPage } from "@/modules/crm/pages/invoices-page";
 
 export const Route = createFileRoute("/app/crm/invoices")({
-  beforeLoad: () => {
-    throw redirect({ to: "/app/invoices" });
-  },
+  component: InvoicesPage,
 });
