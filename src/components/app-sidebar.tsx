@@ -17,7 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { isNavItemActive, openSectionsForPath, resolveNavMenu, sectionHasActiveRoute } from "@/config/navigation";
+import { isNavItemActive, mergeSectionsOpen, resolveNavMenu, sectionHasActiveRoute } from "@/config/navigation";
 import { useUiStore } from "@/stores/ui-store";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -32,17 +32,13 @@ export function AppSidebar() {
   const setSectionOpen = useUiStore((s) => s.setSectionOpen);
   const setSectionsOpen = useUiStore((s) => s.setSectionsOpen);
 
-  const open = useMemo(() => {
-    const merged = { ...sidebarSectionsOpen, ...openSectionsForPath(pathname) };
-    if (!Object.values(merged).some(Boolean) && menu[0]) {
-      merged[menu[0].title] = true;
-    }
-    return merged;
-  }, [pathname, sidebarSectionsOpen]);
+  const open = useMemo(
+    () => mergeSectionsOpen(sidebarSectionsOpen, pathname),
+    [pathname, sidebarSectionsOpen]
+  );
 
   useEffect(() => {
-    const active = openSectionsForPath(pathname);
-    setSectionsOpen((prev) => ({ ...prev, ...active }));
+    setSectionsOpen((prev) => mergeSectionsOpen(prev, pathname));
   }, [pathname, setSectionsOpen]);
 
   return (

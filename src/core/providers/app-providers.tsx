@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/core/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppErrorBoundary } from "@/shared/components/feedback/app-error-boundary";
+import { AuthBootstrap } from "@/shared/components/auth/auth-bootstrap";
 
 type AppProvidersProps = {
   queryClient: QueryClient;
@@ -24,6 +25,7 @@ export function AppProviders({ queryClient, children }: AppProvidersProps) {
         <TooltipProvider delayDuration={150}>
           <AppErrorBoundary>
             <PreloaderController />
+            <AuthBootstrap />
             {children}
             <Toaster richColors closeButton position="top-right" />
           </AppErrorBoundary>

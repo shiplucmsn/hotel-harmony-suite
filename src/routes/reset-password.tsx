@@ -1,46 +1,98 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useForm } from "react-hook-form";
 import { AuthLayout } from "@/components/auth-layout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Check, X } from "lucide-react";
-import { useMemo, useState } from "react";
-import { toast } from "sonner";
+import { Form } from "@/components/ui/form";
+import { redirectIfAuthenticated } from "@/core/auth/redirect-if-authenticated";
+import { DEFAULT_APP_ROUTE } from "@/config/routes";
+import { useGuestGate } from "@/hooks/use-guest-gate";
+import { useResetPassword } from "@/hooks/auth/use-reset-password";
+import { resetPasswordSchema, type ResetPasswordFormValues } from "@/modules/auth/schemas";
+import { createZodResolver } from "@/shared/components/forms/zod-form";
+import { PasswordField } from "@/shared/components/auth/password-field";
+import { PasswordStrength } from "@/shared/components/auth/password-strength";
 
-export const Route = createFileRoute("/reset-password")({ component: ResetPw });
+export const Route = createFileRoute("/reset-password")({
+  ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    token: typeof search.token === "string" ? search.token : "",
+    email: typeof search.email === "string" ? search.email : "",
+  }),
+  beforeLoad: () => redirectIfAuthenticated(DEFAULT_APP_ROUTE),
+  component: ResetPasswordPage,
+});
 
-function ResetPw() {
-  const [pw, setPw] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const nav = useNavigate();
-  const checks = useMemo(() => ([
-    { label: "At least 8 characters", ok: pw.length >= 8 },
-    { label: "One uppercase letter", ok: /[A-Z]/.test(pw) },
-    { label: "One number", ok: /[0-9]/.test(pw) },
-    { label: "Passwords match", ok: pw.length > 0 && pw === confirm },
-  ]), [pw, confirm]);
+function ResetPasswordPage() {
+  const { token, email } = Route.useSearch();
+  const guestReady = useGuestGate();
+  const reset = useResetPassword();
+
+  const form = useForm<ResetPasswordFormValues>({
+    resolver: createZodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: email ?? "",
+      token: token ?? "",
+      password: "",
+      passwordConfirmation: "",
+    },
+  });
+
+  useEffect(() => {
+    if (email) form.setValue("email", email);
+    if (token) form.setValue("token", token);
+  }, [email, token, form]);
+
+  const password = form.watch("password");
+  const passwordConfirmation = form.watch("passwordConfirmation");
+  const hasToken = Boolean(token && token.length >= 32);
+
+  if (!guestReady) {
+    return null;
+  }
+
+  if (!hasToken) {
+    return (
+      <AuthLayout
+        title="Invalid reset link"
+        subtitle="Request a new password reset email to continue."
+        footer={
+          <Link to="/forgot-password" className="font-medium text-primary hover:underline">
+            Request reset link
+          </Link>
+        }
+      >
+        <p className="text-sm text-muted-foreground">
+          This link is missing or expired. Password reset links are valid for a limited time.
+        </p>
+      </AuthLayout>
+    );
+  }
 
   return (
     <AuthLayout
       title="Set a new password"
       subtitle="Choose a strong password you haven't used before."
-      footer={<Link to="/login" className="text-primary font-medium hover:underline">← Back to sign in</Link>}
+      footer={
+        <Link to="/login" search={{}} className="font-medium text-primary hover:underline">
+          ← Back to sign in
+        </Link>
+      }
     >
-      <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); toast.success("Password updated"); nav({ to: "/login" }); }}>
-        <div className="space-y-1.5"><Label>New password</Label><Input type="password" value={pw} onChange={(e) => setPw(e.target.value)} required /></div>
-        <div className="space-y-1.5"><Label>Confirm password</Label><Input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} required /></div>
-        <ul className="space-y-1 rounded-lg border bg-muted/40 p-3 text-xs">
-          {checks.map((c) => (
-            <li key={c.label} className="flex items-center gap-2">
-              {c.ok ? <Check className="h-3.5 w-3.5 text-success" /> : <X className="h-3.5 w-3.5 text-muted-foreground" />}
-              <span className={c.ok ? "text-foreground" : "text-muted-foreground"}>{c.label}</span>
-            </li>
-          ))}
-        </ul>
-        <Button type="submit" className="w-full gradient-primary text-primary-foreground border-0" disabled={!checks.every((c) => c.ok)}>
-          Update password
-        </Button>
-      </form>
+      <Form {...form}>
+        <form className="space-y-4" onSubmit={form.handleSubmit((v) => reset.mutate(v))}>
+          <PasswordField control={form.control} name="password" label="New password" />
+          <PasswordStrength password={password} confirm={passwordConfirmation} />
+          <PasswordField control={form.control} name="passwordConfirmation" label="Confirm password" />
+          <Button
+            type="submit"
+            className="w-full border-0 gradient-primary text-primary-foreground"
+            disabled={reset.isPending || !form.formState.isValid}
+          >
+            {reset.isPending ? "Updating…" : "Update password"}
+          </Button>
+        </form>
+      </Form>
     </AuthLayout>
   );
 }

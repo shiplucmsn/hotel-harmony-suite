@@ -23,7 +23,7 @@ export function useAuthGate(redirectTo?: string): boolean {
 
     navigate({
       to: DEFAULT_AUTH_ROUTE,
-      search: redirectTo ? { redirect: redirectTo } : undefined,
+      search: redirectTo ? { redirect: redirectTo } : {},
       replace: true,
     });
   }, [navigate, redirectTo]);

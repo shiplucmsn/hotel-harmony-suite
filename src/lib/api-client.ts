@@ -60,7 +60,11 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     const payload = contentType.includes("application/json") ? await res.json() : await res.text();
 
     if (!res.ok) {
-      const message = typeof payload === "object" && payload && "message" in payload ? String((payload as { message: unknown }).message) : `Request failed with status ${res.status}`;
+      const envelope = payload as { error?: { message?: string }; message?: string };
+      const message =
+        envelope?.error?.message ??
+        envelope?.message ??
+        `Request failed with status ${res.status}`;
       throw new ApiError(message, res.status, payload);
     }
 

@@ -15,11 +15,13 @@ import { useTheme } from "@/components/theme-provider";
 import { notifications, tenants } from "@/lib/mock-data";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { useLogout } from "@/hooks/auth/use-logout";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
-  const { user, clearSession } = useAuth();
+  const { user } = useAuth();
+  const logout = useLogout();
   const [tenant, setTenant] = useState(tenants[0]);
   const unread = notifications.filter((n) => n.unread).length;
 
@@ -151,10 +153,8 @@ export function Topbar() {
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              onClick={() => {
-                clearSession();
-                navigate({ to: "/login" });
-              }}
+              onClick={() => logout.mutate(false)}
+              disabled={logout.isPending}
               className="gap-2 text-destructive"
             >
               <LogOut className="h-4 w-4" /> Sign out
