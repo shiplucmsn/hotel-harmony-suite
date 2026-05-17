@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Search, FileText, Plus, MoreHorizontal, Pencil, Send } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
+import { showSideEffects, type ApiEnvelope } from "@/lib/api-meta";
 
 export const Route = createFileRoute("/app/invoices")({ component: InvoicesPage });
 
@@ -72,6 +74,46 @@ function InvoicesPage() {
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [selectedInvoice, setSelectedInvoice] = useState<InvoiceItem | null>(null);
   const [form, setForm] = useState<InvoiceFormState>(emptyInvoiceForm);
+  const [reconciliation, setReconciliation] = useState<{ balanced: boolean; issues: string[] } | null>(null);
+
+  const loadInvoices = async () => {
+    try {
+      const res = await api.get<ApiEnvelope<Record<string, unknown>[]> | Record<string, unknown>[]>("/v1/crm/invoices");
+      const rows = Array.isArray(res) ? res : (res.data ?? []);
+      const mapped: InvoiceItem[] = rows.map((row) => ({
+        id: String(row.id ?? ""),
+        number: String(row.number ?? ""),
+        customer: String(row.customer ?? ""),
+        issueDate: String(row.issued ?? ""),
+        dueDate: String(row.due ?? ""),
+        paymentMethod: "cash",
+        amount: Number(row.amount ?? 0),
+        status: (String(row.status ?? "draft") as InvoiceStatus) || "draft",
+        notes: "",
+      }));
+      setInvoiceList(mapped);
+    } catch {
+      setInvoiceList([]);
+      toast.error("Failed to load invoices");
+    }
+  };
+
+  const loadReconciliation = async () => {
+    try {
+      const res = await api.get<ApiEnvelope<{ journal: { balanced: boolean }; issues: string[] }>>("/v1/reconciliation/summary");
+      setReconciliation({
+        balanced: Boolean(res.data?.journal?.balanced),
+        issues: res.data?.issues ?? [],
+      });
+    } catch {
+      setReconciliation(null);
+    }
+  };
+
+  useEffect(() => {
+    void loadInvoices();
+    void loadReconciliation();
+  }, []);
 
   const filteredInvoices = invoiceList.filter((invoice) => {
     const text = `${invoice.number} ${invoice.customer}`.toLowerCase();
@@ -101,7 +143,7 @@ function InvoicesPage() {
     setSheetOpen(true);
   };
 
-  const saveInvoice = () => {
+  const saveInvoice = async () => {
     const payload: InvoiceItem = {
       id: selectedInvoice?.id ?? `${Date.now()}`,
       number: form.number.trim() || `INV-${String(Date.now()).slice(-6)}`,
@@ -114,12 +156,48 @@ function InvoicesPage() {
       notes: form.notes,
     };
 
-    if (sheetMode === "create") {
-      setInvoiceList((prev) => [payload, ...prev]);
-      toast.success("Invoice created");
-    } else {
-      setInvoiceList((prev) => prev.map((invoice) => (invoice.id === payload.id ? payload : invoice)));
-      toast.success("Invoice updated");
+    try {
+      if (sheetMode === "create") {
+        const res = await api.post<ApiEnvelope<Record<string, unknown>>>(
+          "/v1/crm/invoices",
+          {
+            number: payload.number,
+            customer: payload.customer,
+            amount: payload.amount,
+            status: payload.status,
+            issued: payload.issueDate,
+            due: payload.dueDate,
+            paid: 0,
+          },
+          {
+            headers: { "X-Tenant-Id": "demo_tenant", "X-Request-Id": crypto.randomUUID(), "Idempotency-Key": crypto.randomUUID() },
+          },
+        );
+        showSideEffects(res.meta);
+        toast.success("Invoice created");
+      } else if (selectedInvoice) {
+        const res = await api.patch<ApiEnvelope<Record<string, unknown>>>(`/v1/crm/invoices/${selectedInvoice.id}`, {
+          number: payload.number,
+          customer: payload.customer,
+          amount: payload.amount,
+          status: payload.status,
+          issued: payload.issueDate,
+          due: payload.dueDate,
+        }, {
+          headers: { "X-Tenant-Id": "demo_tenant", "X-Request-Id": crypto.randomUUID(), "Idempotency-Key": crypto.randomUUID() },
+        });
+        showSideEffects(res.meta);
+        toast.success("Invoice updated");
+      }
+      await loadInvoices();
+      await loadReconciliation();
+    } catch {
+      if (sheetMode === "create") {
+        setInvoiceList((prev) => [payload, ...prev]);
+      } else {
+        setInvoiceList((prev) => prev.map((invoice) => (invoice.id === payload.id ? payload : invoice)));
+      }
+      toast.message("Saved locally (API unavailable)");
     }
     setSheetOpen(false);
   };
@@ -155,6 +233,17 @@ function InvoicesPage() {
           />
         </div>
       </Card>
+
+      {reconciliation && (
+        <Card className="p-3">
+          <p className="text-sm font-medium">
+            Reconciliation status: {reconciliation.balanced ? "Balanced" : "Mismatch detected"}
+          </p>
+          {reconciliation.issues.length > 0 && (
+            <p className="mt-1 text-xs text-destructive">{reconciliation.issues.join(" | ")}</p>
+          )}
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-0">

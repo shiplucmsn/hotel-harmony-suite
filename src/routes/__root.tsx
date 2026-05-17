@@ -1,17 +1,9 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-  HeadContent,
-  Scripts,
-} from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { Link, Outlet, createRootRouteWithContext, useRouter, HeadContent, Scripts } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { AppProviders } from "@/core/providers/app-providers";
+import { AppPreloader } from "@/shared/components/auth/app-preloader";
 
 function NotFoundComponent() {
   return (
@@ -93,7 +85,10 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body>
+      <body className="min-h-screen bg-background antialiased">
+        <div id="__erp_preloader" className="fixed inset-0 z-[9999]">
+          <AppPreloader message="Checking session…" />
+        </div>
         {children}
         <Scripts />
       </body>
@@ -104,13 +99,8 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   return (
-    <QueryClientProvider client={queryClient}>
-      <ThemeProvider>
-        <TooltipProvider delayDuration={150}>
-          <Outlet />
-          <Toaster richColors closeButton position="top-right" />
-        </TooltipProvider>
-      </ThemeProvider>
-    </QueryClientProvider>
+    <AppProviders queryClient={queryClient}>
+      <Outlet />
+    </AppProviders>
   );
 }

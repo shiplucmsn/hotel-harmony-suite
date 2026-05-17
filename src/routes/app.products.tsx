@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Search, Package, Plus, Pencil, MoreHorizontal, Save } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
+import { showSideEffects, type ApiEnvelope } from "@/lib/api-meta";
 
 export const Route = createFileRoute("/app/products")({ component: ProductsPage });
 
@@ -41,12 +43,6 @@ type ProductFormState = {
   description: string;
 };
 
-const products: ProductItem[] = [
-  { id: "1", sku: "PRD-101", name: "Premium Bed Sheet Set", category: "Room Essentials", brand: "Harmony", stock: 85, price: 3200, status: "active" },
-  { id: "2", sku: "PRD-205", name: "Coffee Beans Signature 1kg", category: "Food & Beverage", brand: "RoastCraft", stock: 12, price: 1800, status: "low-stock" },
-  { id: "3", sku: "PRD-320", name: "Spa Aroma Oil Kit", category: "Spa & Wellness", brand: "ZenGlow", stock: 0, price: 2500, status: "draft" },
-];
-
 const statusTone: Record<ProductItem["status"], string> = {
   active: "bg-success/15 text-success border-success/20",
   "low-stock": "bg-warning/15 text-warning border-warning/20",
@@ -69,12 +65,40 @@ const emptyProductForm: ProductFormState = {
 
 function ProductsPage() {
   const [query, setQuery] = useState("");
-  const [productList, setProductList] = useState<ProductItem[]>(products);
+  const [productList, setProductList] = useState<ProductItem[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [selectedProduct, setSelectedProduct] = useState<ProductItem | null>(null);
   const [formKey, setFormKey] = useState(0);
   const [form, setForm] = useState<ProductFormState>(emptyProductForm);
+
+  const mapProduct = (item: Record<string, unknown>): ProductItem => ({
+    id: String(item.id ?? ""),
+    sku: String(item.sku ?? ""),
+    name: String(item.name ?? ""),
+    category: String(item.category ?? "Uncategorized"),
+    brand: String(item.brand ?? "N/A"),
+    stock: Number(item.stock ?? 0),
+    price: Number(item.price ?? 0),
+    status: (String(item.status ?? "active") as ProductItem["status"]) || "active",
+  });
+
+  const loadProducts = async () => {
+    try {
+      setLoadError(null);
+      const res = await api.get<ApiEnvelope<Record<string, unknown>[]> | Record<string, unknown>[]>("/v1/products");
+      const rows = Array.isArray(res) ? res : (res.data ?? []);
+      setProductList(rows.map(mapProduct));
+    } catch (err) {
+      setLoadError(err instanceof Error ? err.message : "Failed to load products");
+      setProductList([]);
+    }
+  };
+
+  useEffect(() => {
+    void loadProducts();
+  }, []);
 
   const filteredProducts = productList.filter((product) => {
     const text = `${product.sku} ${product.name} ${product.category} ${product.brand}`.toLowerCase();
@@ -109,12 +133,11 @@ function ProductsPage() {
     setSheetOpen(true);
   };
 
-  const saveProduct = () => {
+  const saveProduct = async () => {
     const fallbackName = form.name.trim() || "Untitled Product";
     const fallbackSku = form.sku.trim() || `PRD-${String(Date.now()).slice(-5)}`;
 
-    const payload: ProductItem = {
-      id: selectedProduct?.id ?? `${Date.now()}`,
+    const payload = {
       sku: fallbackSku,
       name: fallbackName,
       category: form.category,
@@ -124,12 +147,41 @@ function ProductsPage() {
       status: form.status,
     };
 
-    if (sheetMode === "create") {
-      setProductList((prev) => [payload, ...prev]);
-      toast.success("Product created");
-    } else {
-      setProductList((prev) => prev.map((item) => (item.id === payload.id ? payload : item)));
-      toast.success("Product updated");
+    try {
+      if (sheetMode === "create") {
+        const res = await api.post<ApiEnvelope<Record<string, unknown>>>("/v1/products", payload, {
+          headers: {
+            "X-Tenant-Id": "demo_tenant",
+            "X-Request-Id": crypto.randomUUID(),
+            "Idempotency-Key": crypto.randomUUID(),
+          },
+        });
+        showSideEffects(res.meta);
+        toast.success("Product created");
+      } else if (selectedProduct) {
+        const res = await api.patch<ApiEnvelope<Record<string, unknown>>>(`/v1/products/${selectedProduct.id}`, payload, {
+          headers: {
+            "X-Tenant-Id": "demo_tenant",
+            "X-Request-Id": crypto.randomUUID(),
+            "Idempotency-Key": crypto.randomUUID(),
+          },
+        });
+        showSideEffects(res.meta);
+        toast.success("Product updated");
+      }
+      await loadProducts();
+    } catch {
+      // Local fallback to keep the flow usable before backend wiring completes.
+      const fallbackRow: ProductItem = {
+        id: selectedProduct?.id ?? `${Date.now()}`,
+        ...payload,
+      };
+      if (sheetMode === "create") {
+        setProductList((prev) => [fallbackRow, ...prev]);
+      } else {
+        setProductList((prev) => prev.map((item) => (item.id === fallbackRow.id ? fallbackRow : item)));
+      }
+      toast.message("Saved locally (API unavailable)");
     }
 
     setSheetOpen(false);

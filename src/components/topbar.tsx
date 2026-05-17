@@ -14,10 +14,12 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
 import { notifications, tenants } from "@/lib/mock-data";
 import { useState } from "react";
+import { useAuth } from "@/hooks/use-auth";
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
+  const { user, clearSession } = useAuth();
   const [tenant, setTenant] = useState(tenants[0]);
   const unread = notifications.filter((n) => n.unread).length;
 
@@ -120,7 +122,7 @@ export function Topbar() {
                 <AvatarFallback className="gradient-primary text-primary-foreground text-xs">AR</AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start leading-tight lg:flex">
-                <span className="text-sm font-medium">Alicia Romero</span>
+                <span className="text-sm font-medium">{user?.name ?? "User"}</span>
                 <span className="text-[10px] text-muted-foreground">Administrator</span>
               </div>
             </Button>
@@ -128,8 +130,8 @@ export function Topbar() {
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col">
-                <span className="text-sm font-medium">Alicia Romero</span>
-                <span className="text-xs text-muted-foreground">alicia@acme.io</span>
+                <span className="text-sm font-medium">{user?.name ?? "User"}</span>
+                <span className="text-xs text-muted-foreground">{user?.email ?? ""}</span>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
@@ -148,7 +150,13 @@ export function Topbar() {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate({ to: "/login" })} className="gap-2 text-destructive">
+            <DropdownMenuItem
+              onClick={() => {
+                clearSession();
+                navigate({ to: "/login" });
+              }}
+              className="gap-2 text-destructive"
+            >
               <LogOut className="h-4 w-4" /> Sign out
             </DropdownMenuItem>
           </DropdownMenuContent>

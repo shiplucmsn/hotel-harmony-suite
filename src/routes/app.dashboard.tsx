@@ -1,4 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { erpApi } from "@/lib/erp-api";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -21,6 +23,19 @@ const chartConfig = {
 const pieColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)"];
 
 function Dashboard() {
+  const [kpis, setKpis] = useState({ products: 0, salesOrders: 0, openInvoices: 0, revenue: 0 });
+
+  useEffect(() => {
+    void erpApi.reports.dashboard().then((data) => {
+      setKpis({
+        products: Number(data.products ?? 0),
+        salesOrders: Number(data.salesOrders ?? 0),
+        openInvoices: Number(data.openInvoices ?? 0),
+        revenue: Number(data.revenue ?? 0),
+      });
+    });
+  }, []);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -34,10 +49,10 @@ function Dashboard() {
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Total revenue" value="$842,650" change="12.4%" icon={DollarSign} />
-        <StatCard label="Active customers" value="3,284" change="8.2%" icon={Users} accent="bg-info" />
-        <StatCard label="Orders this month" value="1,429" change="3.1%" trend="down" icon={ShoppingCart} accent="bg-warning" />
-        <StatCard label="Conversion rate" value="4.86%" change="0.4%" icon={TrendingUp} accent="bg-success" />
+        <StatCard label="Total revenue" value={`$${kpis.revenue.toLocaleString()}`} change="API" icon={DollarSign} />
+        <StatCard label="Products" value={String(kpis.products)} change="live" icon={Users} accent="bg-info" />
+        <StatCard label="Sales orders" value={String(kpis.salesOrders)} change="live" icon={ShoppingCart} accent="bg-warning" />
+        <StatCard label="Open invoices" value={String(kpis.openInvoices)} change="live" icon={TrendingUp} accent="bg-success" />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">

@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { erpApi } from "@/lib/erp-api";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,8 +57,27 @@ export const Route = createFileRoute("/app/crm/orders")({ component: OrdersPage 
 function OrdersPage() {
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
-  const [orderList, setOrderList] = useState<OrderItem[]>(salesOrders as OrderItem[]);
+  const [orderList, setOrderList] = useState<OrderItem[]>([]);
   const [form, setForm] = useState<OrderForm>(emptyOrderForm);
+
+  useEffect(() => {
+    void erpApi.crm
+      .orders()
+      .then((rows) => {
+        setOrderList(
+          (rows as Record<string, unknown>[]).map((r) => ({
+            id: String(r.id ?? ""),
+            number: String(r.number ?? ""),
+            customer: String(r.customer_id ?? "Customer"),
+            date: String(r.created_at ?? ""),
+            delivery: String(r.created_at ?? ""),
+            status: (String(r.status ?? "pending") as OrderItem["status"]) || "pending",
+            amount: Number(r.amount ?? 0),
+          }))
+        );
+      })
+      .catch(() => toast.error("Failed to load CRM orders"));
+  }, []);
 
   const filteredOrders = orderList.filter((o) => {
     const text = `${o.number} ${o.customer}`.toLowerCase();

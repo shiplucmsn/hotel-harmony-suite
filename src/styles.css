@@ -220,6 +220,18 @@
   .animate-scale-in { animation: scaleIn 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
 }
 
+html.erp-app-ready #__erp_preloader {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+#__erp_preloader {
+  opacity: 1;
+  visibility: visible;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

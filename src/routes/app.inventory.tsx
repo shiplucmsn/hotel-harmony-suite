@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +13,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Sheet, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Search, Boxes, Plus, Pencil, MoreHorizontal, Save } from "lucide-react";
 import { toast } from "sonner";
+import { api } from "@/lib/api-client";
+import { showSideEffects, type ApiEnvelope } from "@/lib/api-meta";
 
 export const Route = createFileRoute("/app/inventory")({ component: InventoryPage });
 
@@ -27,6 +29,18 @@ type InventoryItem = {
   unitCost: number;
   sellingPrice: number;
   status: "in-stock" | "low-stock" | "out-of-stock";
+};
+
+type InventoryForm = {
+  name: string;
+  sku: string;
+  category: string;
+  warehouse: string;
+  stock: string;
+  reorderLevel: string;
+  unitCost: string;
+  sellingPrice: string;
+  status: InventoryItem["status"];
 };
 
 const inventoryItems: InventoryItem[] = [
@@ -76,12 +90,56 @@ const statusTone: Record<InventoryItem["status"], string> = {
 
 function InventoryPage() {
   const [query, setQuery] = useState("");
+  const [inventoryList, setInventoryList] = useState<InventoryItem[]>(inventoryItems);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [sheetMode, setSheetMode] = useState<"create" | "edit">("create");
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
   const [formKey, setFormKey] = useState(0);
+  const [form, setForm] = useState<InventoryForm>({
+    name: "",
+    sku: "",
+    category: "Housekeeping",
+    warehouse: "Main Store",
+    stock: "0",
+    reorderLevel: "10",
+    unitCost: "0",
+    sellingPrice: "0",
+    status: "in-stock",
+  });
 
-  const filteredItems = inventoryItems.filter((item) => {
+  const mapInventoryItem = (item: Record<string, unknown>): InventoryItem => {
+    const stock = Number(item.stock ?? 0);
+    const status = stock <= 0 ? "out-of-stock" : stock <= 15 ? "low-stock" : "in-stock";
+    return {
+      id: String(item.id ?? ""),
+      sku: String(item.sku ?? ""),
+      name: String(item.name ?? ""),
+      category: String(item.category ?? "Uncategorized"),
+      warehouse: "Main Store",
+      stock,
+      reorderLevel: 10,
+      unitCost: Math.round(Number(item.price ?? 0) * 0.7),
+      sellingPrice: Number(item.price ?? 0),
+      status,
+    };
+  };
+
+  const loadInventory = async () => {
+    try {
+      const res = await api.get<ApiEnvelope<Record<string, unknown>[]> | Record<string, unknown>[]>("/v1/inventory/items");
+      const rows = Array.isArray(res) ? res : (res.data ?? []);
+      setInventoryList(rows.map(mapInventoryItem));
+    } catch {
+      setInventoryList([]);
+      toast.error("Failed to load inventory");
+    }
+  };
+
+  useEffect(() => {
+    void loadInventory();
+  }, []);
+
+  const filteredItems = inventoryList.filter((item) => {
     const text = `${item.sku} ${item.name} ${item.category}`.toLowerCase();
     return text.includes(query.toLowerCase());
   });
@@ -89,6 +147,17 @@ function InventoryPage() {
   const openCreateSheet = () => {
     setSheetMode("create");
     setSelectedItem(null);
+    setForm({
+      name: "",
+      sku: "",
+      category: "Housekeeping",
+      warehouse: "Main Store",
+      stock: "0",
+      reorderLevel: "10",
+      unitCost: "0",
+      sellingPrice: "0",
+      status: "in-stock",
+    });
     setFormKey((prev) => prev + 1);
     setSheetOpen(true);
   };
@@ -96,8 +165,68 @@ function InventoryPage() {
   const openEditSheet = (item: InventoryItem) => {
     setSheetMode("edit");
     setSelectedItem(item);
+    setForm({
+      name: item.name,
+      sku: item.sku,
+      category: item.category,
+      warehouse: item.warehouse,
+      stock: String(item.stock),
+      reorderLevel: String(item.reorderLevel),
+      unitCost: String(item.unitCost),
+      sellingPrice: String(item.sellingPrice),
+      status: item.status,
+    });
     setFormKey((prev) => prev + 1);
     setSheetOpen(true);
+  };
+
+  const saveInventoryItem = async () => {
+    const payload = {
+      name: form.name || "Untitled Item",
+      sku: form.sku || `SKU-${String(Date.now()).slice(-5)}`,
+      category: form.category,
+      brand: "N/A",
+      stock: Number(form.stock) || 0,
+      price: Number(form.sellingPrice) || 0,
+      status: form.status === "out-of-stock" ? "draft" : form.status === "low-stock" ? "low-stock" : "active",
+    };
+
+    try {
+      if (sheetMode === "create") {
+        const res = await api.post<ApiEnvelope<Record<string, unknown>>>("/v1/products", payload, {
+          headers: { "X-Tenant-Id": "demo_tenant", "X-Request-Id": crypto.randomUUID(), "Idempotency-Key": crypto.randomUUID() },
+        });
+        showSideEffects(res.meta);
+        toast.success("Inventory item created");
+      } else if (selectedItem) {
+        const res = await api.patch<ApiEnvelope<Record<string, unknown>>>(`/v1/products/${selectedItem.id}`, payload, {
+          headers: { "X-Tenant-Id": "demo_tenant", "X-Request-Id": crypto.randomUUID(), "Idempotency-Key": crypto.randomUUID() },
+        });
+        showSideEffects(res.meta);
+        toast.success("Inventory item updated");
+      }
+      await loadInventory();
+    } catch {
+      toast.message("Saved locally (API unavailable)");
+      const fallback: InventoryItem = {
+        id: selectedItem?.id ?? `${Date.now()}`,
+        sku: payload.sku,
+        name: payload.name,
+        category: payload.category,
+        warehouse: form.warehouse,
+        stock: Number(form.stock) || 0,
+        reorderLevel: Number(form.reorderLevel) || 10,
+        unitCost: Number(form.unitCost) || 0,
+        sellingPrice: Number(form.sellingPrice) || 0,
+        status: form.status,
+      };
+      if (sheetMode === "create") {
+        setInventoryList((prev) => [fallback, ...prev]);
+      } else {
+        setInventoryList((prev) => prev.map((p) => (p.id === fallback.id ? fallback : p)));
+      }
+    }
+    setSheetOpen(false);
   };
 
   return (
@@ -255,15 +384,15 @@ function InventoryPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Item Name *</Label>
-                <Input placeholder="e.g. Premium Bed Sheet" defaultValue={selectedItem?.name} />
+                <Input placeholder="e.g. Premium Bed Sheet" value={form.name} onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))} />
               </div>
               <div className="grid gap-2">
                 <Label>SKU *</Label>
-                <Input placeholder="e.g. RM-101" defaultValue={selectedItem?.sku} />
+                <Input placeholder="e.g. RM-101" value={form.sku} onChange={(e) => setForm((p) => ({ ...p, sku: e.target.value }))} />
               </div>
               <div className="grid gap-2">
                 <Label>Category *</Label>
-                <Select defaultValue={selectedItem?.category ?? "Housekeeping"}>
+                <Select value={form.category} onValueChange={(value) => setForm((p) => ({ ...p, category: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
@@ -277,7 +406,7 @@ function InventoryPage() {
               </div>
               <div className="grid gap-2">
                 <Label>Warehouse *</Label>
-                <Select defaultValue={selectedItem?.warehouse ?? "Main Store"}>
+                <Select value={form.warehouse} onValueChange={(value) => setForm((p) => ({ ...p, warehouse: value }))}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select warehouse" />
                   </SelectTrigger>
@@ -296,19 +425,19 @@ function InventoryPage() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <div className="grid gap-2">
                   <Label>Current Stock *</Label>
-                  <Input type="number" min={0} defaultValue={String(selectedItem?.stock ?? 0)} />
+                  <Input type="number" min={0} value={form.stock} onChange={(e) => setForm((p) => ({ ...p, stock: e.target.value }))} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Reorder Level *</Label>
-                  <Input type="number" min={0} defaultValue={String(selectedItem?.reorderLevel ?? 10)} />
+                  <Input type="number" min={0} value={form.reorderLevel} onChange={(e) => setForm((p) => ({ ...p, reorderLevel: e.target.value }))} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Unit Cost *</Label>
-                  <Input type="number" min={0} defaultValue={String(selectedItem?.unitCost ?? 0)} />
+                  <Input type="number" min={0} value={form.unitCost} onChange={(e) => setForm((p) => ({ ...p, unitCost: e.target.value }))} />
                 </div>
                 <div className="grid gap-2">
                   <Label>Selling Price *</Label>
-                  <Input type="number" min={0} defaultValue={String(selectedItem?.sellingPrice ?? 0)} />
+                  <Input type="number" min={0} value={form.sellingPrice} onChange={(e) => setForm((p) => ({ ...p, sellingPrice: e.target.value }))} />
                 </div>
               </div>
             </div>
@@ -316,7 +445,7 @@ function InventoryPage() {
             <div className="grid gap-4 md:grid-cols-2">
               <div className="grid gap-2">
                 <Label>Status *</Label>
-                <Select defaultValue={selectedItem?.status ?? "in-stock"}>
+                <Select value={form.status} onValueChange={(value: InventoryItem["status"]) => setForm((p) => ({ ...p, status: value }))}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -344,10 +473,7 @@ function InventoryPage() {
             </Button>
             <Button
               className="gradient-primary text-primary-foreground border-0"
-              onClick={() => {
-                toast.success(sheetMode === "create" ? "Inventory item created (demo)" : "Inventory item updated (demo)");
-                setSheetOpen(false);
-              }}
+              onClick={saveInventoryItem}
             >
               {sheetMode === "create" ? <Save className="mr-2 h-4 w-4" /> : <Pencil className="mr-2 h-4 w-4" />}
               {sheetMode === "create" ? "Create Item" : "Update Item"}

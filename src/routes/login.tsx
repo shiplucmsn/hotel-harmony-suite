@@ -1,4 +1,6 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useSearch } from "@tanstack/react-router";
+import { DEFAULT_APP_ROUTE } from "@/config/routes";
+import { redirectIfAuthenticated } from "@/core/auth/redirect-if-authenticated";
 import { AuthLayout } from "@/components/auth-layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,12 +10,41 @@ import { Separator } from "@/components/ui/separator";
 import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { api } from "@/services/api/client";
+import type { ApiEnvelope } from "@/services/api/types";
+import { useAuthStore } from "@/stores/auth-store";
+import { useGuestGate } from "@/hooks/use-guest-gate";
 
-export const Route = createFileRoute("/login")({ component: Login });
+export const Route = createFileRoute("/login")({
+  ssr: false,
+  validateSearch: (search: Record<string, unknown>) => ({
+    redirect: typeof search.redirect === "string" ? search.redirect : undefined,
+  }),
+  beforeLoad: ({ search }) => {
+    redirectIfAuthenticated(search.redirect ?? DEFAULT_APP_ROUTE);
+  },
+  component: Login,
+});
+
+/** Remove before production — quick-fill seeded demo accounts */
+const DEV_LOGIN_ACCOUNTS = [
+  { label: "Super Admin", email: "superadmin@example.com", password: "password" },
+  { label: "Company Admin", email: "admin@example.com", password: "password" },
+  { label: "Employee", email: "employee@example.com", password: "password" },
+] as const;
 
 function Login() {
   const [show, setShow] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const { redirect } = useSearch({ from: "/login" });
+  const guestReady = useGuestGate(redirect);
+
+  if (!guestReady) {
+    return null;
+  }
+
   return (
     <AuthLayout
       title="Welcome back"
@@ -22,7 +53,26 @@ function Login() {
     >
       <form
         className="space-y-4"
-        onSubmit={(e) => { e.preventDefault(); toast.success("Signed in"); navigate({ to: "/app/dashboard" }); }}
+        onSubmit={async (e) => {
+          e.preventDefault();
+          try {
+            const res = await api.post<ApiEnvelope<{ token: string; user: { id: string | number; name: string; email: string; tenant_id?: string } }>>(
+              "/v1/auth/login",
+              { email, password }
+            );
+            useAuthStore.getState().setSession(res.data.token, {
+              id: res.data.user.id,
+              name: res.data.user.name,
+              email: res.data.user.email,
+              tenantId: res.data.user.tenant_id,
+            });
+            toast.success("Signed in");
+            const target = redirect?.startsWith("/app") ? redirect : DEFAULT_APP_ROUTE;
+            navigate({ to: target });
+          } catch {
+            toast.error("Invalid credentials or API unavailable");
+          }
+        }}
       >
         <div className="grid grid-cols-2 gap-2">
           <Button type="button" variant="outline" className="w-full">
@@ -40,7 +90,7 @@ function Login() {
         </div>
         <div className="space-y-1.5">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="you@company.com" required />
+          <Input id="email" type="email" placeholder="you@company.com" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
@@ -48,7 +98,7 @@ function Login() {
             <Link to="/forgot-password" className="text-xs text-primary hover:underline">Forgot?</Link>
           </div>
           <div className="relative">
-            <Input id="password" type={show ? "text" : "password"} placeholder="••••••••" required />
+            <Input id="password" type={show ? "text" : "password"} placeholder="••••••••" required value={password} onChange={(e) => setPassword(e.target.value)} />
             <button type="button" onClick={() => setShow(!show)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
               {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -58,6 +108,29 @@ function Login() {
           <Checkbox id="remember" />
           <Label htmlFor="remember" className="text-sm font-normal">Keep me signed in for 30 days</Label>
         </div>
+        {import.meta.env.DEV ? (
+          <div className="space-y-2 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 p-3">
+            <p className="text-xs font-medium text-amber-700 dark:text-amber-400">Dev quick login</p>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+              {DEV_LOGIN_ACCOUNTS.map((account) => (
+                <Button
+                  key={account.email}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-auto whitespace-normal py-2 text-xs"
+                  onClick={() => {
+                    setEmail(account.email);
+                    setPassword(account.password);
+                    toast.message(`Filled ${account.label}`);
+                  }}
+                >
+                  {account.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        ) : null}
         <Button type="submit" className="w-full gradient-primary text-primary-foreground border-0">Sign in</Button>
       </form>
     </AuthLayout>
