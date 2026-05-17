@@ -18,6 +18,9 @@ function mapUser(raw: Record<string, unknown>): AuthUser {
     companyId: (raw.company_id as number | null) ?? null,
     branchId: (raw.branch_id as number | null) ?? null,
     userType: (raw.user_type as AuthUser["userType"]) ?? "employee",
+    isActive: Boolean(raw.is_active ?? true),
+    mustChangePassword: Boolean(raw.must_change_password ?? false),
+    requiresRoleAssignment: Boolean(raw.requires_role_assignment ?? false),
     emailVerified: Boolean(raw.email_verified),
     roles: Array.isArray(raw.roles) ? (raw.roles as string[]) : [],
     permissions: Array.isArray(raw.permissions) ? (raw.permissions as string[]) : [],
@@ -123,5 +126,14 @@ export const authApi = {
   resendVerification: async () => {
     const res = await api.post<ApiEnvelope<AuthMessageResponse>>("/v1/auth/resend-verification", {});
     return res.data;
+  },
+
+  changePassword: async (body: { currentPassword: string; password: string; passwordConfirmation: string }) => {
+    const res = await api.post<ApiEnvelope<{ message: string; user: Record<string, unknown> }>>("/v1/auth/change-password", {
+      current_password: body.currentPassword,
+      password: body.password,
+      password_confirmation: body.passwordConfirmation,
+    });
+    return { message: res.data.message, user: mapUser(res.data.user) };
   },
 };

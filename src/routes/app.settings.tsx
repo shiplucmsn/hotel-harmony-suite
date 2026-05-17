@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Building2, MapPin, DollarSign, Receipt, Mail, MessageSquare, CreditCard,
   Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil,
@@ -26,6 +26,8 @@ import {
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
 import { useTheme } from "@/components/theme-provider";
+import { api } from "@/lib/api-client";
+import { getApiErrorMessage } from "@/lib/api-errors";
 
 export const Route = createFileRoute("/app/settings")({ component: SettingsPage });
 
@@ -286,29 +288,136 @@ function TaxDialog() {
 
 /* ============ Email ============ */
 function EmailTab() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testTo, setTestTo] = useState("");
+  const [host, setHost] = useState("");
+  const [port, setPort] = useState("587");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [encryption, setEncryption] = useState("tls");
+  const [fromName, setFromName] = useState("");
+  const [fromEmail, setFromEmail] = useState("");
+  const [replyTo, setReplyTo] = useState("");
+  const [hasSavedPassword, setHasSavedPassword] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await api.get<{
+          data?: {
+            smtp?: {
+              host?: string | null;
+              port?: number | null;
+              username?: string | null;
+              encryption?: string | null;
+              from_name?: string | null;
+              from_address?: string | null;
+              reply_to?: string | null;
+              has_password?: boolean;
+            } | null;
+          };
+        }>("/v1/company/smtp");
+
+        const smtp = res.data?.smtp;
+        if (!active || !smtp) return;
+        setHost(smtp.host ?? "");
+        setPort(String(smtp.port ?? 587));
+        setUsername(smtp.username ?? "");
+        setEncryption((smtp.encryption ?? "tls") || "none");
+        setFromName(smtp.from_name ?? "");
+        setFromEmail(smtp.from_address ?? "");
+        setReplyTo(smtp.reply_to ?? "");
+        setHasSavedPassword(Boolean(smtp.has_password));
+      } catch {
+        // keep empty defaults for first-time setup
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   return (
     <div className="space-y-4">
       <Card>
         <CardHeader><CardTitle>SMTP configuration</CardTitle><CardDescription>Send transactional emails from your domain.</CardDescription></CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 max-w-3xl">
           <div className="space-y-1.5 md:col-span-2"><Label>Provider</Label>
-            <Select defaultValue="postmark"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
-              <SelectItem value="postmark">Postmark</SelectItem><SelectItem value="ses">Amazon SES</SelectItem><SelectItem value="sendgrid">SendGrid</SelectItem><SelectItem value="smtp">Custom SMTP</SelectItem>
+            <Select value="smtp" disabled><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
+              <SelectItem value="smtp">Custom SMTP</SelectItem>
             </SelectContent></Select>
           </div>
-          <div className="space-y-1.5"><Label>From name</Label><Input defaultValue="Nebula ERP" /></div>
-          <div className="space-y-1.5"><Label>From email</Label><Input defaultValue="no-reply@acme.io" /></div>
-          <div className="space-y-1.5"><Label>SMTP host</Label><Input defaultValue="smtp.postmarkapp.com" /></div>
-          <div className="space-y-1.5"><Label>Port</Label><Input defaultValue="587" /></div>
-          <div className="space-y-1.5"><Label>Username</Label><Input defaultValue="apikey" /></div>
-          <div className="space-y-1.5"><Label>Password</Label><Input type="password" defaultValue="••••••••" /></div>
+          <div className="space-y-1.5"><Label>From name</Label><Input value={fromName} onChange={(e) => setFromName(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>From email</Label><Input value={fromEmail} onChange={(e) => setFromEmail(e.target.value)} type="email" /></div>
+          <div className="space-y-1.5"><Label>SMTP host</Label><Input value={host} onChange={(e) => setHost(e.target.value)} placeholder="smtp.yourdomain.com" /></div>
+          <div className="space-y-1.5"><Label>Port</Label><Input value={port} onChange={(e) => setPort(e.target.value)} type="number" /></div>
+          <div className="space-y-1.5"><Label>Username</Label><Input value={username} onChange={(e) => setUsername(e.target.value)} /></div>
+          <div className="space-y-1.5"><Label>Password</Label><Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={hasSavedPassword ? "•••••••• (leave blank to keep)" : "Enter SMTP password"} /></div>
+          <div className="space-y-1.5"><Label>Encryption</Label>
+            <Select value={encryption} onValueChange={setEncryption}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
+              <SelectItem value="tls">TLS</SelectItem><SelectItem value="ssl">SSL</SelectItem><SelectItem value="none">None</SelectItem>
+            </SelectContent></Select>
+          </div>
+          <div className="space-y-1.5"><Label>Reply-to (optional)</Label><Input value={replyTo} onChange={(e) => setReplyTo(e.target.value)} type="email" /></div>
           <div className="md:col-span-2 flex items-center justify-between rounded-lg border p-3">
-            <div><p className="text-sm font-medium">DKIM verified</p><p className="text-xs text-muted-foreground">Domain authenticated for sending</p></div>
-            <Badge className="gap-1"><ShieldCheck className="h-3 w-3" />Verified</Badge>
+            <div><p className="text-sm font-medium">Credential status</p><p className="text-xs text-muted-foreground">Encrypted and stored per-company</p></div>
+            <Badge className="gap-1" variant={hasSavedPassword ? "default" : "secondary"}><ShieldCheck className="h-3 w-3" />{hasSavedPassword ? "Configured" : "Not configured"}</Badge>
+          </div>
+          <div className="space-y-1.5 md:col-span-2">
+            <Label>Test recipient (optional)</Label>
+            <Input value={testTo} onChange={(e) => setTestTo(e.target.value)} type="email" placeholder="Leave empty to send to your own account" />
           </div>
           <div className="md:col-span-2 flex gap-2">
-            <Button variant="outline">Send test</Button>
-            <Button className="gradient-primary text-primary-foreground border-0">Save</Button>
+            <Button
+              variant="outline"
+              disabled={loading || testing}
+              onClick={async () => {
+                setTesting(true);
+                try {
+                  await api.post("/v1/company/smtp/test", testTo ? { to: testTo } : {});
+                  toast.success("Test email sent");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Failed to send test email"));
+                } finally {
+                  setTesting(false);
+                }
+              }}
+            >
+              {testing ? "Sending..." : "Send test"}
+            </Button>
+            <Button
+              className="gradient-primary text-primary-foreground border-0"
+              disabled={loading || saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  await api.put("/v1/company/smtp", {
+                    host,
+                    port: Number(port),
+                    username: username || null,
+                    password: password || null,
+                    encryption,
+                    from_address: fromEmail,
+                    from_name: fromName || null,
+                    reply_to: replyTo || null,
+                  });
+                  if (password) setPassword("");
+                  setHasSavedPassword(true);
+                  toast.success("SMTP settings saved");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Failed to save SMTP settings"));
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? "Saving..." : "Save"}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -391,7 +500,7 @@ function ThemeTab() {
                 onClick={() => opt.id === "system" ? setTheme(window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : setTheme(opt.id as "light"|"dark")}
                 className={`group relative overflow-hidden rounded-xl border p-4 text-left transition-all ${theme === opt.id ? "border-primary ring-2 ring-primary/30" : "hover:border-primary/40"}`}>
                 <div className="flex items-center justify-between"><span className="font-medium">{opt.label}</span><opt.icon className="h-4 w-4" /></div>
-                <div className={`mt-3 h-20 rounded-md border ${opt.id === "dark" ? "bg-zinc-900" : opt.id === "light" ? "bg-white" : "bg-gradient-to-br from-white to-zinc-900"}`}>
+                <div className={`mt-3 h-20 rounded-md border ${opt.id === "dark" ? "bg-zinc-900" : opt.id === "light" ? "bg-white" : "bg-linear-to-br from-white to-zinc-900"}`}>
                   <div className={`h-2 rounded-t-md ${opt.id === "dark" ? "bg-zinc-800" : "bg-zinc-100"}`} />
                 </div>
               </button>

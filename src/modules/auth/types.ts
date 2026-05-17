@@ -23,6 +23,9 @@ export type AuthUser = {
   companyId?: number | null;
   branchId?: number | null;
   userType: UserType;
+  isActive?: boolean;
+  mustChangePassword?: boolean;
+  requiresRoleAssignment?: boolean;
   emailVerified: boolean;
   roles: string[];
   permissions: string[];

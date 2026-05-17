@@ -7,6 +7,7 @@ export type PaginatedResult<T> = {
 
 export type HrEmployeeDto = {
   id: number;
+  user_id?: number | null;
   employee_no: string;
   name: string;
   email?: string | null;
@@ -22,6 +23,7 @@ export type HrEmployeeDto = {
   payroll_frequency?: "weekly" | "biweekly" | "monthly" | string;
   bank_account?: string | null;
   status: "active" | "inactive" | "terminated" | string;
+  login_provision_status?: "not_provisioned" | "provisioned" | "invite_sent" | "failed" | string;
   meta?: Record<string, unknown> | null;
 };
 
@@ -113,6 +115,8 @@ export type CreateHrEmployeeInput = {
   payroll_frequency?: "weekly" | "biweekly" | "monthly";
   bank_account?: string;
   status?: "active" | "inactive" | "terminated";
+  create_login?: boolean;
+  force_reprovision_login?: boolean;
 };
 
 export type CreateHrDepartmentInput = {

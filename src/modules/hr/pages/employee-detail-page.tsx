@@ -100,6 +100,9 @@ export function HrEmployeeDetailPage({ employeeId }: Props) {
                   {employee.status}
                 </Badge>
                 <Badge variant="outline">{employee.payroll_frequency ?? "monthly"}</Badge>
+                <Badge variant="outline" className="capitalize">
+                  Login: {employee.login_provision_status ?? "not_provisioned"}
+                </Badge>
               </div>
             </div>
           </div>
@@ -119,6 +122,20 @@ export function HrEmployeeDetailPage({ employeeId }: Props) {
             <p className="flex items-center gap-2">
               <Wallet className="h-4 w-4 text-muted-foreground" />${Number(employee.basic_salary || 0).toLocaleString()} basic
             </p>
+            {(employee.login_provision_status === "failed" || employee.login_provision_status === "not_provisioned") && employee.email ? (
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  updateEmployee.mutate({
+                    id: employee.id,
+                    body: { create_login: true, force_reprovision_login: true },
+                  })
+                }
+              >
+                Retry login setup
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>

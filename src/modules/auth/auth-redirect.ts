@@ -2,6 +2,14 @@ import { DEFAULT_APP_ROUTE } from "@/config/routes";
 import type { AuthUser } from "@/modules/auth/types";
 
 export function getPostAuthRoute(user: AuthUser, redirect?: string): string {
+  if (user.mustChangePassword) {
+    return "/change-password";
+  }
+
+  if (user.requiresRoleAssignment) {
+    return "/access-pending";
+  }
+
   if (redirect?.startsWith("/app")) {
     return redirect;
   }

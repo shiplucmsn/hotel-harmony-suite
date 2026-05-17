@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -37,6 +38,7 @@ export function HrEmployeesPage() {
   const [open, setOpen] = useState(false);
   const [newDepartmentId, setNewDepartmentId] = useState("");
   const [newDesignationId, setNewDesignationId] = useState("");
+  const [createLogin, setCreateLogin] = useState(true);
   const [newPayrollFrequency, setNewPayrollFrequency] = useState<"monthly" | "biweekly" | "weekly">("monthly");
   const [newStatus, setNewStatus] = useState<"active" | "inactive" | "terminated">("active");
 
@@ -101,12 +103,14 @@ export function HrEmployeesPage() {
                       basic_salary: Number(form.get("basic_salary") ?? 0),
                       payroll_frequency: newPayrollFrequency,
                       status: newStatus,
+                      create_login: createLogin,
                     },
                     {
                       onSuccess: () => {
                         setOpen(false);
                         setNewDepartmentId("");
                         setNewDesignationId("");
+                        setCreateLogin(true);
                         setNewPayrollFrequency("monthly");
                         setNewStatus("active");
                       },
@@ -204,6 +208,12 @@ export function HrEmployeesPage() {
                     </Select>
                   </div>
                 </div>
+                <div className="flex items-center gap-2 rounded-md border p-3">
+                  <Checkbox id="create_login" checked={createLogin} onCheckedChange={(value) => setCreateLogin(Boolean(value))} />
+                  <Label htmlFor="create_login" className="cursor-pointer">
+                    Create login account with temporary password
+                  </Label>
+                </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                     Cancel
@@ -275,6 +285,7 @@ export function HrEmployeesPage() {
                 <TableHead>Designation</TableHead>
                 <TableHead>Salary</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Login</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -300,6 +311,11 @@ export function HrEmployeesPage() {
                   <TableCell>
                     <Badge variant="outline" className={statusTone[employee.status] ?? "capitalize"}>
                       {employee.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline" className="capitalize">
+                      {employee.login_provision_status ?? "not_provisioned"}
                     </Badge>
                   </TableCell>
                 </TableRow>
