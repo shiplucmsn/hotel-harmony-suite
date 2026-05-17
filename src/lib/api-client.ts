@@ -32,29 +32,61 @@ function buildUrl(path: string) {
 
 export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const externalSignal = options.signal;
+
+  const onExternalAbort = () => {
+    controller.abort(
+      externalSignal?.reason ??
+        new DOMException("Request cancelled by caller", "AbortError"),
+    );
+  };
+
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      onExternalAbort();
+    } else {
+      externalSignal.addEventListener("abort", onExternalAbort, { once: true });
+    }
+  }
+
+  const timeout = setTimeout(() => {
+    controller.abort(new DOMException(`Request timeout after ${API_TIMEOUT_MS}ms`, "TimeoutError"));
+  }, API_TIMEOUT_MS);
 
   try {
     const method = options.method ?? "GET";
     const isBodyObject = options.body !== undefined && typeof options.body === "object" && !(options.body instanceof FormData);
 
     const isWrite = method !== "GET";
-    const res = await fetch(buildUrl(path), {
-      method,
-      credentials: "include",
-      signal: options.signal ?? controller.signal,
-      headers: {
-        Accept: "application/json",
-        ...buildApiHeaders(options.headers, isWrite || options.idempotent),
-        ...(isBodyObject ? { "Content-Type": "application/json" } : {}),
-      },
-      body:
-        options.body === undefined
-          ? undefined
-          : isBodyObject
-            ? JSON.stringify(options.body)
-            : (options.body as BodyInit),
-    });
+    let res: Response;
+    try {
+      res = await fetch(buildUrl(path), {
+        method,
+        credentials: "include",
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          ...buildApiHeaders(options.headers, isWrite || options.idempotent),
+          ...(isBodyObject ? { "Content-Type": "application/json" } : {}),
+        },
+        body:
+          options.body === undefined
+            ? undefined
+            : isBodyObject
+              ? JSON.stringify(options.body)
+              : (options.body as BodyInit),
+      });
+    } catch (error) {
+      if (controller.signal.aborted) {
+        const reason = controller.signal.reason;
+        const message =
+          reason instanceof DOMException && reason.name === "TimeoutError"
+            ? reason.message
+            : "Request aborted";
+        throw new ApiError(message, 0, { reason });
+      }
+      throw error;
+    }
 
     const contentType = res.headers.get("content-type") ?? "";
     const payload = contentType.includes("application/json") ? await res.json() : await res.text();
@@ -71,6 +103,9 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     return payload as T;
   } finally {
     clearTimeout(timeout);
+    if (externalSignal) {
+      externalSignal.removeEventListener("abort", onExternalAbort);
+    }
   }
 }
 
