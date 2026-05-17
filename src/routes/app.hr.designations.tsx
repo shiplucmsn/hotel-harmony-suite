@@ -11,14 +11,37 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Plus, MoreHorizontal, Edit, Trash2, Search } from "lucide-react";
-import { designations } from "@/lib/hr-mock";
+import {
+  useCreateHrDesignation,
+  useDeleteHrDesignation,
+  useHrDepartments,
+  useHrDesignations,
+  useUpdateHrDesignation,
+} from "@/hooks/hr/use-hr";
 
 export const Route = createFileRoute("/app/hr/designations")({ component: DesignationsPage });
 
 function DesignationsPage() {
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [q, setQ] = useState("");
-  const filtered = designations.filter(d => d.title.toLowerCase().includes(q.toLowerCase()));
+  const [title, setTitle] = useState("");
+  const [level, setLevel] = useState("");
+  const [departmentId, setDepartmentId] = useState("");
+  const { data } = useHrDesignations({ per_page: 200, search: q || undefined });
+  const { data: departmentsData } = useHrDepartments({ per_page: 200, status: "active" });
+  const createDesignation = useCreateHrDesignation();
+  const updateDesignation = useUpdateHrDesignation();
+  const deleteDesignation = useDeleteHrDesignation();
+  const designations = data?.data ?? [];
+  const departments = departmentsData?.data ?? [];
+
+  function resetForm(): void {
+    setEditingId(null);
+    setTitle("");
+    setLevel("");
+    setDepartmentId("");
+  }
 
   return (
     <div className="space-y-6">
@@ -30,28 +53,69 @@ function DesignationsPage() {
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild><Button size="sm" className="gradient-primary text-primary-foreground border-0"><Plus className="mr-2 h-4 w-4" />New designation</Button></DialogTrigger>
             <DialogContent>
-              <DialogHeader><DialogTitle>Create designation</DialogTitle></DialogHeader>
-              <div className="grid gap-4 py-2">
-                <div className="grid gap-2"><Label>Title *</Label><Input placeholder="e.g. Product Manager" /></div>
+              <DialogHeader><DialogTitle>{editingId ? "Update designation" : "Create designation"}</DialogTitle></DialogHeader>
+              <form
+                className="grid gap-4 py-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  const payload = {
+                    title,
+                    level: level || undefined,
+                    department_id: departmentId ? Number(departmentId) : undefined,
+                  };
+                  if (editingId) {
+                    updateDesignation.mutate(
+                      { id: editingId, body: payload },
+                      {
+                        onSuccess: () => {
+                          setOpen(false);
+                          resetForm();
+                        },
+                      },
+                    );
+                    return;
+                  }
+                  createDesignation.mutate(payload, {
+                    onSuccess: () => {
+                      setOpen(false);
+                      resetForm();
+                    },
+                  });
+                }}
+              >
+                <div className="grid gap-2">
+                  <Label>Title *</Label>
+                  <Input placeholder="e.g. Product Manager" value={title} onChange={(event) => setTitle(event.target.value)} required />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="grid gap-2">
                     <Label>Level</Label>
-                    <Select><SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
-                      <SelectContent>{["L1","L2","L3","L4","L5","L6"].map(l => <SelectItem key={l} value={l}>{l}</SelectItem>)}</SelectContent>
+                    <Select value={level || "none"} onValueChange={(value) => setLevel(value === "none" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="Select level" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">No level</SelectItem>
+                        {["L1","L2","L3","L4","L5","L6"].map((entry) => <SelectItem key={entry} value={entry}>{entry}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </div>
                   <div className="grid gap-2">
                     <Label>Department</Label>
-                    <Select><SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
-                      <SelectContent>{["Engineering","Sales","Finance","Marketing","Operations","Human Resources"].map(d => <SelectItem key={d} value={d}>{d}</SelectItem>)}</SelectContent>
+                    <Select value={departmentId || "none"} onValueChange={(value) => setDepartmentId(value === "none" ? "" : value)}>
+                      <SelectTrigger><SelectValue placeholder="Select" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Unassigned</SelectItem>
+                        {departments.map((department) => <SelectItem key={department.id} value={String(department.id)}>{department.name}</SelectItem>)}
+                      </SelectContent>
                     </Select>
                   </div>
                 </div>
-              </div>
-              <DialogFooter>
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button className="gradient-primary text-primary-foreground border-0" onClick={() => setOpen(false)}>Create</Button>
-              </DialogFooter>
+                <DialogFooter>
+                  <Button variant="outline" type="button" onClick={() => { setOpen(false); resetForm(); }}>Cancel</Button>
+                  <Button className="gradient-primary text-primary-foreground border-0" type="submit" disabled={createDesignation.isPending || updateDesignation.isPending}>
+                    {editingId ? "Save" : "Create"}
+                  </Button>
+                </DialogFooter>
+              </form>
             </DialogContent>
           </Dialog>
         }
@@ -76,18 +140,31 @@ function DesignationsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.map(d => (
-              <TableRow key={d.id}>
-                <TableCell className="font-medium">{d.title}</TableCell>
-                <TableCell><Badge variant="outline">{d.level}</Badge></TableCell>
-                <TableCell className="text-muted-foreground">{d.department}</TableCell>
-                <TableCell>{d.count}</TableCell>
+            {designations.map((designation) => (
+              <TableRow key={designation.id}>
+                <TableCell className="font-medium">{designation.title}</TableCell>
+                <TableCell><Badge variant="outline">{designation.level ?? "-"}</Badge></TableCell>
+                <TableCell className="text-muted-foreground">{designation.department_name ?? "-"}</TableCell>
+                <TableCell>{designation.members_count}</TableCell>
                 <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" className="h-8 w-8"><MoreHorizontal className="h-4 w-4" /></Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem className="gap-2"><Edit className="h-4 w-4" />Edit</DropdownMenuItem>
-                      <DropdownMenuItem className="gap-2 text-destructive"><Trash2 className="h-4 w-4" />Delete</DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="gap-2"
+                        onClick={() => {
+                          setEditingId(designation.id);
+                          setTitle(designation.title);
+                          setLevel(designation.level ?? "");
+                          setDepartmentId(designation.department_id ? String(designation.department_id) : "");
+                          setOpen(true);
+                        }}
+                      >
+                        <Edit className="h-4 w-4" />Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="gap-2 text-destructive" onClick={() => deleteDesignation.mutate(designation.id)}>
+                        <Trash2 className="h-4 w-4" />Delete
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
