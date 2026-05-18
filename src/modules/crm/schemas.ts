@@ -35,6 +35,29 @@ export const contactFormSchema = z.object({
 
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
 
+export const DEAL_STAGES = [
+  { value: "lead", label: "Lead" },
+  { value: "qualified", label: "Qualified" },
+  { value: "proposal", label: "Proposal" },
+  { value: "negotiation", label: "Negotiation" },
+  { value: "won", label: "Won" },
+  { value: "lost", label: "Lost" },
+] as const;
+
+export const dealFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  customer_id: z.string().optional(),
+  prospect_name: z.string().optional(),
+  stage: z.enum(["lead", "qualified", "proposal", "negotiation", "won", "lost"]),
+  value: z.coerce.number().min(0, "Value must be 0 or more"),
+  probability: z.coerce.number().min(0).max(100).optional(),
+  owner_name: z.string().optional(),
+  expected_close_date: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type DealFormValues = z.infer<typeof dealFormSchema>;
+
 export const orderLineSchema = z.object({
   sku: z.string().min(1, "SKU required"),
   quantity: z.coerce.number().positive("Qty must be > 0"),

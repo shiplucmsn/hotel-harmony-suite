@@ -12,6 +12,10 @@ import type {
   CreateContactInput,
   CrmCustomerDto,
   UpdateContactInput,
+  CrmDealDto,
+  CrmPipelineDto,
+  CreateDealInput,
+  UpdateDealInput,
   CrmInvoiceDto,
   CrmLeadDto,
   CrmOrderDto,
@@ -69,6 +73,24 @@ export const crmApi = {
   deleteContact: (id: number | string) =>
     api.delete<ApiEnvelope<{ deleted: boolean }>>(`/v1/crm/contacts/${id}`, { idempotent: true }),
 
+  pipeline: (params?: { search?: string }) =>
+    api.get<ApiEnvelope<CrmPipelineDto>>(`/v1/crm/pipeline${buildQuery(params)}`).then((r) => r.data),
+
+  deals: (params?: ListParams) =>
+    api.get<ApiEnvelope<CrmDealDto[]>>(`/v1/crm/deals${buildQuery(params)}`).then(paginated),
+
+  deal: (id: number | string) =>
+    api.get<ApiEnvelope<CrmDealDto>>(`/v1/crm/deals/${id}`).then((r) => r.data),
+
+  createDeal: (body: CreateDealInput) =>
+    api.post<ApiEnvelope<CrmDealDto>>("/v1/crm/deals", body, { idempotent: true }).then((r) => r.data),
+
+  updateDeal: (id: number | string, body: UpdateDealInput) =>
+    api.patch<ApiEnvelope<CrmDealDto>>(`/v1/crm/deals/${id}`, body, { idempotent: true }).then((r) => r.data),
+
+  deleteDeal: (id: number | string) =>
+    api.delete<ApiEnvelope<{ deleted: boolean }>>(`/v1/crm/deals/${id}`, { idempotent: true }),
+
   leads: (params?: ListParams) =>
     api.get<ApiEnvelope<CrmLeadDto[]>>(`/v1/crm/leads${buildQuery(params)}`).then(paginated),
 
@@ -78,6 +100,11 @@ export const crmApi = {
   convertLead: (id: number | string) =>
     api
       .post<ApiEnvelope<CrmCustomerDto>>(`/v1/crm/leads/${id}/convert`, {}, { idempotent: true })
+      .then((r) => r.data),
+
+  moveLeadPipeline: (id: number | string, stage: string) =>
+    api
+      .post<ApiEnvelope<CrmLeadDto>>(`/v1/crm/leads/${id}/pipeline-move`, { stage }, { idempotent: true })
       .then((r) => r.data),
 
   customers: (params?: ListParams) =>

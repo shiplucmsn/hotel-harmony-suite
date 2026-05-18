@@ -53,6 +53,72 @@ export type CreateContactInput = {
 
 export type UpdateContactInput = Partial<CreateContactInput>;
 
+export type CrmDealStage =
+  | "lead"
+  | "qualified"
+  | "proposal"
+  | "negotiation"
+  | "won"
+  | "lost";
+
+export type CrmPipelineCardSource = "deal" | "lead";
+
+export type CrmDealDto = {
+  id: number;
+  uuid?: string;
+  source_type?: CrmPipelineCardSource;
+  lead_id?: number | null;
+  lead_status?: string | null;
+  title: string;
+  customer_id?: number | null;
+  lead_id?: number | null;
+  prospect_name?: string | null;
+  customer: string;
+  stage: CrmDealStage;
+  stage_label: string;
+  value: number;
+  probability: number;
+  owner: string;
+  owner_name?: string | null;
+  close_date?: string | null;
+  expected_close_date?: string | null;
+  notes?: string | null;
+};
+
+export type CrmPipelineStageDto = {
+  key: CrmDealStage;
+  label: string;
+  deal_count: number;
+  total_value: number;
+  deals: CrmDealDto[];
+};
+
+export type CrmPipelineDto = {
+  stages: CrmPipelineStageDto[];
+  summary: {
+    deal_count: number;
+    lead_count: number;
+    card_count: number;
+    total_value: number;
+    weighted_value: number;
+  };
+};
+
+export type CreateDealInput = {
+  title: string;
+  customer_id?: number;
+  lead_id?: number;
+  prospect_name?: string;
+  stage?: CrmDealStage;
+  value: number;
+  probability?: number;
+  owner_name?: string;
+  expected_close_date?: string;
+  notes?: string;
+};
+
+export type UpdateDealInput = Partial<CreateDealInput>;
+
 export type CrmCustomerDto = {
   id: number;
   uuid?: string;

@@ -7,6 +7,8 @@ import type {
   CreateContactInput,
   CreateCustomerInput,
   UpdateContactInput,
+  CreateDealInput,
+  UpdateDealInput,
   CreateInvoiceInput,
   CreateLeadInput,
   CreateOrderInput,
@@ -20,6 +22,9 @@ export const crmKeys = {
   leads: (params?: Record<string, unknown>) => ["crm", "leads", params] as const,
   contacts: (params?: Record<string, unknown>) => ["crm", "contacts", params] as const,
   contact: (id: string | number) => ["crm", "contacts", id] as const,
+  pipeline: (params?: Record<string, unknown>) => ["crm", "pipeline", params] as const,
+  deals: (params?: Record<string, unknown>) => ["crm", "deals", params] as const,
+  deal: (id: string | number) => ["crm", "deals", id] as const,
   customers: (params?: Record<string, unknown>) => ["crm", "customers", params] as const,
   customer: (id: string | number) => ["crm", "customers", id] as const,
   ledger: (id: string | number) => ["crm", "customers", id, "ledger"] as const,
@@ -94,6 +99,50 @@ export function useDeleteContact() {
   });
 }
 
+export function useCrmPipeline(params?: { search?: string }) {
+  return useQuery({
+    queryKey: crmKeys.pipeline(params),
+    queryFn: () => crmApi.pipeline(params),
+  });
+}
+
+export function useCreateDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateDealInput) => crmApi.createDeal(body),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Deal created");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create deal")),
+  });
+}
+
+export function useUpdateDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateDealInput }) =>
+      crmApi.updateDeal(id, body),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Deal updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update deal")),
+  });
+}
+
+export function useDeleteDeal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.deleteDeal(id),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Deal deleted");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to delete deal")),
+  });
+}
+
 export function useCrmCustomers(params?: { per_page?: number; search?: string }) {
   return useQuery({ queryKey: crmKeys.customers(params), queryFn: () => crmApi.customers(params) });
 }
@@ -139,6 +188,19 @@ export function useCreateLead() {
       toast.success("Lead created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create lead")),
+  });
+}
+
+export function useMoveLeadPipeline() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, stage }: { id: number | string; stage: string }) =>
+      crmApi.moveLeadPipeline(id, stage),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Lead moved");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to move lead")),
   });
 }
 
