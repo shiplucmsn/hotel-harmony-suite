@@ -145,6 +145,7 @@ export type CrmOrderLineDto = {
 export type CrmOrderDto = {
   id: number;
   number: string;
+  customer?: string | null;
   customer_id?: number | null;
   quotation_id?: number | null;
   status: string;

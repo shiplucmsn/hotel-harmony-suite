@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Plus, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -102,7 +103,7 @@ export function OrderFormSheet({ open, onOpenChange }: OrderFormSheetProps) {
 
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <FormLabel>Line items</FormLabel>
+          <Label className="text-sm font-medium leading-none">Line items</Label>
           <Button
             type="button"
             variant="outline"

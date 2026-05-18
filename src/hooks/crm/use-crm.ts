@@ -167,7 +167,12 @@ export function useCustomerLedger(id: string | number | undefined) {
   });
 }
 
-export function useCrmOrders(params?: { per_page?: number; status?: string }) {
+export function useCrmOrders(params?: {
+  page?: number;
+  per_page?: number;
+  status?: string;
+  search?: string;
+}) {
   return useQuery({ queryKey: crmKeys.orders(params), queryFn: () => crmApi.orders(params) });
 }
 
