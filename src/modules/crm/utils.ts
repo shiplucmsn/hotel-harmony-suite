@@ -32,6 +32,14 @@ export const invoiceStatusTone: Record<string, string> = {
   void: "bg-destructive/10 text-destructive",
 };
 
+export const quotationStatusTone: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground",
+  sent: "bg-info/10 text-info",
+  accepted: "bg-success/10 text-success",
+  rejected: "bg-destructive/10 text-destructive",
+  expired: "bg-destructive/10 text-destructive",
+};
+
 export function customerLabel(
   customerId: number | null | undefined,
   map: Map<number, string>,

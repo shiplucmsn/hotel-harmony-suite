@@ -19,6 +19,9 @@ import type {
   CrmInvoiceDto,
   CrmLeadDto,
   CrmOrderDto,
+  CrmQuotationDto,
+  CreateQuotationInput,
+  UpdateQuotationInput,
   CrmPaymentDto,
   CustomerLedgerEntryDto,
   PaginatedResult,
@@ -120,6 +123,26 @@ export const crmApi = {
     api
       .get<ApiEnvelope<CustomerLedgerEntryDto[]>>(`/v1/crm/customers/${id}/ledger${buildQuery(params)}`)
       .then(paginated),
+
+  quotations: (params?: ListParams) =>
+    api.get<ApiEnvelope<CrmQuotationDto[]>>(`/v1/crm/quotations${buildQuery(params)}`).then(paginated),
+
+  quotation: (id: number | string) =>
+    api.get<ApiEnvelope<CrmQuotationDto>>(`/v1/crm/quotations/${id}`).then((r) => r.data),
+
+  createQuotation: (body: CreateQuotationInput) =>
+    api.post<ApiEnvelope<CrmQuotationDto>>("/v1/crm/quotations", body, { idempotent: true }),
+
+  updateQuotation: (id: number | string, body: UpdateQuotationInput) =>
+    api.patch<ApiEnvelope<CrmQuotationDto>>(`/v1/crm/quotations/${id}`, body, { idempotent: true }),
+
+  deleteQuotation: (id: number | string) =>
+    api.delete<ApiEnvelope<{ deleted: boolean }>>(`/v1/crm/quotations/${id}`, { idempotent: true }),
+
+  convertQuotation: (id: number | string) =>
+    api
+      .post<ApiEnvelope<CrmOrderDto>>(`/v1/crm/quotations/${id}/convert`, {}, { idempotent: true })
+      .then((r) => r),
 
   orders: (params?: ListParams) =>
     api.get<ApiEnvelope<CrmOrderDto[]>>(`/v1/crm/orders${buildQuery(params)}`).then(paginated),

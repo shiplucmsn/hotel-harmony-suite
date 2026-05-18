@@ -155,6 +155,54 @@ export type CrmOrderDto = {
   lines?: CrmOrderLineDto[];
 };
 
+export type CrmQuotationLineDto = {
+  id?: number;
+  sku?: string | null;
+  description: string;
+  quantity: number;
+  unit_price: number;
+  line_total: number;
+};
+
+export type CrmQuotationDto = {
+  id: number;
+  uuid?: string;
+  number: string;
+  customer_id?: number | null;
+  customer: string;
+  status: string;
+  quote_date?: string | null;
+  valid_until?: string | null;
+  date?: string | null;
+  expiry?: string | null;
+  subtotal: number;
+  tax_amount: number;
+  total_amount: number;
+  amount: number;
+  notes?: string | null;
+  lines?: CrmQuotationLineDto[];
+};
+
+export type CreateQuotationInput = {
+  customer_id?: number;
+  number?: string;
+  status?: string;
+  quote_date?: string;
+  valid_until?: string;
+  tax_amount?: number;
+  notes?: string;
+  lines: Array<{
+    sku?: string;
+    description: string;
+    quantity: number;
+    unit_price: number;
+  }>;
+};
+
+export type UpdateQuotationInput = Partial<CreateQuotationInput> & {
+  send_email?: boolean;
+};
+
 export type CrmInvoiceLineDto = {
   id?: number;
   sku?: string | null;

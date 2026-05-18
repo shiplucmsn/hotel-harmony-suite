@@ -73,6 +73,25 @@ export const orderFormSchema = z.object({
 
 export type OrderFormValues = z.infer<typeof orderFormSchema>;
 
+export const quotationLineSchema = z.object({
+  sku: z.string().optional(),
+  description: z.string().min(1, "Description is required"),
+  quantity: z.coerce.number().positive("Qty must be > 0"),
+  unit_price: z.coerce.number().min(0),
+});
+
+export const quotationFormSchema = z.object({
+  customer_id: z.string().min(1, "Customer is required"),
+  number: z.string().optional(),
+  quote_date: z.string().optional(),
+  valid_until: z.string().optional(),
+  tax_amount: z.coerce.number().min(0).default(0),
+  notes: z.string().optional(),
+  lines: z.array(quotationLineSchema).min(1, "Add at least one line"),
+});
+
+export type QuotationFormValues = z.infer<typeof quotationFormSchema>;
+
 export const invoiceFormSchema = z.object({
   customer_id: z.string().min(1, "Customer is required"),
   crm_order_id: z.string().optional(),

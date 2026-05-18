@@ -1,12 +1,13 @@
 import { Badge } from "@/components/ui/badge";
-import { invoiceStatusTone, leadStatusTone, orderStatusTone } from "@/modules/crm/utils";
+import { invoiceStatusTone, leadStatusTone, orderStatusTone, quotationStatusTone } from "@/modules/crm/utils";
 
-type StatusKind = "lead" | "order" | "invoice";
+type StatusKind = "lead" | "order" | "invoice" | "quotation";
 
 const maps: Record<StatusKind, Record<string, string>> = {
   lead: leadStatusTone,
   order: orderStatusTone,
   invoice: invoiceStatusTone,
+  quotation: quotationStatusTone,
 };
 
 type CrmStatusBadgeProps = {

@@ -12,6 +12,8 @@ import type {
   CreateInvoiceInput,
   CreateLeadInput,
   CreateOrderInput,
+  CreateQuotationInput,
+  UpdateQuotationInput,
   CreatePaymentInput,
   CrmAnalyticsFilters,
 } from "@/modules/crm/types";
@@ -29,6 +31,8 @@ export const crmKeys = {
   customer: (id: string | number) => ["crm", "customers", id] as const,
   ledger: (id: string | number) => ["crm", "customers", id, "ledger"] as const,
   orders: (params?: Record<string, unknown>) => ["crm", "orders", params] as const,
+  quotations: (params?: Record<string, unknown>) => ["crm", "quotations", params] as const,
+  quotation: (id: string | number) => ["crm", "quotations", id] as const,
   invoices: (params?: Record<string, unknown>) => ["crm", "invoices", params] as const,
   payments: (params?: Record<string, unknown>) => ["crm", "payments", params] as const,
 };
@@ -237,6 +241,89 @@ export function useCreateOrder() {
       toast.success("Sales order created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create order")),
+  });
+}
+
+export function useCrmQuotations(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+}) {
+  return useQuery({ queryKey: crmKeys.quotations(params), queryFn: () => crmApi.quotations(params) });
+}
+
+export function useCrmQuotation(id: string | number | undefined) {
+  return useQuery({
+    queryKey: crmKeys.quotation(id ?? ""),
+    queryFn: () => crmApi.quotation(id!),
+    enabled: Boolean(id),
+  });
+}
+
+function quotationWasEmailed(meta?: { sideEffects?: { action: string }[] }) {
+  return meta?.sideEffects?.some((s) => s.action === "emailed") ?? false;
+}
+
+export function useCreateQuotation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateQuotationInput) => crmApi.createQuotation(body),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      toast.success(
+        quotationWasEmailed(res.meta)
+          ? "Quote sent to customer email"
+          : "Quotation saved as draft",
+      );
+      showSideEffects(res.meta);
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create quotation")),
+  });
+}
+
+export function useUpdateQuotation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateQuotationInput }) =>
+      crmApi.updateQuotation(id, body),
+    onSuccess: (res, { body }) => {
+      invalidateCrm(qc);
+      if (quotationWasEmailed(res.meta)) {
+        toast.success("Quote sent to customer email");
+      } else if (body.status === "sent") {
+        toast.success("Quotation marked as sent");
+      } else {
+        toast.success("Quotation updated");
+      }
+      showSideEffects(res.meta);
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update quotation")),
+  });
+}
+
+export function useDeleteQuotation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.deleteQuotation(id),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Quotation deleted");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to delete quotation")),
+  });
+}
+
+export function useConvertQuotation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.convertQuotation(id),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      showSideEffects(res.meta);
+      toast.success("Quotation converted to sales order");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to convert quotation")),
   });
 }
 
