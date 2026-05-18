@@ -26,6 +26,7 @@ import { Route as AppSuperAdminRouteImport } from './routes/app.super-admin'
 import { Route as AppSubscriptionRouteImport } from './routes/app.subscription'
 import { Route as AppSettingsRouteImport } from './routes/app.settings'
 import { Route as AppSalesRouteImport } from './routes/app.sales'
+import { Route as AppSaasRouteImport } from './routes/app.saas'
 import { Route as AppRolesRouteImport } from './routes/app.roles'
 import { Route as AppReportsRouteImport } from './routes/app.reports'
 import { Route as AppProfileRouteImport } from './routes/app.profile'
@@ -46,6 +47,10 @@ import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppActivityRouteImport } from './routes/app.activity'
 import { Route as AppUsersNewRouteImport } from './routes/app.users.new'
 import { Route as AppUsersUserIdRouteImport } from './routes/app.users.$userId'
+import { Route as AppSaasTenantsRouteImport } from './routes/app.saas.tenants'
+import { Route as AppSaasRevenueRouteImport } from './routes/app.saas.revenue'
+import { Route as AppSaasPlansRouteImport } from './routes/app.saas.plans'
+import { Route as AppSaasBillingRouteImport } from './routes/app.saas.billing'
 import { Route as AppProductsProductIdRouteImport } from './routes/app.products.$productId'
 import { Route as AppProdWorkflowRouteImport } from './routes/app.prod.workflow'
 import { Route as AppProdWorkOrdersRouteImport } from './routes/app.prod.work-orders'
@@ -215,6 +220,11 @@ const AppSalesRoute = AppSalesRouteImport.update({
   path: '/sales',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSaasRoute = AppSaasRouteImport.update({
+  id: '/saas',
+  path: '/saas',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRolesRoute = AppRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
@@ -314,6 +324,26 @@ const AppUsersUserIdRoute = AppUsersUserIdRouteImport.update({
   id: '/$userId',
   path: '/$userId',
   getParentRoute: () => AppUsersRoute,
+} as any)
+const AppSaasTenantsRoute = AppSaasTenantsRouteImport.update({
+  id: '/tenants',
+  path: '/tenants',
+  getParentRoute: () => AppSaasRoute,
+} as any)
+const AppSaasRevenueRoute = AppSaasRevenueRouteImport.update({
+  id: '/revenue',
+  path: '/revenue',
+  getParentRoute: () => AppSaasRoute,
+} as any)
+const AppSaasPlansRoute = AppSaasPlansRouteImport.update({
+  id: '/plans',
+  path: '/plans',
+  getParentRoute: () => AppSaasRoute,
+} as any)
+const AppSaasBillingRoute = AppSaasBillingRouteImport.update({
+  id: '/billing',
+  path: '/billing',
+  getParentRoute: () => AppSaasRoute,
 } as any)
 const AppProductsProductIdRoute = AppProductsProductIdRouteImport.update({
   id: '/$productId',
@@ -764,6 +794,7 @@ export interface FileRoutesByFullPath {
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
+  '/app/saas': typeof AppSaasRouteWithChildren
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
@@ -849,6 +880,10 @@ export interface FileRoutesByFullPath {
   '/app/prod/work-orders': typeof AppProdWorkOrdersRoute
   '/app/prod/workflow': typeof AppProdWorkflowRoute
   '/app/products/$productId': typeof AppProductsProductIdRoute
+  '/app/saas/billing': typeof AppSaasBillingRoute
+  '/app/saas/plans': typeof AppSaasPlansRoute
+  '/app/saas/revenue': typeof AppSaasRevenueRoute
+  '/app/saas/tenants': typeof AppSaasTenantsRoute
   '/app/users/$userId': typeof AppUsersUserIdRoute
   '/app/users/new': typeof AppUsersNewRoute
   '/app/crm/customers/$customerId': typeof AppCrmCustomersCustomerIdRoute
@@ -886,6 +921,7 @@ export interface FileRoutesByTo {
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
+  '/app/saas': typeof AppSaasRouteWithChildren
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
@@ -971,6 +1007,10 @@ export interface FileRoutesByTo {
   '/app/prod/work-orders': typeof AppProdWorkOrdersRoute
   '/app/prod/workflow': typeof AppProdWorkflowRoute
   '/app/products/$productId': typeof AppProductsProductIdRoute
+  '/app/saas/billing': typeof AppSaasBillingRoute
+  '/app/saas/plans': typeof AppSaasPlansRoute
+  '/app/saas/revenue': typeof AppSaasRevenueRoute
+  '/app/saas/tenants': typeof AppSaasTenantsRoute
   '/app/users/$userId': typeof AppUsersUserIdRoute
   '/app/users/new': typeof AppUsersNewRoute
   '/app/crm/customers/$customerId': typeof AppCrmCustomersCustomerIdRoute
@@ -1009,6 +1049,7 @@ export interface FileRoutesById {
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
+  '/app/saas': typeof AppSaasRouteWithChildren
   '/app/sales': typeof AppSalesRoute
   '/app/settings': typeof AppSettingsRoute
   '/app/subscription': typeof AppSubscriptionRoute
@@ -1094,6 +1135,10 @@ export interface FileRoutesById {
   '/app/prod/work-orders': typeof AppProdWorkOrdersRoute
   '/app/prod/workflow': typeof AppProdWorkflowRoute
   '/app/products/$productId': typeof AppProductsProductIdRoute
+  '/app/saas/billing': typeof AppSaasBillingRoute
+  '/app/saas/plans': typeof AppSaasPlansRoute
+  '/app/saas/revenue': typeof AppSaasRevenueRoute
+  '/app/saas/tenants': typeof AppSaasTenantsRoute
   '/app/users/$userId': typeof AppUsersUserIdRoute
   '/app/users/new': typeof AppUsersNewRoute
   '/app/crm/customers/$customerId': typeof AppCrmCustomersCustomerIdRoute
@@ -1133,6 +1178,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/reports'
     | '/app/roles'
+    | '/app/saas'
     | '/app/sales'
     | '/app/settings'
     | '/app/subscription'
@@ -1218,6 +1264,10 @@ export interface FileRouteTypes {
     | '/app/prod/work-orders'
     | '/app/prod/workflow'
     | '/app/products/$productId'
+    | '/app/saas/billing'
+    | '/app/saas/plans'
+    | '/app/saas/revenue'
+    | '/app/saas/tenants'
     | '/app/users/$userId'
     | '/app/users/new'
     | '/app/crm/customers/$customerId'
@@ -1255,6 +1305,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/reports'
     | '/app/roles'
+    | '/app/saas'
     | '/app/sales'
     | '/app/settings'
     | '/app/subscription'
@@ -1340,6 +1391,10 @@ export interface FileRouteTypes {
     | '/app/prod/work-orders'
     | '/app/prod/workflow'
     | '/app/products/$productId'
+    | '/app/saas/billing'
+    | '/app/saas/plans'
+    | '/app/saas/revenue'
+    | '/app/saas/tenants'
     | '/app/users/$userId'
     | '/app/users/new'
     | '/app/crm/customers/$customerId'
@@ -1377,6 +1432,7 @@ export interface FileRouteTypes {
     | '/app/profile'
     | '/app/reports'
     | '/app/roles'
+    | '/app/saas'
     | '/app/sales'
     | '/app/settings'
     | '/app/subscription'
@@ -1462,6 +1518,10 @@ export interface FileRouteTypes {
     | '/app/prod/work-orders'
     | '/app/prod/workflow'
     | '/app/products/$productId'
+    | '/app/saas/billing'
+    | '/app/saas/plans'
+    | '/app/saas/revenue'
+    | '/app/saas/tenants'
     | '/app/users/$userId'
     | '/app/users/new'
     | '/app/crm/customers/$customerId'
@@ -1605,6 +1665,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSalesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/saas': {
+      id: '/app/saas'
+      path: '/saas'
+      fullPath: '/app/saas'
+      preLoaderRoute: typeof AppSaasRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/roles': {
       id: '/app/roles'
       path: '/roles'
@@ -1744,6 +1811,34 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/users/$userId'
       preLoaderRoute: typeof AppUsersUserIdRouteImport
       parentRoute: typeof AppUsersRoute
+    }
+    '/app/saas/tenants': {
+      id: '/app/saas/tenants'
+      path: '/tenants'
+      fullPath: '/app/saas/tenants'
+      preLoaderRoute: typeof AppSaasTenantsRouteImport
+      parentRoute: typeof AppSaasRoute
+    }
+    '/app/saas/revenue': {
+      id: '/app/saas/revenue'
+      path: '/revenue'
+      fullPath: '/app/saas/revenue'
+      preLoaderRoute: typeof AppSaasRevenueRouteImport
+      parentRoute: typeof AppSaasRoute
+    }
+    '/app/saas/plans': {
+      id: '/app/saas/plans'
+      path: '/plans'
+      fullPath: '/app/saas/plans'
+      preLoaderRoute: typeof AppSaasPlansRouteImport
+      parentRoute: typeof AppSaasRoute
+    }
+    '/app/saas/billing': {
+      id: '/app/saas/billing'
+      path: '/billing'
+      fullPath: '/app/saas/billing'
+      preLoaderRoute: typeof AppSaasBillingRouteImport
+      parentRoute: typeof AppSaasRoute
     }
     '/app/products/$productId': {
       id: '/app/products/$productId'
@@ -2597,6 +2692,23 @@ const AppProductsRouteWithChildren = AppProductsRoute._addFileChildren(
   AppProductsRouteChildren,
 )
 
+interface AppSaasRouteChildren {
+  AppSaasBillingRoute: typeof AppSaasBillingRoute
+  AppSaasPlansRoute: typeof AppSaasPlansRoute
+  AppSaasRevenueRoute: typeof AppSaasRevenueRoute
+  AppSaasTenantsRoute: typeof AppSaasTenantsRoute
+}
+
+const AppSaasRouteChildren: AppSaasRouteChildren = {
+  AppSaasBillingRoute: AppSaasBillingRoute,
+  AppSaasPlansRoute: AppSaasPlansRoute,
+  AppSaasRevenueRoute: AppSaasRevenueRoute,
+  AppSaasTenantsRoute: AppSaasTenantsRoute,
+}
+
+const AppSaasRouteWithChildren =
+  AppSaasRoute._addFileChildren(AppSaasRouteChildren)
+
 interface AppUsersRouteChildren {
   AppUsersUserIdRoute: typeof AppUsersUserIdRoute
   AppUsersNewRoute: typeof AppUsersNewRoute
@@ -2630,6 +2742,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
   AppRolesRoute: typeof AppRolesRoute
+  AppSaasRoute: typeof AppSaasRouteWithChildren
   AppSalesRoute: typeof AppSalesRoute
   AppSettingsRoute: typeof AppSettingsRoute
   AppSubscriptionRoute: typeof AppSubscriptionRoute
@@ -2657,6 +2770,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
   AppRolesRoute: AppRolesRoute,
+  AppSaasRoute: AppSaasRouteWithChildren,
   AppSalesRoute: AppSalesRoute,
   AppSettingsRoute: AppSettingsRoute,
   AppSubscriptionRoute: AppSubscriptionRoute,

@@ -249,9 +249,13 @@ export const NAV_MENU: NavSectionMeta[] = [
     title: "Super Admin",
     iconName: "sparkles",
     items: [
+      { title: "SaaS Overview", url: "/app/saas", iconName: "layoutDashboard" },
+      { title: "Tenant management", url: "/app/saas/tenants", iconName: "building2" },
+      { title: "Plans", url: "/app/saas/plans", iconName: "creditCard" },
+      { title: "SaaS Billing", url: "/app/saas/billing", iconName: "receipt" },
+      { title: "Revenue analytics", url: "/app/saas/revenue", iconName: "trendingUp" },
       { title: "Control Panel", url: "/app/super-admin", iconName: "sparkles" },
-      { title: "Tenants", url: "/app/tenants", iconName: "building2" },
-      { title: "Subscriptions", url: "/app/subscription", iconName: "creditCard" },
+      { title: "Workspaces", url: "/app/tenants", iconName: "building2" },
     ],
   },
   {

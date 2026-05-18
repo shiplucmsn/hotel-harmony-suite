@@ -1,6 +1,7 @@
 /** Longest-prefix match for route-level permission guards. */
 export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   "/app/super-admin": "platform.super_admin.view",
+  "/app/saas": "platform.tenants.manage",
   "/app/tenants": "platform.tenants.manage",
   "/app/users": "core.users.view",
   "/app/roles": "core.roles.view",
