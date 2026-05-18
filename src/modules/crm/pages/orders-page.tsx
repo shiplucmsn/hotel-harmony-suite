@@ -148,12 +148,9 @@ export function OrdersPage() {
           emptyDescription="Create a sales order with product lines."
           getRowId={(o) => String(o.id)}
         />
-        <PaginationBar
-          page={pagination.page}
-          lastPage={pagination.lastPage}
-          total={pagination.total}
-          onPageChange={setPage}
-        />
+        {pagination.total > 0 ? (
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
+        ) : null}
       </Card>
       <OrderFormSheet open={formOpen} onOpenChange={setFormOpen} />
     </div>

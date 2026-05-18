@@ -21,6 +21,20 @@ export const customerFormSchema = z.object({
 
 export type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
+export const contactFormSchema = z.object({
+  first_name: z.string().min(1, "First name is required"),
+  last_name: z.string().optional(),
+  job_title: z.string().optional(),
+  customer_id: z.string().optional(),
+  company_name: z.string().optional(),
+  email: z.string().email().optional().or(z.literal("")),
+  phone: z.string().optional(),
+  tags: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export type ContactFormValues = z.infer<typeof contactFormSchema>;
+
 export const orderLineSchema = z.object({
   sku: z.string().min(1, "SKU required"),
   quantity: z.coerce.number().positive("Qty must be > 0"),

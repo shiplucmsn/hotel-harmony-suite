@@ -163,12 +163,9 @@ export function LeadsPage() {
           emptyDescription="Create your first lead to start the pipeline."
           getRowId={(l) => String(l.id)}
         />
-        <PaginationBar
-          page={pagination.page}
-          lastPage={pagination.lastPage}
-          total={pagination.total}
-          onPageChange={setPage}
-        />
+        {pagination.total > 0 ? (
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
+        ) : null}
       </Card>
 
       <LeadFormSheet open={formOpen} onOpenChange={setFormOpen} />

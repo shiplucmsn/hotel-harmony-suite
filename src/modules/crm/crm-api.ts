@@ -6,7 +6,12 @@ import type {
   CreateLeadInput,
   CreateOrderInput,
   CreatePaymentInput,
+  CrmAnalyticsDto,
+  CrmAnalyticsFilters,
+  CrmContactDto,
+  CreateContactInput,
   CrmCustomerDto,
+  UpdateContactInput,
   CrmInvoiceDto,
   CrmLeadDto,
   CrmOrderDto,
@@ -41,6 +46,29 @@ function paginated<T>(res: ApiEnvelope<T[]>): PaginatedResult<T> {
 }
 
 export const crmApi = {
+  analytics: (params?: CrmAnalyticsFilters) =>
+    api.get<ApiEnvelope<CrmAnalyticsDto>>(`/v1/crm/analytics${buildQuery(params)}`).then((r) => r.data),
+
+  contacts: (params?: ListParams) =>
+    api.get<ApiEnvelope<CrmContactDto[]>>(`/v1/crm/contacts${buildQuery(params)}`).then((res) => ({
+      data: Array.isArray(res.data) ? res.data : [],
+      pagination: res.meta?.pagination,
+    })),
+
+  contact: (id: number | string) =>
+    api.get<ApiEnvelope<CrmContactDto>>(`/v1/crm/contacts/${id}`).then((r) => r.data),
+
+  createContact: (body: CreateContactInput) =>
+    api.post<ApiEnvelope<CrmContactDto>>("/v1/crm/contacts", body, { idempotent: true }).then((r) => r.data),
+
+  updateContact: (id: number | string, body: UpdateContactInput) =>
+    api
+      .patch<ApiEnvelope<CrmContactDto>>(`/v1/crm/contacts/${id}`, body, { idempotent: true })
+      .then((r) => r.data),
+
+  deleteContact: (id: number | string) =>
+    api.delete<ApiEnvelope<{ deleted: boolean }>>(`/v1/crm/contacts/${id}`, { idempotent: true }),
+
   leads: (params?: ListParams) =>
     api.get<ApiEnvelope<CrmLeadDto[]>>(`/v1/crm/leads${buildQuery(params)}`).then(paginated),
 

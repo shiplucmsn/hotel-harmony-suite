@@ -123,12 +123,9 @@ export function InvoicesPage() {
           emptyDescription="Issue an invoice from an order or ad-hoc lines."
           getRowId={(i) => String(i.id)}
         />
-        <PaginationBar
-          page={pagination.page}
-          lastPage={pagination.lastPage}
-          total={pagination.total}
-          onPageChange={setPage}
-        />
+        {pagination.total > 0 ? (
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
+        ) : null}
       </Card>
       <InvoiceFormSheet open={formOpen} onOpenChange={setFormOpen} />
     </div>

@@ -4,16 +4,22 @@ import { getApiErrorMessage } from "@/lib/api-errors";
 import { showSideEffects } from "@/lib/api-meta";
 import { crmApi } from "@/modules/crm/crm-api";
 import type {
+  CreateContactInput,
   CreateCustomerInput,
+  UpdateContactInput,
   CreateInvoiceInput,
   CreateLeadInput,
   CreateOrderInput,
   CreatePaymentInput,
+  CrmAnalyticsFilters,
 } from "@/modules/crm/types";
 
 export const crmKeys = {
   all: ["crm"] as const,
+  analytics: (params?: CrmAnalyticsFilters) => ["crm", "analytics", params] as const,
   leads: (params?: Record<string, unknown>) => ["crm", "leads", params] as const,
+  contacts: (params?: Record<string, unknown>) => ["crm", "contacts", params] as const,
+  contact: (id: string | number) => ["crm", "contacts", id] as const,
   customers: (params?: Record<string, unknown>) => ["crm", "customers", params] as const,
   customer: (id: string | number) => ["crm", "customers", id] as const,
   ledger: (id: string | number) => ["crm", "customers", id, "ledger"] as const,
@@ -22,8 +28,70 @@ export const crmKeys = {
   payments: (params?: Record<string, unknown>) => ["crm", "payments", params] as const,
 };
 
+export function useCrmAnalytics(params?: CrmAnalyticsFilters) {
+  return useQuery({
+    queryKey: crmKeys.analytics(params),
+    queryFn: () => crmApi.analytics(params),
+  });
+}
+
 export function useCrmLeads(params?: { per_page?: number; status?: string; search?: string }) {
   return useQuery({ queryKey: crmKeys.leads(params), queryFn: () => crmApi.leads(params) });
+}
+
+export function useCrmContacts(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+  customer_id?: string | number;
+}) {
+  return useQuery({ queryKey: crmKeys.contacts(params), queryFn: () => crmApi.contacts(params) });
+}
+
+export function useCrmContact(id: string | number | undefined) {
+  return useQuery({
+    queryKey: crmKeys.contact(id ?? ""),
+    queryFn: () => crmApi.contact(id!),
+    enabled: Boolean(id),
+  });
+}
+
+export function useCreateContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateContactInput) => crmApi.createContact(body),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Contact created");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create contact")),
+  });
+}
+
+export function useUpdateContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateContactInput }) =>
+      crmApi.updateContact(id, body),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Contact updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update contact")),
+  });
+}
+
+export function useDeleteContact() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.deleteContact(id),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Contact deleted");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to delete contact")),
+  });
 }
 
 export function useCrmCustomers(params?: { per_page?: number; search?: string }) {

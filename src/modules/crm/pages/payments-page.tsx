@@ -117,12 +117,9 @@ export function PaymentsPage() {
           emptyDescription="Record a payment against an issued invoice."
           getRowId={(p) => String(p.id)}
         />
-        <PaginationBar
-          page={pagination.page}
-          lastPage={pagination.lastPage}
-          total={pagination.total}
-          onPageChange={setPage}
-        />
+        {pagination.total > 0 ? (
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
+        ) : null}
       </Card>
 
       <PaymentFormSheet open={formOpen} onOpenChange={setFormOpen} />

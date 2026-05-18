@@ -1,99 +1,106 @@
-import { useMemo } from "react";
-import { DollarSign, Target, TrendingUp, Users } from "lucide-react";
+import { useMemo, useState } from "react";
+import { DollarSign, Filter, Target, TrendingUp, Users } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { StatCard } from "@/components/stat-card";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import {
   InvoiceStatusChart,
   LeadsStatusChart,
   OrdersStatusChart,
   RevenueTrendChart,
 } from "@/modules/crm/components/crm-charts";
-import {
-  useCrmInvoices,
-  useCrmLeads,
-  useCrmOrders,
-  useCrmPayments,
-} from "@/hooks/crm/use-crm";
-import {
-  buildLeadsByStatus,
-  buildOrdersByStatus,
-  buildRevenueTrend,
-  crmAnalyticsSummary,
-  formatMoney,
-} from "@/modules/crm/utils";
+import { useCrmAnalytics } from "@/hooks/crm/use-crm";
+import type { CrmAnalyticsFilters } from "@/modules/crm/types";
+import { formatMoney } from "@/modules/crm/utils";
+
+const defaultFrom = () => new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString().slice(0, 10);
+const defaultTo = () => new Date().toISOString().slice(0, 10);
 
 export function AnalyticsPage() {
-  const { data: leadsData, isLoading: leadsLoading } = useCrmLeads({ per_page: 500 });
-  const { data: ordersData, isLoading: ordersLoading } = useCrmOrders({ per_page: 500 });
-  const { data: invoicesData, isLoading: invoicesLoading } = useCrmInvoices({ per_page: 500 });
-  const { data: paymentsData, isLoading: paymentsLoading } = useCrmPayments({ per_page: 500 });
+  const [from, setFrom] = useState(defaultFrom);
+  const [to, setTo] = useState(defaultTo);
+  const [applied, setApplied] = useState<CrmAnalyticsFilters>({ from: defaultFrom(), to: defaultTo() });
 
-  const leads = leadsData?.data ?? [];
-  const orders = ordersData?.data ?? [];
-  const invoices = invoicesData?.data ?? [];
-  const payments = paymentsData?.data ?? [];
+  const { data, isLoading, isFetching, refetch } = useCrmAnalytics(applied);
 
-  const summary = useMemo(
-    () => crmAnalyticsSummary(leads, invoices, payments, orders),
-    [leads, invoices, payments, orders],
-  );
+  const summary = data?.summary;
+  const loading = isLoading || isFetching;
 
-  const revenueTrend = useMemo(() => buildRevenueTrend(invoices), [invoices]);
-  const leadsByStatus = useMemo(() => buildLeadsByStatus(leads), [leads]);
-  const ordersByStatus = useMemo(() => buildOrdersByStatus(orders), [orders]);
-
-  const invoicesByStatus = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const inv of invoices) {
-      const key = inv.status || "draft";
-      counts.set(key, (counts.get(key) ?? 0) + 1);
+  const rangeLabel = useMemo(() => {
+    if (data?.range?.from && data?.range?.to) {
+      return `${data.range.from} → ${data.range.to}`;
     }
-    return Array.from(counts.entries()).map(([name, value]) => ({ name, value }));
-  }, [invoices]);
-
-  const topInvoices = useMemo(
-    () =>
-      [...invoices]
-        .filter((i) => i.status !== "void" && i.status !== "draft")
-        .sort((a, b) => b.total_amount - a.total_amount)
-        .slice(0, 5),
-    [invoices],
-  );
-
-  const loading = leadsLoading || ordersLoading || invoicesLoading || paymentsLoading;
+    return "All time";
+  }, [data?.range]);
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Sales Analytics"
-        description="Live KPIs from CRM leads, orders, invoices and payments."
+        description="Server-aggregated KPIs from CRM leads, orders, invoices and payments."
         breadcrumbs={[{ label: "CRM & Sales" }, { label: "Analytics" }]}
+        actions={
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setApplied({ from, to, top_limit: 5 })}
+            disabled={loading}
+          >
+            <Filter className="mr-2 h-4 w-4" />
+            Apply filters
+          </Button>
+        }
       />
+
+      <Card className="p-4">
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">From</label>
+            <Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className="w-40" />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">To</label>
+            <Input type="date" value={to} onChange={(e) => setTo(e.target.value)} className="w-40" />
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setApplied({});
+              refetch();
+            }}
+          >
+            Clear range
+          </Button>
+          <span className="text-xs text-muted-foreground">Showing: {rangeLabel}</span>
+        </div>
+      </Card>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
           label="Revenue (issued)"
-          value={loading ? "…" : formatMoney(summary.revenue)}
-          change={`${summary.invoiceCount} invoices`}
+          value={loading ? "…" : formatMoney(summary?.revenue ?? 0)}
+          change={`${summary?.invoice_count ?? 0} invoices`}
           icon={DollarSign}
         />
         <StatCard
           label="Open AR"
-          value={loading ? "…" : formatMoney(summary.openAr)}
+          value={loading ? "…" : formatMoney(summary?.open_ar ?? 0)}
           icon={Target}
           accent="bg-violet-500"
         />
         <StatCard
           label="Open leads"
-          value={loading ? "…" : String(summary.openLeads)}
+          value={loading ? "…" : String(summary?.open_leads ?? 0)}
           icon={Users}
           accent="bg-cyan-500"
         />
         <StatCard
           label="Fulfilled orders"
-          value={loading ? "…" : String(summary.fulfilledOrders)}
-          change={`${summary.orderCount} total`}
+          value={loading ? "…" : String(summary?.fulfilled_orders ?? 0)}
+          change={`${summary?.order_count ?? 0} total`}
           icon={TrendingUp}
           accent="bg-emerald-500"
         />
@@ -105,7 +112,7 @@ export function AnalyticsPage() {
             <CardTitle className="text-base">Revenue trend</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
-            <RevenueTrendChart data={revenueTrend} />
+            <RevenueTrendChart data={data?.revenue_trend ?? []} />
           </CardContent>
         </Card>
         <Card>
@@ -113,7 +120,7 @@ export function AnalyticsPage() {
             <CardTitle className="text-base">Leads by status</CardTitle>
           </CardHeader>
           <CardContent className="h-72">
-            <LeadsStatusChart data={leadsByStatus} />
+            <LeadsStatusChart data={data?.leads_by_status ?? []} />
           </CardContent>
         </Card>
       </div>
@@ -124,7 +131,7 @@ export function AnalyticsPage() {
             <CardTitle className="text-base">Orders by status</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <OrdersStatusChart data={ordersByStatus} />
+            <OrdersStatusChart data={data?.orders_by_status ?? []} />
           </CardContent>
         </Card>
         <Card>
@@ -132,7 +139,7 @@ export function AnalyticsPage() {
             <CardTitle className="text-base">Invoices by status</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            <InvoiceStatusChart data={invoicesByStatus} />
+            <InvoiceStatusChart data={data?.invoices_by_status ?? []} />
           </CardContent>
         </Card>
         <Card>
@@ -140,18 +147,21 @@ export function AnalyticsPage() {
             <CardTitle className="text-base">Top invoices</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {topInvoices.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No issued invoices yet.</p>
+            {(data?.top_invoices ?? []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No issued invoices in this range.</p>
             ) : (
-              topInvoices.map((inv) => (
-                <div key={inv.id} className="flex items-center justify-between rounded-lg border p-3 text-sm">
+              data?.top_invoices.map((inv) => (
+                <div
+                  key={inv.id}
+                  className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                >
                   <div>
-                    <div className="font-medium">{inv.number}</div>
-                    <div className="text-xs text-muted-foreground">{inv.customer}</div>
+                    <p className="font-medium">{inv.number}</p>
+                    <p className="text-xs text-muted-foreground">{inv.customer}</p>
                   </div>
                   <div className="text-right">
-                    <div className="font-semibold">{formatMoney(inv.total_amount)}</div>
-                    <div className="text-xs text-muted-foreground">{inv.status}</div>
+                    <p className="font-semibold">{formatMoney(inv.total_amount)}</p>
+                    <p className="text-xs text-muted-foreground">{inv.status}</p>
                   </div>
                 </div>
               ))

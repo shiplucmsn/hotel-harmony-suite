@@ -127,12 +127,9 @@ export function CustomersPage() {
           emptyDescription="Add a customer to start invoicing and orders."
           getRowId={(c) => String(c.id)}
         />
-        <PaginationBar
-          page={pagination.page}
-          lastPage={pagination.lastPage}
-          total={pagination.total}
-          onPageChange={setPage}
-        />
+        {pagination.total > 0 ? (
+          <PaginationBar pagination={pagination} onPageChange={setPage} />
+        ) : null}
       </Card>
 
       <CustomerFormSheet open={formOpen} onOpenChange={setFormOpen} />

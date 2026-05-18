@@ -18,6 +18,41 @@ export type CrmLeadDto = {
   notes?: string | null;
 };
 
+export type CrmContactDto = {
+  id: number;
+  uuid?: string;
+  first_name: string;
+  last_name?: string | null;
+  name: string;
+  job_title?: string | null;
+  title?: string | null;
+  customer_id?: number | null;
+  company_name?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+  tags: string[];
+  status: string;
+  is_primary: boolean;
+  notes?: string | null;
+};
+
+export type CreateContactInput = {
+  first_name: string;
+  last_name?: string;
+  job_title?: string;
+  customer_id?: number;
+  company_name?: string;
+  email?: string;
+  phone?: string;
+  tags?: string[];
+  status?: string;
+  is_primary?: boolean;
+  notes?: string;
+};
+
+export type UpdateContactInput = Partial<CreateContactInput>;
+
 export type CrmCustomerDto = {
   id: number;
   uuid?: string;
@@ -159,4 +194,40 @@ export type CreatePaymentInput = {
   amount: number;
   payment_date?: string;
   method?: string;
+};
+
+export type CrmAnalyticsFilters = {
+  from?: string;
+  to?: string;
+  top_limit?: number;
+};
+
+export type CrmAnalyticsChartPoint = { name: string; value: number };
+
+export type CrmAnalyticsRevenuePoint = { month: string; revenue: number; invoices: number };
+
+export type CrmAnalyticsTopInvoice = {
+  id: number;
+  number: string;
+  customer: string;
+  total_amount: number;
+  status: string;
+};
+
+export type CrmAnalyticsDto = {
+  range: { from: string; to: string } | null;
+  summary: {
+    revenue: number;
+    collected: number;
+    open_ar: number;
+    open_leads: number;
+    fulfilled_orders: number;
+    invoice_count: number;
+    order_count: number;
+  };
+  revenue_trend: CrmAnalyticsRevenuePoint[];
+  leads_by_status: CrmAnalyticsChartPoint[];
+  orders_by_status: CrmAnalyticsChartPoint[];
+  invoices_by_status: CrmAnalyticsChartPoint[];
+  top_invoices: CrmAnalyticsTopInvoice[];
 };
