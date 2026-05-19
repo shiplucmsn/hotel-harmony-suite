@@ -1,18 +1,17 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { Bell, Search, Sun, Moon, LogOut, User, Settings, CreditCard, HelpCircle, Check, ChevronDown, Building2 } from "lucide-react";
+import { Search, Sun, Moon, LogOut, User, Settings, CreditCard, HelpCircle, Check, ChevronDown, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTheme } from "@/components/theme-provider";
-import { notifications, tenants } from "@/lib/mock-data";
+import { tenants } from "@/lib/mock-data";
+import { NotificationBell } from "@/components/notification-bell";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogout } from "@/hooks/auth/use-logout";
@@ -23,8 +22,6 @@ export function Topbar() {
   const { user } = useAuth();
   const logout = useLogout();
   const [tenant, setTenant] = useState(tenants[0]);
-  const unread = notifications.filter((n) => n.unread).length;
-
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/70 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <SidebarTrigger />
@@ -76,44 +73,7 @@ export function Topbar() {
         <Button variant="ghost" size="icon" onClick={toggle} aria-label="Toggle theme">
           {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </Button>
-
-        {/* Notifications */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              {unread > 0 && (
-                <span className="absolute right-1.5 top-1.5 flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-60" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
-                </span>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-80">
-            <div className="flex items-center justify-between px-2 py-1.5">
-              <span className="text-sm font-semibold">Notifications</span>
-              <Badge variant="secondary" className="text-[10px]">{unread} new</Badge>
-            </div>
-            <DropdownMenuSeparator />
-            <ScrollArea className="h-80">
-              {notifications.map((n) => (
-                <div key={n.id} className="flex gap-3 rounded-md px-2 py-2 hover:bg-muted">
-                  <div className={`mt-1 h-2 w-2 shrink-0 rounded-full ${n.unread ? "bg-primary" : "bg-muted-foreground/30"}`} />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{n.title}</p>
-                    <p className="text-xs text-muted-foreground line-clamp-2">{n.body}</p>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">{n.time}</p>
-                  </div>
-                </div>
-              ))}
-            </ScrollArea>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => navigate({ to: "/app/notifications" })} className="justify-center text-primary">
-              View all
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <NotificationBell />
 
         {/* User menu */}
         <DropdownMenu>

@@ -1,7 +1,16 @@
 import type { SearchableSelectOption } from "@/shared/components/forms/searchable-select";
 import type { CrmCustomerDto, CrmInvoiceDto, CrmOrderDto } from "@/modules/crm/types";
+import type { RbacUserDto } from "@/modules/rbac/types";
 import { formatMoney } from "@/modules/crm/utils";
 import type { ProductDto } from "@/modules/inventory/types";
+
+export function userSelectOptions(users: RbacUserDto[]): SearchableSelectOption[] {
+  return users.map((u) => ({
+    value: String(u.id),
+    label: u.name,
+    keywords: u.email,
+  }));
+}
 
 export function customerSelectOptions(
   customers: CrmCustomerDto[],

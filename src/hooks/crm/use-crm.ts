@@ -15,6 +15,9 @@ import type {
   CreateQuotationInput,
   UpdateQuotationInput,
   CreatePaymentInput,
+  CreateTicketInput,
+  CreateTicketMessageInput,
+  UpdateTicketInput,
   CrmAnalyticsFilters,
 } from "@/modules/crm/types";
 
@@ -36,6 +39,8 @@ export const crmKeys = {
   quotation: (id: string | number) => ["crm", "quotations", id] as const,
   invoices: (params?: Record<string, unknown>) => ["crm", "invoices", params] as const,
   payments: (params?: Record<string, unknown>) => ["crm", "payments", params] as const,
+  tickets: (params?: Record<string, unknown>) => ["crm", "tickets", params] as const,
+  ticket: (id: string | number) => ["crm", "tickets", id] as const,
 };
 
 export function useCrmAnalytics(params?: CrmAnalyticsFilters) {
@@ -401,5 +406,90 @@ export function useCreatePayment() {
       toast.success("Payment recorded");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to record payment")),
+  });
+}
+
+import { isTicketRealtimeActive } from "@/lib/realtime/realtime-state";
+
+const TICKET_LIST_POLL_MS = 10_000;
+const TICKET_DETAIL_POLL_MS = 5_000;
+const TICKET_POLL_FALLBACK_MS = 30_000;
+
+export function useCrmTickets(params?: {
+  per_page?: number;
+  search?: string;
+  status?: string;
+  priority?: string;
+}) {
+  return useQuery({
+    queryKey: crmKeys.tickets(params),
+    queryFn: () => crmApi.tickets(params),
+    refetchInterval: () => (isTicketRealtimeActive() ? TICKET_POLL_FALLBACK_MS : TICKET_LIST_POLL_MS),
+    refetchIntervalInBackground: false,
+  });
+}
+
+export function useCrmTicket(id: string | number | undefined) {
+  return useQuery({
+    queryKey: crmKeys.ticket(id ?? ""),
+    queryFn: () => crmApi.ticket(id!),
+    enabled: Boolean(id),
+    refetchInterval: () => (isTicketRealtimeActive() ? TICKET_POLL_FALLBACK_MS : TICKET_DETAIL_POLL_MS),
+    refetchIntervalInBackground: false,
+  });
+}
+
+export function useCreateTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateTicketInput) => crmApi.createTicket(body),
+    onSuccess: () => {
+      invalidateCrm(qc);
+      toast.success("Ticket created");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create ticket")),
+  });
+}
+
+export function useUpdateTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateTicketInput }) =>
+      crmApi.updateTicket(id, body),
+    onSuccess: (_, { id }) => {
+      invalidateCrm(qc);
+      qc.invalidateQueries({ queryKey: crmKeys.ticket(id) });
+      toast.success("Ticket updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update ticket")),
+  });
+}
+
+export function useCreateTicketMessage() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: CreateTicketMessageInput }) =>
+      crmApi.createTicketMessage(id, body),
+    onSuccess: (res, { id }) => {
+      invalidateCrm(qc);
+      qc.invalidateQueries({ queryKey: crmKeys.ticket(id) });
+      showSideEffects(res.meta);
+      const emailed = res.meta?.sideEffects?.some((s) => s.action === "emailed");
+      toast.success(emailed ? "Reply sent and emailed to customer" : "Message added");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to send message")),
+  });
+}
+
+export function useResolveTicket() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.resolveTicket(id),
+    onSuccess: (_, id) => {
+      invalidateCrm(qc);
+      qc.invalidateQueries({ queryKey: crmKeys.ticket(id) });
+      toast.success("Ticket resolved");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to resolve ticket")),
   });
 }

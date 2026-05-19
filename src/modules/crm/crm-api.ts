@@ -23,6 +23,11 @@ import type {
   CreateQuotationInput,
   UpdateQuotationInput,
   CrmPaymentDto,
+  CrmTicketDto,
+  CrmTicketMessageDto,
+  CreateTicketInput,
+  CreateTicketMessageInput,
+  UpdateTicketInput,
   CustomerLedgerEntryDto,
   CustomerLedgerFilters,
   PaginatedResult,
@@ -181,4 +186,32 @@ export const crmApi = {
 
   createPayment: (body: CreatePaymentInput) =>
     api.post<ApiEnvelope<unknown>>("/v1/crm/payments", body, { idempotent: true }).then((r) => r),
+
+  tickets: (params?: ListParams & { priority?: string }) =>
+    api.get<ApiEnvelope<CrmTicketDto[]>>(`/v1/crm/tickets${buildQuery(params)}`).then(paginated),
+
+  ticket: (id: number | string) =>
+    api.get<ApiEnvelope<CrmTicketDto>>(`/v1/crm/tickets/${id}`).then((r) => r.data),
+
+  createTicket: (body: CreateTicketInput) =>
+    api.post<ApiEnvelope<CrmTicketDto>>("/v1/crm/tickets", body, { idempotent: true }).then((r) => r.data),
+
+  updateTicket: (id: number | string, body: UpdateTicketInput) =>
+    api
+      .patch<ApiEnvelope<CrmTicketDto>>(`/v1/crm/tickets/${id}`, body, { idempotent: true })
+      .then((r) => r.data),
+
+  createTicketMessage: (id: number | string, body: CreateTicketMessageInput) =>
+    api
+      .post<ApiEnvelope<{ ticket: CrmTicketDto; message: CrmTicketMessageDto }>>(
+        `/v1/crm/tickets/${id}/messages`,
+        body,
+        { idempotent: true },
+      )
+      .then((r) => r),
+
+  resolveTicket: (id: number | string) =>
+    api
+      .post<ApiEnvelope<CrmTicketDto>>(`/v1/crm/tickets/${id}/resolve`, {}, { idempotent: true })
+      .then((r) => r.data),
 };

@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Building2, MapPin, DollarSign, Receipt, Mail, MessageSquare, CreditCard,
-  Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil,
+  Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil, Radio,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ const tabs = [
   { id: "currency", label: "Currency", icon: DollarSign },
   { id: "tax", label: "Tax", icon: Receipt },
   { id: "email", label: "Email", icon: Mail },
+  { id: "realtime", label: "Realtime", icon: Radio },
   { id: "sms", label: "SMS Gateway", icon: MessageSquare },
   { id: "payments", label: "Payments", icon: CreditCard },
   { id: "theme", label: "Theme", icon: Palette },
@@ -68,6 +69,7 @@ function SettingsPage() {
           <TabsContent value="currency"><CurrencyTab /></TabsContent>
           <TabsContent value="tax"><TaxTab /></TabsContent>
           <TabsContent value="email"><EmailTab /></TabsContent>
+          <TabsContent value="realtime"><RealtimeTab /></TabsContent>
           <TabsContent value="sms"><SmsTab /></TabsContent>
           <TabsContent value="payments"><PaymentsTab /></TabsContent>
           <TabsContent value="theme"><ThemeTab /></TabsContent>
@@ -417,6 +419,171 @@ function EmailTab() {
               }}
             >
               {saving ? "Saving..." : "Save"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+/* ============ Realtime (Pusher) ============ */
+function RealtimeTab() {
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [enabled, setEnabled] = useState(true);
+  const [usePlatformDefault, setUsePlatformDefault] = useState(true);
+  const [appId, setAppId] = useState("");
+  const [key, setKey] = useState("");
+  const [secret, setSecret] = useState("");
+  const [cluster, setCluster] = useState("mt1");
+  const [hasSecret, setHasSecret] = useState(false);
+  const [clientSource, setClientSource] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await api.get<{
+          data?: {
+            broadcast?: {
+              enabled?: boolean;
+              use_platform_default?: boolean;
+              app_id?: string | null;
+              key?: string | null;
+              cluster?: string | null;
+              has_secret?: boolean;
+            };
+            client?: { enabled?: boolean; source?: string | null };
+          };
+        }>("/v1/company/broadcast");
+        if (!active) return;
+        const b = res.data?.broadcast;
+        if (b) {
+          setEnabled(b.enabled ?? true);
+          setUsePlatformDefault(b.use_platform_default ?? true);
+          setAppId(b.app_id ?? "");
+          setKey(b.key ?? "");
+          setCluster(b.cluster ?? "mt1");
+          setHasSecret(Boolean(b.has_secret));
+        }
+        setClientSource(res.data?.client?.source ?? null);
+      } catch {
+        // first-time
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Realtime notifications (Pusher)</CardTitle>
+          <CardDescription>
+            Push ticket updates to agents instantly. Use platform defaults or your own Pusher app (hybrid).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 max-w-3xl">
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Enable realtime</p>
+              <p className="text-xs text-muted-foreground">When off, tickets fall back to polling</p>
+            </div>
+            <Switch checked={enabled} onCheckedChange={setEnabled} />
+          </div>
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Use platform default</p>
+              <p className="text-xs text-muted-foreground">Shared Pusher app configured by your host</p>
+            </div>
+            <Switch checked={usePlatformDefault} onCheckedChange={setUsePlatformDefault} disabled={!enabled} />
+          </div>
+          {!usePlatformDefault && (
+            <>
+              <div className="space-y-1.5">
+                <Label>App ID</Label>
+                <Input value={appId} onChange={(e) => setAppId(e.target.value)} placeholder="123456" />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Key</Label>
+                <Input value={key} onChange={(e) => setKey(e.target.value)} />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Secret</Label>
+                <Input
+                  type="password"
+                  value={secret}
+                  onChange={(e) => setSecret(e.target.value)}
+                  placeholder={hasSecret ? "•••••••• (leave blank to keep)" : "Pusher secret"}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Cluster</Label>
+                <Input value={cluster} onChange={(e) => setCluster(e.target.value)} placeholder="mt1" />
+              </div>
+            </>
+          )}
+          <div className="flex items-center justify-between rounded-lg border p-3">
+            <div>
+              <p className="text-sm font-medium">Active connection</p>
+              <p className="text-xs text-muted-foreground">
+                {clientSource ? `Using ${clientSource} credentials` : "Not connected — check platform env or custom keys"}
+              </p>
+            </div>
+            <Badge variant={clientSource ? "default" : "secondary"}>{clientSource ?? "inactive"}</Badge>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={loading || testing}
+              onClick={async () => {
+                setTesting(true);
+                try {
+                  await api.post("/v1/company/broadcast/test", {});
+                  toast.success("Test event sent — check for toast if realtime is active");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Broadcast test failed"));
+                } finally {
+                  setTesting(false);
+                }
+              }}
+            >
+              {testing ? "Sending…" : "Send test"}
+            </Button>
+            <Button
+              className="gradient-primary text-primary-foreground border-0"
+              disabled={loading || saving}
+              onClick={async () => {
+                setSaving(true);
+                try {
+                  const res = await api.put<{
+                    data?: { client?: { source?: string | null } };
+                  }>("/v1/company/broadcast", {
+                    enabled,
+                    use_platform_default: usePlatformDefault,
+                    app_id: usePlatformDefault ? null : appId || null,
+                    key: usePlatformDefault ? null : key || null,
+                    secret: usePlatformDefault ? null : secret || null,
+                    cluster: usePlatformDefault ? null : cluster || null,
+                  });
+                  if (secret) setSecret("");
+                  setHasSecret(true);
+                  setClientSource(res.data?.client?.source ?? null);
+                  toast.success("Realtime settings saved");
+                } catch (error) {
+                  toast.error(getApiErrorMessage(error, "Failed to save"));
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? "Saving…" : "Save"}
             </Button>
           </div>
         </CardContent>

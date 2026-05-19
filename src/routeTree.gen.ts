@@ -20,6 +20,7 @@ import { Route as ChangePasswordRouteImport } from './routes/change-password'
 import { Route as AppRouteImport } from './routes/app'
 import { Route as AccessPendingRouteImport } from './routes/access-pending'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as SupportTokenRouteImport } from './routes/support.$token'
 import { Route as AppUsersRouteImport } from './routes/app.users'
 import { Route as AppTenantsRouteImport } from './routes/app.tenants'
 import { Route as AppSuperAdminRouteImport } from './routes/app.super-admin'
@@ -188,6 +189,11 @@ const AccessPendingRoute = AccessPendingRouteImport.update({
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SupportTokenRoute = SupportTokenRouteImport.update({
+  id: '/support/$token',
+  path: '/support/$token',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
@@ -801,6 +807,7 @@ export interface FileRoutesByFullPath {
   '/app/super-admin': typeof AppSuperAdminRoute
   '/app/tenants': typeof AppTenantsRoute
   '/app/users': typeof AppUsersRouteWithChildren
+  '/support/$token': typeof SupportTokenRoute
   '/app/crm/analytics': typeof AppCrmAnalyticsRoute
   '/app/crm/contacts': typeof AppCrmContactsRoute
   '/app/crm/customers': typeof AppCrmCustomersRouteWithChildren
@@ -928,6 +935,7 @@ export interface FileRoutesByTo {
   '/app/super-admin': typeof AppSuperAdminRoute
   '/app/tenants': typeof AppTenantsRoute
   '/app/users': typeof AppUsersRouteWithChildren
+  '/support/$token': typeof SupportTokenRoute
   '/app/crm/analytics': typeof AppCrmAnalyticsRoute
   '/app/crm/contacts': typeof AppCrmContactsRoute
   '/app/crm/customers': typeof AppCrmCustomersRouteWithChildren
@@ -1056,6 +1064,7 @@ export interface FileRoutesById {
   '/app/super-admin': typeof AppSuperAdminRoute
   '/app/tenants': typeof AppTenantsRoute
   '/app/users': typeof AppUsersRouteWithChildren
+  '/support/$token': typeof SupportTokenRoute
   '/app/crm/analytics': typeof AppCrmAnalyticsRoute
   '/app/crm/contacts': typeof AppCrmContactsRoute
   '/app/crm/customers': typeof AppCrmCustomersRouteWithChildren
@@ -1185,6 +1194,7 @@ export interface FileRouteTypes {
     | '/app/super-admin'
     | '/app/tenants'
     | '/app/users'
+    | '/support/$token'
     | '/app/crm/analytics'
     | '/app/crm/contacts'
     | '/app/crm/customers'
@@ -1312,6 +1322,7 @@ export interface FileRouteTypes {
     | '/app/super-admin'
     | '/app/tenants'
     | '/app/users'
+    | '/support/$token'
     | '/app/crm/analytics'
     | '/app/crm/contacts'
     | '/app/crm/customers'
@@ -1439,6 +1450,7 @@ export interface FileRouteTypes {
     | '/app/super-admin'
     | '/app/tenants'
     | '/app/users'
+    | '/support/$token'
     | '/app/crm/analytics'
     | '/app/crm/contacts'
     | '/app/crm/customers'
@@ -1542,6 +1554,7 @@ export interface RootRouteChildren {
   ResetPasswordRoute: typeof ResetPasswordRoute
   TwoFactorRoute: typeof TwoFactorRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  SupportTokenRoute: typeof SupportTokenRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1621,6 +1634,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/support/$token': {
+      id: '/support/$token'
+      path: '/support/$token'
+      fullPath: '/support/$token'
+      preLoaderRoute: typeof SupportTokenRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app/users': {
@@ -2793,6 +2813,7 @@ const rootRouteChildren: RootRouteChildren = {
   ResetPasswordRoute: ResetPasswordRoute,
   TwoFactorRoute: TwoFactorRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  SupportTokenRoute: SupportTokenRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

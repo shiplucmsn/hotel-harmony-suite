@@ -364,3 +364,60 @@ export type CrmAnalyticsDto = {
   invoices_by_status: CrmAnalyticsChartPoint[];
   top_invoices: CrmAnalyticsTopInvoice[];
 };
+
+export type CrmTicketPriority = "low" | "medium" | "high" | "urgent";
+export type CrmTicketStatus = "open" | "pending" | "resolved" | "closed";
+export type CrmTicketAuthorType = "customer" | "agent";
+
+export type CrmTicketMessageDto = {
+  id: number;
+  uuid?: string;
+  from: CrmTicketAuthorType;
+  author: string;
+  time: string;
+  body: string;
+  channel?: string;
+  emailed_at?: string | null;
+  created_at?: string;
+};
+
+export type CrmTicketDto = {
+  id: number;
+  uuid?: string;
+  number: string;
+  subject: string;
+  customer_id: number;
+  customer: string;
+  contact_id?: number | null;
+  priority: CrmTicketPriority;
+  status: CrmTicketStatus;
+  assigned_to_user_id?: number | null;
+  agent?: string | null;
+  updated_at?: string;
+  updated?: string;
+  messages?: CrmTicketMessageDto[];
+};
+
+export type CreateTicketInput = {
+  customer_id: number;
+  contact_id?: number;
+  subject: string;
+  priority?: CrmTicketPriority;
+  assigned_to_user_id?: number;
+  initial_message: string;
+  initial_author_type?: CrmTicketAuthorType;
+  initial_author_name?: string;
+};
+
+export type CreateTicketMessageInput = {
+  body: string;
+  author_type?: CrmTicketAuthorType;
+  author_name?: string;
+  send_email?: boolean;
+};
+
+export type UpdateTicketInput = {
+  status?: CrmTicketStatus;
+  priority?: CrmTicketPriority;
+  assigned_to_user_id?: number | null;
+};

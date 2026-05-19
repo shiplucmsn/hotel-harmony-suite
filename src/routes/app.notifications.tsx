@@ -1,11 +1,18 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
 import {
   Bell, BellRing, Check, CheckCheck, MessageCircle, Mail, MessageSquare, Smartphone,
-  Search, Settings2, Trash2, Filter, Send, Activity, Phone, AlertTriangle, CheckCircle2, Info,
+  Search, Settings2, Filter, Send, Activity, Phone, AlertTriangle, CheckCircle2, Info,
 } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
+import {
+  useMarkAllNotificationsRead,
+  useMarkNotificationRead,
+  useNotifications,
+  useUnreadNotificationCount,
+} from "@/hooks/use-notifications";
+import type { NotificationDto } from "@/modules/core/notifications-api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -31,14 +38,6 @@ const channelTabs = [
   { id: "whatsapp", label: "WhatsApp", icon: MessageCircle },
   { id: "push", label: "Push", icon: Smartphone },
   { id: "activity", label: "Activity", icon: Activity },
-];
-
-const inbox = [
-  { id: 1, title: "INV-2049 approved", body: "Alicia approved invoice INV-2049 for $12,450.", channel: "email", time: "2m", unread: true, type: "success" },
-  { id: 2, title: "Subscription renews soon", body: "Your Business plan renews on Dec 12, 2025.", channel: "push", time: "1h", unread: true, type: "info" },
-  { id: 3, title: "Failed login attempt", body: "From IP 192.168.1.42 — Chicago, US.", channel: "sms", time: "5h", unread: true, type: "warning" },
-  { id: 4, title: "Backup completed", body: "Nightly backup finished successfully on cluster-2.", channel: "email", time: "1d", unread: false, type: "success" },
-  { id: 5, title: "WhatsApp template approved", body: "Template ‘order_confirmation’ approved by Meta.", channel: "whatsapp", time: "2d", unread: false, type: "info" },
 ];
 
 const emailLog = [
@@ -71,10 +70,24 @@ const typeIcon = {
   info: { icon: Info, cls: "text-info bg-info/10" },
 };
 
+function notificationVisual(n: NotificationDto) {
+  if (n.type.includes("warning") || n.type.includes("failed")) return typeIcon.warning;
+  if (n.type.includes("success") || n.type.includes("approved")) return typeIcon.success;
+  return typeIcon.info;
+}
+
 function NotificationsPage() {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState<"all" | "unread">("all");
-  const list = filter === "unread" ? inbox.filter(n => n.unread) : inbox;
-  const unread = inbox.filter(n => n.unread).length;
+  const { data: unread = 0 } = useUnreadNotificationCount();
+  const { data: listRes, isLoading } = useNotifications({
+    per_page: 50,
+    unread: filter === "unread" ? true : undefined,
+  });
+  const markRead = useMarkNotificationRead();
+  const markAllRead = useMarkAllNotificationsRead();
+  const list = listRes?.data ?? [];
+  const preview = useMemo(() => list.find((n) => n.unread) ?? list[0], [list]);
 
   return (
     <div className="space-y-6">
@@ -85,7 +98,14 @@ function NotificationsPage() {
         actions={
           <>
             <Button variant="outline" size="sm"><Settings2 className="mr-2 h-4 w-4" />Preferences</Button>
-            <Button size="sm" className="gradient-primary text-primary-foreground border-0"><CheckCheck className="mr-2 h-4 w-4" />Mark all read</Button>
+            <Button
+              size="sm"
+              className="gradient-primary text-primary-foreground border-0"
+              disabled={unread === 0 || markAllRead.isPending}
+              onClick={() => void markAllRead.mutateAsync()}
+            >
+              <CheckCheck className="mr-2 h-4 w-4" />Mark all read
+            </Button>
           </>
         }
       />
@@ -115,28 +135,47 @@ function NotificationsPage() {
                 </div>
               </CardHeader>
               <CardContent className="p-0 divide-y">
-                {list.length === 0 && (
+                {isLoading && (
+                  <p className="p-6 text-center text-sm text-muted-foreground">Loading notifications…</p>
+                )}
+                {!isLoading && list.length === 0 && (
                   <div className="p-6"><EmptyState icon={Bell} title="You're all caught up" description="No unread notifications." /></div>
                 )}
-                {list.map(n => {
-                  const m = typeIcon[n.type as keyof typeof typeIcon];
+                {!isLoading && list.map(n => {
+                  const m = notificationVisual(n);
                   const Icon = m.icon;
                   return (
                     <div key={n.id} className={cn("flex gap-4 p-4 hover:bg-muted/40 transition-colors", n.unread && "bg-primary/[0.03]")}>
                       <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-lg", m.cls)}><Icon className="h-5 w-5" /></div>
-                      <div className="flex-1 min-w-0">
+                      <button
+                        type="button"
+                        className="flex-1 min-w-0 text-left"
+                        onClick={() => {
+                          if (n.unread) void markRead.mutate(n.id);
+                          const url = typeof n.data?.action_url === "string" ? n.data.action_url : undefined;
+                          if (url) navigate({ to: url });
+                        }}
+                      >
                         <div className="flex items-center gap-2">
                           <p className="font-medium">{n.title}</p>
                           {n.unread && <span className="h-1.5 w-1.5 rounded-full bg-primary" />}
-                          <Badge variant="outline" className="ml-auto text-[10px] capitalize">{n.channel}</Badge>
+                          <Badge variant="outline" className="ml-auto text-[10px] capitalize">{n.type.split(".")[0]}</Badge>
                         </div>
-                        <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
-                        <p className="mt-1 text-xs text-muted-foreground">{n.time} ago</p>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Button variant="ghost" size="icon" className="h-7 w-7"><Check className="h-3.5 w-3.5" /></Button>
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
-                      </div>
+                        {n.body && <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>}
+                        <p className="mt-1 text-xs text-muted-foreground">{n.time ?? "—"}</p>
+                      </button>
+                      {n.unread && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          title="Mark as read"
+                          disabled={markRead.isPending}
+                          onClick={() => void markRead.mutate(n.id)}
+                        >
+                          <Check className="h-3.5 w-3.5" />
+                        </Button>
+                      )}
                     </div>
                   );
                 })}
@@ -150,9 +189,9 @@ function NotificationsPage() {
                   <div className="flex items-start gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary text-primary-foreground"><BellRing className="h-4 w-4" /></div>
                     <div className="flex-1">
-                      <p className="text-sm font-semibold">Nebula ERP</p>
-                      <p className="text-sm text-muted-foreground">New invoice INV-2049 was approved.</p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">just now</p>
+                      <p className="text-sm font-semibold">{preview?.title ?? "Nebula ERP"}</p>
+                      <p className="text-sm text-muted-foreground">{preview?.body ?? "Notifications appear here in real time."}</p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">{preview?.time ?? "—"}</p>
                     </div>
                   </div>
                 </div>

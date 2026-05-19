@@ -29,6 +29,8 @@ export type SearchableSelectProps = {
   emptyMessage?: string;
   disabled?: boolean;
   className?: string;
+  /** Set false when used inside Sheet/Dialog so the list remains clickable. */
+  modal?: boolean;
 };
 
 export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSelectProps>(
@@ -42,6 +44,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
       emptyMessage = "No results found.",
       disabled,
       className,
+      modal = false,
     },
     ref,
   ) => {
@@ -49,7 +52,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
     const selected = options.find((o) => o.value === value);
 
     return (
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={modal}>
         <PopoverTrigger asChild>
           <Button
             ref={ref}

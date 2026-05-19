@@ -3,10 +3,14 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Topbar } from "@/components/topbar";
 import { useAuthGate } from "@/hooks/use-auth-gate";
+import { useNotificationRealtime } from "@/hooks/use-notification-realtime";
+import { useTicketRealtime } from "@/hooks/use-ticket-realtime";
 
 export function AppShell() {
   const href = useRouterState({ select: (s) => s.location.href });
   const allowed = useAuthGate(href);
+  useTicketRealtime(allowed);
+  useNotificationRealtime(allowed);
 
   if (!allowed) {
     return null;
