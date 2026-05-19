@@ -153,6 +153,9 @@ export type CrmOrderDto = {
   subtotal: number;
   tax_amount: number;
   total_amount: number;
+  has_invoice?: boolean;
+  needs_invoice?: boolean;
+  stock_posted?: boolean;
   lines?: CrmOrderLineDto[];
 };
 
@@ -298,6 +301,7 @@ export type CreateInvoiceInput = {
   customer_id?: number;
   customer?: string;
   crm_order_id?: number;
+  auto_fulfill?: boolean;
   tax_amount?: number;
   issued?: string;
   due?: string;

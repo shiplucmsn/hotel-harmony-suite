@@ -155,6 +155,16 @@ export const crmApi = {
       .post<ApiEnvelope<CrmOrderDto>>(`/v1/crm/orders/${id}/fulfill`, body ?? {}, { idempotent: true })
       .then((r) => r),
 
+  confirmOrder: (id: number | string, body?: { warehouse_id?: number }) =>
+    api
+      .patch<ApiEnvelope<CrmOrderDto>>(`/v1/crm/orders/${id}`, { status: "confirmed", ...body }, { idempotent: true })
+      .then((r) => r),
+
+  cancelOrder: (id: number | string) =>
+    api
+      .post<ApiEnvelope<CrmOrderDto>>(`/v1/crm/orders/${id}/cancel`, {}, { idempotent: true })
+      .then((r) => r),
+
   invoices: (params?: ListParams) =>
     api.get<ApiEnvelope<CrmInvoiceDto[]>>(`/v1/crm/invoices${buildQuery(params)}`).then(paginated),
 

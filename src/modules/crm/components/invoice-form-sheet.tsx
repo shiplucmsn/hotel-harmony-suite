@@ -26,6 +26,8 @@ type InvoiceFormSheetProps = {
   onOpenChange: (open: boolean) => void;
   defaultCustomerId?: string;
   defaultOrderId?: string;
+  /** When false, skips auto-fulfill on issue (use for already-fulfilled orders). */
+  autoFulfill?: boolean;
 };
 
 export function InvoiceFormSheet({
@@ -33,6 +35,7 @@ export function InvoiceFormSheet({
   onOpenChange,
   defaultCustomerId,
   defaultOrderId,
+  autoFulfill = true,
 }: InvoiceFormSheetProps) {
   const createInvoice = useCreateInvoice();
   const { data: customersData } = useCrmCustomers({ per_page: 200 });
@@ -62,6 +65,7 @@ export function InvoiceFormSheet({
       customer_id: Number(values.customer_id),
       crm_order_id:
         values.crm_order_id && values.crm_order_id !== "none" ? Number(values.crm_order_id) : undefined,
+      auto_fulfill: autoFulfill,
       tax_amount: values.tax_amount,
       due: values.due || undefined,
     });
@@ -158,8 +162,10 @@ export function InvoiceFormSheet({
         />
       </div>
       <p className="text-xs text-muted-foreground">
-        Issuing posts AR/revenue journals and updates the customer ledger. Linked orders can auto-fulfill
-        inventory.
+        Issuing posts AR/revenue journals and updates the customer ledger.
+        {autoFulfill
+          ? " Unfulfilled linked orders will auto-fulfill inventory."
+          : " Stock was already fulfilled for this order."}
       </p>
     </FormSheet>
   );

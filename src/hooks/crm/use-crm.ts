@@ -340,9 +340,37 @@ export function useFulfillOrder() {
       invalidateCrm(qc);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       showSideEffects(res.meta);
-      toast.success("Order fulfilled — stock updated");
+      toast.success("Stock updated. Issue an invoice to record revenue.");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to fulfill order")),
+  });
+}
+
+export function useConfirmOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.confirmOrder(id),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      showSideEffects(res.meta);
+      toast.success("Order confirmed — stock reserved");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to confirm order")),
+  });
+}
+
+export function useCancelOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.cancelOrder(id),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      showSideEffects(res.meta);
+      toast.success("Order cancelled");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to cancel order")),
   });
 }
 
