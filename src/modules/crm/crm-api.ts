@@ -24,6 +24,7 @@ import type {
   UpdateQuotationInput,
   CrmPaymentDto,
   CustomerLedgerEntryDto,
+  CustomerLedgerFilters,
   PaginatedResult,
 } from "@/modules/crm/types";
 
@@ -119,10 +120,14 @@ export const crmApi = {
   createCustomer: (body: CreateCustomerInput) =>
     api.post<ApiEnvelope<CrmCustomerDto>>("/v1/crm/customers", body, { idempotent: true }).then((r) => r.data),
 
-  customerLedger: (id: number | string, params?: ListParams) =>
+  customerLedger: (id: number | string, params?: CustomerLedgerFilters) =>
     api
       .get<ApiEnvelope<CustomerLedgerEntryDto[]>>(`/v1/crm/customers/${id}/ledger${buildQuery(params)}`)
-      .then(paginated),
+      .then((res) => ({
+        data: Array.isArray(res.data) ? res.data : [],
+        pagination: res.meta?.pagination,
+        summary: res.meta?.summary as PaginatedResult<CustomerLedgerEntryDto>["summary"],
+      })),
 
   quotations: (params?: ListParams) =>
     api.get<ApiEnvelope<CrmQuotationDto[]>>(`/v1/crm/quotations${buildQuery(params)}`).then(paginated),

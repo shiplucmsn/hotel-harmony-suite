@@ -3,17 +3,12 @@ import { useForm } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
+import { SearchableSelect } from "@/shared/components/forms/searchable-select";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { DEAL_STAGES, dealFormSchema, type DealFormValues } from "@/modules/crm/schemas";
 import { useCreateDeal, useCrmCustomers, useUpdateDeal } from "@/hooks/crm/use-crm";
+import { customerSelectOptions, staticSelectOptions } from "@/modules/crm/utils/select-options";
 import type { CrmDealDto } from "@/modules/crm/types";
 
 const defaults: DealFormValues = {
@@ -126,21 +121,15 @@ export function DealFormSheet({ open, onOpenChange, deal, defaultStage }: DealFo
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer</FormLabel>
-            <Select value={field.value || "none"} onValueChange={(v) => field.onChange(v === "none" ? "" : v)}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Optional" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="none">No customer</SelectItem>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableSelect
+                value={field.value || "none"}
+                onValueChange={(v) => field.onChange(v === "none" ? "" : v)}
+                options={customerSelectOptions(customers, { label: "No customer" })}
+                placeholder="Optional"
+                searchPlaceholder="Search customers…"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -193,20 +182,14 @@ export function DealFormSheet({ open, onOpenChange, deal, defaultStage }: DealFo
           render={({ field }) => (
             <FormItem>
               <FormLabel>Stage</FormLabel>
-              <Select value={field.value} onValueChange={field.onChange}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {DEAL_STAGES.map((s) => (
-                    <SelectItem key={s.value} value={s.value}>
-                      {s.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <FormControl>
+                <SearchableSelect
+                  value={field.value}
+                  onValueChange={field.onChange}
+                  options={staticSelectOptions(DEAL_STAGES)}
+                  searchPlaceholder="Search stage…"
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

@@ -3,6 +3,7 @@ import type { ApiEnvelope } from "@/services/api/types";
 export type PaginatedResult<T> = {
   data: T[];
   pagination?: ApiEnvelope<T[]>["meta"]["pagination"];
+  summary?: CustomerLedgerSummaryDto;
 };
 
 export type CrmLeadDto = {
@@ -255,6 +256,19 @@ export type CustomerLedgerEntryDto = {
   debit: number;
   credit: number;
   balance_after: number;
+};
+
+export type CustomerLedgerSummaryDto = {
+  total_debit: number;
+  total_credit: number;
+  outstanding: number;
+};
+
+export type CustomerLedgerFilters = {
+  from?: string;
+  to?: string;
+  page?: number;
+  per_page?: number;
 };
 
 export type CreateLeadInput = {

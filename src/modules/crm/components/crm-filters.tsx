@@ -1,13 +1,8 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/shared/components/forms/searchable-select";
+import { staticSelectOptions } from "@/modules/crm/utils/select-options";
 
 type CrmFiltersProps = {
   search: string;
@@ -39,18 +34,14 @@ export function CrmFilters({
           />
         </div>
         {onStatusChange && statusOptions ? (
-          <Select value={status ?? "all"} onValueChange={onStatusChange}>
-            <SelectTrigger className="w-36">
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              {statusOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>
-                  {o.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          <SearchableSelect
+            value={status ?? "all"}
+            onValueChange={onStatusChange}
+            options={staticSelectOptions(statusOptions)}
+            placeholder="Status"
+            searchPlaceholder="Search status…"
+            className="w-36"
+          />
         ) : null}
       </div>
     </Card>

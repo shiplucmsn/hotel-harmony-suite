@@ -1,17 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { Loader2, Mail, Plus, Trash2 } from "lucide-react";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { SearchableSelect } from "@/shared/components/forms/searchable-select";
 import {
   Sheet,
   SheetContent,
@@ -25,6 +19,7 @@ import { quotationFormSchema, type QuotationFormValues } from "@/modules/crm/sch
 import { useCreateQuotation, useCrmCustomers, useUpdateQuotation } from "@/hooks/crm/use-crm";
 import { useInventoryProducts } from "@/hooks/inventory/use-inventory-products";
 import { formatMoney } from "@/modules/crm/utils";
+import { customerSelectOptions, productSelectOptions } from "@/modules/crm/utils/select-options";
 import type { CrmQuotationDto, CrmQuotationLineDto } from "@/modules/crm/types";
 import { cn } from "@/lib/utils";
 
@@ -113,6 +108,18 @@ export function QuotationFormSheet({ open, onOpenChange, quotation }: QuotationF
   const { data: productsData } = useInventoryProducts({ per_page: 200 });
   const customers = customersData?.data ?? [];
   const products = productsData?.data ?? [];
+  const customerOptions = useMemo(
+    () =>
+      customerSelectOptions(customers).map((o) => {
+        const c = customers.find((x) => String(x.id) === o.value);
+        if (c?.email) {
+          return { ...o, label: `${c.name} (${c.email})` };
+        }
+        return o;
+      }),
+    [customers],
+  );
+  const productOptions = useMemo(() => productSelectOptions(products, { label: "Custom line" }), [products]);
   const [submitMode, setSubmitMode] = useState<SubmitMode | null>(null);
 
   const form = useForm<QuotationFormValues>({
@@ -208,21 +215,15 @@ export function QuotationFormSheet({ open, onOpenChange, quotation }: QuotationF
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer</FormLabel>
-                      <Select value={field.value} onValueChange={field.onChange}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select customer" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {customers.map((c) => (
-                            <SelectItem key={c.id} value={String(c.id)}>
-                              {c.name}
-                              {c.email ? ` (${c.email})` : ""}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <SearchableSelect
+                          value={field.value}
+                          onValueChange={field.onChange}
+                          options={customerOptions}
+                          placeholder="Select customer"
+                          searchPlaceholder="Search customers…"
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -305,32 +306,23 @@ export function QuotationFormSheet({ open, onOpenChange, quotation }: QuotationF
                       render={({ field: f }) => (
                         <FormItem>
                           <FormLabel>SKU (optional)</FormLabel>
-                          <Select
-                            value={f.value || "none"}
-                            onValueChange={(sku) => {
-                              const value = sku === "none" ? "" : sku;
-                              f.onChange(value);
-                              const product = products.find((p) => p.sku === value);
-                              if (product) {
-                                form.setValue(`lines.${index}.description`, product.name);
-                                form.setValue(`lines.${index}.unit_price`, Number(product.price ?? 0));
-                              }
-                            }}
-                          >
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select product" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="none">Custom line</SelectItem>
-                              {products.map((p) => (
-                                <SelectItem key={p.id} value={p.sku}>
-                                  {p.sku} — {p.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                          <FormControl>
+                            <SearchableSelect
+                              value={f.value || "none"}
+                              onValueChange={(sku) => {
+                                const value = sku === "none" ? "" : sku;
+                                f.onChange(value);
+                                const product = products.find((p) => p.sku === value);
+                                if (product) {
+                                  form.setValue(`lines.${index}.description`, product.name);
+                                  form.setValue(`lines.${index}.unit_price`, Number(product.price ?? 0));
+                                }
+                              }}
+                              options={productOptions}
+                              placeholder="Select product"
+                              searchPlaceholder="Search products…"
+                            />
+                          </FormControl>
                         </FormItem>
                       )}
                     />

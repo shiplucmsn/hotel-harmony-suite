@@ -2,18 +2,13 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
+import { SearchableSelect } from "@/shared/components/forms/searchable-select";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { paymentFormSchema, type PaymentFormValues } from "@/modules/crm/schemas";
 import { useCreatePayment, useCrmInvoices } from "@/hooks/crm/use-crm";
 import { formatMoney } from "@/modules/crm/utils";
+import { invoiceSelectOptions, staticSelectOptions } from "@/modules/crm/utils/select-options";
 
 const defaults: PaymentFormValues = {
   invoice_id: "",
@@ -85,20 +80,15 @@ export function PaymentFormSheet({ open, onOpenChange, defaultInvoiceId }: Payme
         render={({ field }) => (
           <FormItem>
             <FormLabel>Invoice</FormLabel>
-            <Select value={field.value} onValueChange={field.onChange}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select invoice" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {openInvoices.map((i) => (
-                  <SelectItem key={i.id} value={String(i.id)}>
-                    {i.number} · {i.customer} · due {formatMoney(i.balance_due)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableSelect
+                value={field.value}
+                onValueChange={field.onChange}
+                options={invoiceSelectOptions(openInvoices)}
+                placeholder="Select invoice"
+                searchPlaceholder="Search invoices…"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -137,19 +127,19 @@ export function PaymentFormSheet({ open, onOpenChange, defaultInvoiceId }: Payme
         render={({ field }) => (
           <FormItem>
             <FormLabel>Method</FormLabel>
-            <Select value={field.value ?? "bank"} onValueChange={field.onChange}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="bank">Bank transfer</SelectItem>
-                <SelectItem value="card">Card</SelectItem>
-                <SelectItem value="cash">Cash</SelectItem>
-                <SelectItem value="mobile">Mobile</SelectItem>
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableSelect
+                value={field.value ?? "bank"}
+                onValueChange={field.onChange}
+                options={staticSelectOptions([
+                  { value: "bank", label: "Bank transfer" },
+                  { value: "card", label: "Card" },
+                  { value: "cash", label: "Cash" },
+                  { value: "mobile", label: "Mobile" },
+                ])}
+                searchPlaceholder="Search method…"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}

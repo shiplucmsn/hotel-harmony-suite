@@ -2,17 +2,12 @@ import { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
+import { SearchableSelect } from "@/shared/components/forms/searchable-select";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { invoiceFormSchema, type InvoiceFormValues } from "@/modules/crm/schemas";
 import { useCreateInvoice, useCrmCustomers, useCrmOrders } from "@/hooks/crm/use-crm";
+import { customerSelectOptions, orderSelectOptions } from "@/modules/crm/utils/select-options";
 
 const defaults: InvoiceFormValues = {
   customer_id: "",
@@ -90,20 +85,15 @@ export function InvoiceFormSheet({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer</FormLabel>
-            <Select value={field.value} onValueChange={field.onChange}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableSelect
+                value={field.value}
+                onValueChange={field.onChange}
+                options={customerSelectOptions(customers)}
+                placeholder="Select customer"
+                searchPlaceholder="Search customers…"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -114,21 +104,15 @@ export function InvoiceFormSheet({
         render={({ field }) => (
           <FormItem>
             <FormLabel>Sales order (optional)</FormLabel>
-            <Select value={field.value ?? ""} onValueChange={field.onChange}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="From order lines" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value="none">— None —</SelectItem>
-                {customerOrders.map((o) => (
-                  <SelectItem key={o.id} value={String(o.id)}>
-                    {o.number} · {o.status} · ${o.total_amount.toFixed(2)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableSelect
+                value={field.value ?? ""}
+                onValueChange={field.onChange}
+                options={orderSelectOptions(customerOrders, { label: "— None —" })}
+                placeholder="From order lines"
+                searchPlaceholder="Search orders…"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}

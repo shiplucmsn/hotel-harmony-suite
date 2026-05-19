@@ -5,19 +5,14 @@ import { Label } from "@/components/ui/label";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
+import { SearchableSelect } from "@/shared/components/forms/searchable-select";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { orderFormSchema, type OrderFormValues } from "@/modules/crm/schemas";
 import { useCreateOrder, useCrmCustomers } from "@/hooks/crm/use-crm";
 import { useInventoryProducts } from "@/hooks/inventory/use-inventory-products";
 import { formatMoney } from "@/modules/crm/utils";
+import { customerSelectOptions, productSelectOptions } from "@/modules/crm/utils/select-options";
 
 const defaults: OrderFormValues = {
   customer_id: "",
@@ -82,20 +77,15 @@ export function OrderFormSheet({ open, onOpenChange }: OrderFormSheetProps) {
         render={({ field }) => (
           <FormItem>
             <FormLabel>Customer</FormLabel>
-            <Select value={field.value} onValueChange={field.onChange}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select customer" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={String(c.id)}>
-                    {c.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <FormControl>
+              <SearchableSelect
+                value={field.value}
+                onValueChange={field.onChange}
+                options={customerSelectOptions(customers)}
+                placeholder="Select customer"
+                searchPlaceholder="Search customers…"
+              />
+            </FormControl>
             <FormMessage />
           </FormItem>
         )}
@@ -129,30 +119,22 @@ export function OrderFormSheet({ open, onOpenChange }: OrderFormSheetProps) {
               render={({ field: f }) => (
                 <FormItem>
                   <FormLabel>Product SKU</FormLabel>
-                  <Select
-                    value={f.value}
-                    onValueChange={(sku) => {
-                      f.onChange(sku);
-                      const product = products.find((p) => p.sku === sku);
-                      if (product) {
-                        form.setValue(`lines.${index}.unit_price`, Number(product.price ?? 0));
-                        form.setValue(`lines.${index}.unit_cost`, Number(product.cost_price ?? 0));
-                      }
-                    }}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select SKU" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {products.map((p) => (
-                        <SelectItem key={p.id} value={p.sku}>
-                          {p.sku} — {p.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <FormControl>
+                    <SearchableSelect
+                      value={f.value}
+                      onValueChange={(sku) => {
+                        f.onChange(sku);
+                        const product = products.find((p) => p.sku === sku);
+                        if (product) {
+                          form.setValue(`lines.${index}.unit_price`, Number(product.price ?? 0));
+                          form.setValue(`lines.${index}.unit_cost`, Number(product.cost_price ?? 0));
+                        }
+                      }}
+                      options={productSelectOptions(products)}
+                      placeholder="Select SKU"
+                      searchPlaceholder="Search products…"
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

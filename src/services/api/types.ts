@@ -18,6 +18,11 @@ export type ApiEnvelope<T> = {
       total: number;
       lastPage: number;
     };
+    summary?: {
+      total_debit: number;
+      total_credit: number;
+      outstanding: number;
+    };
   };
 };
 

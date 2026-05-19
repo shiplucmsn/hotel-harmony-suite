@@ -29,7 +29,8 @@ export const crmKeys = {
   deal: (id: string | number) => ["crm", "deals", id] as const,
   customers: (params?: Record<string, unknown>) => ["crm", "customers", params] as const,
   customer: (id: string | number) => ["crm", "customers", id] as const,
-  ledger: (id: string | number) => ["crm", "customers", id, "ledger"] as const,
+  ledger: (id: string | number, params?: Record<string, unknown>) =>
+    ["crm", "customers", id, "ledger", params] as const,
   orders: (params?: Record<string, unknown>) => ["crm", "orders", params] as const,
   quotations: (params?: Record<string, unknown>) => ["crm", "quotations", params] as const,
   quotation: (id: string | number) => ["crm", "quotations", id] as const,
@@ -159,10 +160,13 @@ export function useCrmCustomer(id: string | number | undefined) {
   });
 }
 
-export function useCustomerLedger(id: string | number | undefined) {
+export function useCustomerLedger(
+  id: string | number | undefined,
+  params?: { from?: string; to?: string; page?: number; per_page?: number },
+) {
   return useQuery({
-    queryKey: crmKeys.ledger(id ?? ""),
-    queryFn: () => crmApi.customerLedger(id!, { per_page: 50 }),
+    queryKey: crmKeys.ledger(id ?? "", params),
+    queryFn: () => crmApi.customerLedger(id!, { per_page: 50, ...params }),
     enabled: Boolean(id),
   });
 }
