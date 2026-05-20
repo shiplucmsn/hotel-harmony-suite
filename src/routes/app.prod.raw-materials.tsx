@@ -12,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { rawMaterials, prodTone } from "@/lib/production-mock";
+import { SupplierSelect } from "@/modules/purchase/components/supplier-select";
 import { Search, Plus, MoreHorizontal, Download, Filter } from "lucide-react";
 import { toast } from "sonner";
 
@@ -51,7 +52,10 @@ function RawMaterialsPage() {
                     <div><Label>Reorder level</Label><Input type="number" /></div>
                   </div>
                   <div><Label>Unit cost</Label><Input type="number" placeholder="0.00" /></div>
-                  <div><Label>Supplier</Label><Input placeholder="Supplier name" /></div>
+                  <div className="space-y-1.5">
+                    <Label>Preferred supplier</Label>
+                    <SupplierSelect value={supplierId} onValueChange={setSupplierId} />
+                  </div>
                 </div>
                 <SheetFooter>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
