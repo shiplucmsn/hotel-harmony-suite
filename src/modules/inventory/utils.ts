@@ -96,6 +96,21 @@ export function primaryWarehouseName(product: ProductDto): string {
   return "Main Warehouse";
 }
 
+const transferStatusTone: Record<string, string> = {
+  draft: "bg-muted text-muted-foreground",
+  in_transit: "bg-info/10 text-info",
+  completed: "bg-success/10 text-success",
+  cancelled: "bg-destructive/10 text-destructive",
+};
+
+export function transferStatusClass(status: string): string {
+  return transferStatusTone[status] ?? "bg-muted text-muted-foreground";
+}
+
+export function formatTransferStatus(status: string): string {
+  return status.replace(/_/g, " ");
+}
+
 export function mapProductToRow(product: ProductDto, reorderLevel = 10) {
   const stock = Number(product.stock ?? 0);
   const cost = Number(product.cost_price ?? 0);

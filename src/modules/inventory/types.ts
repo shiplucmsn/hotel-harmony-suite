@@ -142,6 +142,39 @@ export type CreateWarehouseInput = {
   is_default?: boolean;
 };
 
+export type StockTransferDto = {
+  id: number;
+  number: string;
+  from_warehouse_id: number;
+  to_warehouse_id: number;
+  from_warehouse_name?: string | null;
+  to_warehouse_name?: string | null;
+  line_count: number;
+  total_quantity: number;
+  status: string;
+  expected_date?: string | null;
+  notes?: string | null;
+  created_at?: string | null;
+};
+
+export type StockTransferLineDto = {
+  id: number;
+  number: string;
+  sku: string;
+  quantity: number;
+  status: string;
+};
+
+export type CreateStockTransferInput = {
+  number?: string;
+  from_warehouse_id: number;
+  to_warehouse_id: number;
+  expected_date?: string;
+  notes?: string;
+  status?: "draft" | "in_transit" | "completed" | "cancelled";
+  lines: { sku: string; quantity: number }[];
+};
+
 export type AdjustStockInput = {
   sku?: string;
   product_id?: number;

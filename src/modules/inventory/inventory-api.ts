@@ -14,7 +14,10 @@ import type {
   SkuDto,
   StockLevelDto,
   StockLevelListParams,
+  CreateStockTransferInput,
   StockMovementDto,
+  StockTransferDto,
+  StockTransferLineDto,
   UpdateProductInput,
   WarehouseDto,
 } from "@/modules/inventory/types";
@@ -109,4 +112,23 @@ export const inventoryApi = {
     api
       .post<ApiEnvelope<GenerateSkuResult>>("/v1/inventory/skus/generate", body, { idempotent: true })
       .then((r) => r.data),
+
+  transfers: (params?: ListParams) =>
+    api
+      .get<ApiEnvelope<StockTransferDto[]>>(`/v1/inventory/transfers${buildQuery(params)}`)
+      .then(paginated),
+
+  transfer: (number: string) =>
+    api
+      .get<ApiEnvelope<{ number: string; lines: StockTransferLineDto[] }>>(
+        `/v1/inventory/transfers/${encodeURIComponent(number)}`,
+      )
+      .then((r) => r.data),
+
+  createTransfer: (body: CreateStockTransferInput) =>
+    api.post<ApiEnvelope<{ transfer: StockTransferDto; lines: StockTransferLineDto[] }>>(
+      "/v1/inventory/transfers",
+      body,
+      { idempotent: true },
+    ),
 };
