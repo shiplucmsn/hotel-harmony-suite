@@ -165,6 +165,43 @@ export type StockTransferLineDto = {
   status: string;
 };
 
+export type InventoryBatchDto = {
+  id: number;
+  uuid?: string;
+  product_id: number;
+  warehouse_id: number;
+  sku: string;
+  batch_number: string;
+  product_name?: string | null;
+  warehouse_name?: string | null;
+  qty_on_hand: number;
+  qty_reserved: number;
+  available_qty: number;
+  manufactured_at?: string | null;
+  expiry_date?: string | null;
+  status: string;
+  storage_status?: string;
+  notes?: string | null;
+  created_at?: string | null;
+};
+
+export type CreateInventoryBatchInput = {
+  sku: string;
+  warehouse_id?: number;
+  batch_number?: string;
+  qty_on_hand?: number;
+  manufactured_at?: string;
+  expiry_date?: string;
+  status?: "active" | "quarantine";
+  unit_cost?: number;
+  notes?: string;
+};
+
+export type AdjustInventoryBatchInput = {
+  quantity_delta: number;
+  notes?: string;
+};
+
 export type CreateStockTransferInput = {
   number?: string;
   from_warehouse_id: number;

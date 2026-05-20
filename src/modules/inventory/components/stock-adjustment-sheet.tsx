@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
 import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {

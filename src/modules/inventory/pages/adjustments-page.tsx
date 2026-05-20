@@ -19,10 +19,9 @@ export function AdjustmentsPage() {
   const [adjustOpen, setAdjustOpen] = useState(false);
   const perPage = 20;
 
-  const { data: result, isLoading } = useStockMovements({
-    per_page: 200,
-    movement_type: "adjustment",
-  });
+  const movementParams = { per_page: 200, movement_type: "adjustment" as const };
+
+  const { data: result, isLoading, isFetching } = useStockMovements(movementParams);
 
   const movements = result?.data ?? [];
 
@@ -120,7 +119,7 @@ export function AdjustmentsPage() {
         <DataTable
           columns={columns}
           data={rows}
-          loading={isLoading}
+          loading={isLoading || isFetching}
           emptyTitle="No adjustments"
           emptyDescription="Create an adjustment to correct on-hand quantities."
           getRowId={(m) => String(m.id)}

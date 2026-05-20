@@ -14,7 +14,10 @@ import type {
   SkuDto,
   StockLevelDto,
   StockLevelListParams,
+  AdjustInventoryBatchInput,
+  CreateInventoryBatchInput,
   CreateStockTransferInput,
+  InventoryBatchDto,
   StockMovementDto,
   StockTransferDto,
   StockTransferLineDto,
@@ -131,4 +134,22 @@ export const inventoryApi = {
       body,
       { idempotent: true },
     ),
+
+  batches: (params?: ListParams) =>
+    api
+      .get<ApiEnvelope<InventoryBatchDto[]>>(`/v1/inventory/batches${buildQuery(params)}`)
+      .then(paginated),
+
+  batch: (id: number | string) =>
+    api.get<ApiEnvelope<InventoryBatchDto>>(`/v1/inventory/batches/${id}`).then((r) => r.data),
+
+  createBatch: (body: CreateInventoryBatchInput) =>
+    api
+      .post<ApiEnvelope<InventoryBatchDto>>("/v1/inventory/batches", body, { idempotent: true })
+      .then((r) => r.data),
+
+  adjustBatch: (id: number | string, body: AdjustInventoryBatchInput) =>
+    api
+      .post<ApiEnvelope<InventoryBatchDto>>(`/v1/inventory/batches/${id}/adjust`, body, { idempotent: true })
+      .then((r) => r.data),
 };
