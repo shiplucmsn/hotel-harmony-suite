@@ -19,6 +19,8 @@ import type {
   CreateStockTransferInput,
   InventoryBatchDto,
   InventoryExpirySummaryDto,
+  InventoryLowStockDto,
+  InventoryLowStockSummaryDto,
   StockMovementDto,
   StockTransferDto,
   StockTransferLineDto,
@@ -135,6 +137,16 @@ export const inventoryApi = {
       body,
       { idempotent: true },
     ),
+
+  lowStockSummary: () =>
+    api
+      .get<ApiEnvelope<InventoryLowStockSummaryDto>>("/v1/inventory/low-stock/summary")
+      .then((r) => r.data),
+
+  lowStock: (params?: ListParams & { severity?: string }) =>
+    api
+      .get<ApiEnvelope<InventoryLowStockDto[]>>(`/v1/inventory/low-stock${buildQuery(params)}`)
+      .then(paginated),
 
   expirySummary: () =>
     api

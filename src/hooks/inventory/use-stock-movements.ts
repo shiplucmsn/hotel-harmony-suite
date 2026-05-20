@@ -6,6 +6,7 @@ import type { AdjustStockInput, MovementListParams, PaginatedResult, StockMoveme
 import type { ApiEnvelope } from "@/services/api/types";
 import { productKeys } from "@/hooks/inventory/use-inventory-products";
 import { skuKeys } from "@/hooks/inventory/use-skus";
+import { lowStockKeys } from "@/hooks/inventory/use-inventory-low-stock";
 
 export const movementKeys = {
   all: ["inventory", "movements"] as const,
@@ -56,6 +57,8 @@ export function useAdjustStock() {
       await qc.invalidateQueries({ queryKey: movementKeys.all });
       await qc.refetchQueries({ queryKey: movementKeys.all, type: "active" });
       await qc.invalidateQueries({ queryKey: ["inventory", "stock-levels"] });
+      await qc.invalidateQueries({ queryKey: lowStockKeys.all });
+      await qc.refetchQueries({ queryKey: lowStockKeys.all, type: "active" });
       await qc.invalidateQueries({ queryKey: productKeys.all });
       await qc.invalidateQueries({ queryKey: skuKeys.all });
 

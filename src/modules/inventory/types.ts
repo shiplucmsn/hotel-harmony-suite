@@ -63,6 +63,7 @@ export type ProductDto = {
   track_inventory?: boolean;
   default_warehouse_id?: number | null;
   stock: number;
+  reorder_point?: number;
   status: ProductStatus | string;
   category_ref?: { id: number; code: string; name: string } | null;
   unit?: { id: number; code: string; name: string; symbol?: string | null } | null;
@@ -201,6 +202,28 @@ export type CreateInventoryBatchInput = {
 export type AdjustInventoryBatchInput = {
   quantity_delta: number;
   notes?: string;
+};
+
+export type InventoryLowStockDto = {
+  id: number;
+  product_id: number;
+  warehouse_id: number;
+  sku: string;
+  product_name?: string | null;
+  warehouse_name?: string | null;
+  qty_on_hand: number;
+  qty_reserved: number;
+  available_qty: number;
+  reorder_point: number;
+  severity: "low" | "out_of_stock";
+  fill_percent: number;
+};
+
+export type InventoryLowStockSummaryDto = {
+  total_alerts: number;
+  out_of_stock: number;
+  low_stock: number;
+  unique_products: number;
 };
 
 export type InventoryExpirySummaryDto = {

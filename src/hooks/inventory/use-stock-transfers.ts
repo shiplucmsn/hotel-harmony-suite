@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { inventoryApi } from "@/modules/inventory/inventory-api";
 import type { CreateStockTransferInput } from "@/modules/inventory/types";
+import { lowStockKeys } from "@/hooks/inventory/use-inventory-low-stock";
 
 export const transferKeys = {
   all: ["inventory", "transfers"] as const,
@@ -32,6 +33,7 @@ export function useCreateStockTransfer() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: transferKeys.all });
       qc.invalidateQueries({ queryKey: ["inventory", "stock-levels"] });
+      qc.invalidateQueries({ queryKey: lowStockKeys.all });
       qc.invalidateQueries({ queryKey: ["inventory", "movements"] });
       qc.invalidateQueries({ queryKey: ["inventory", "products"] });
       toast.success("Stock transfer completed");

@@ -7,6 +7,7 @@ import { movementKeys } from "@/hooks/inventory/use-stock-movements";
 import { productKeys } from "@/hooks/inventory/use-inventory-products";
 import { skuKeys } from "@/hooks/inventory/use-skus";
 import { expiryKeys } from "@/hooks/inventory/use-inventory-expiry";
+import { lowStockKeys } from "@/hooks/inventory/use-inventory-low-stock";
 
 export const batchKeys = {
   all: ["inventory", "batches"] as const,
@@ -33,6 +34,7 @@ export function useCreateInventoryBatch() {
     onSuccess: async () => {
       await qc.invalidateQueries({ queryKey: batchKeys.all });
       await qc.invalidateQueries({ queryKey: expiryKeys.all });
+      await qc.invalidateQueries({ queryKey: lowStockKeys.all });
       await qc.refetchQueries({ queryKey: batchKeys.all, type: "active" });
       await qc.refetchQueries({ queryKey: expiryKeys.all, type: "active" });
       await qc.invalidateQueries({ queryKey: movementKeys.all });
