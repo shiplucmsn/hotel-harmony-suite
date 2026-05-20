@@ -18,6 +18,7 @@ import type {
   CreateInventoryBatchInput,
   CreateStockTransferInput,
   InventoryBatchDto,
+  InventoryExpirySummaryDto,
   StockMovementDto,
   StockTransferDto,
   StockTransferLineDto,
@@ -134,6 +135,16 @@ export const inventoryApi = {
       body,
       { idempotent: true },
     ),
+
+  expirySummary: () =>
+    api
+      .get<ApiEnvelope<InventoryExpirySummaryDto>>("/v1/inventory/expiry/summary")
+      .then((r) => r.data),
+
+  expiry: (params?: ListParams & { window?: string; in_stock_only?: boolean }) =>
+    api
+      .get<ApiEnvelope<InventoryBatchDto[]>>(`/v1/inventory/expiry${buildQuery(params)}`)
+      .then(paginated),
 
   batches: (params?: ListParams) =>
     api

@@ -179,6 +179,7 @@ export type InventoryBatchDto = {
   available_qty: number;
   manufactured_at?: string | null;
   expiry_date?: string | null;
+  days_remaining?: number | null;
   status: string;
   storage_status?: string;
   notes?: string | null;
@@ -200,6 +201,14 @@ export type CreateInventoryBatchInput = {
 export type AdjustInventoryBatchInput = {
   quantity_delta: number;
   notes?: string;
+};
+
+export type InventoryExpirySummaryDto = {
+  tracked_batches: number;
+  expiring_within_30_days: number;
+  expiring_within_90_days: number;
+  expired_batches: number;
+  with_stock_tracked: number;
 };
 
 export type CreateStockTransferInput = {
