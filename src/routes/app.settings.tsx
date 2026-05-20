@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Building2, MapPin, DollarSign, Receipt, Mail, MessageSquare, CreditCard,
-  Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil, Radio,
+  Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil, Radio, Bell,
 } from "lucide-react";
+import { NotificationsTab } from "@/modules/settings/notifications-tab";
+import { SmsTab } from "@/modules/settings/sms-tab";
 import { toast } from "sonner";
 
 import { PageHeader } from "@/components/page-header";
@@ -39,6 +41,7 @@ const tabs = [
   { id: "email", label: "Email", icon: Mail },
   { id: "realtime", label: "Realtime", icon: Radio },
   { id: "sms", label: "SMS Gateway", icon: MessageSquare },
+  { id: "notifications", label: "Notifications", icon: Bell },
   { id: "payments", label: "Payments", icon: CreditCard },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "locale", label: "Localization", icon: Globe },
@@ -71,6 +74,7 @@ function SettingsPage() {
           <TabsContent value="email"><EmailTab /></TabsContent>
           <TabsContent value="realtime"><RealtimeTab /></TabsContent>
           <TabsContent value="sms"><SmsTab /></TabsContent>
+          <TabsContent value="notifications"><NotificationsTab /></TabsContent>
           <TabsContent value="payments"><PaymentsTab /></TabsContent>
           <TabsContent value="theme"><ThemeTab /></TabsContent>
           <TabsContent value="locale"><LocaleTab /></TabsContent>
@@ -589,32 +593,6 @@ function RealtimeTab() {
         </CardContent>
       </Card>
     </div>
-  );
-}
-
-/* ============ SMS ============ */
-function SmsTab() {
-  const providers = [
-    { name: "Twilio", logo: "T", connected: true, balance: "$248.40" },
-    { name: "Vonage", logo: "V", connected: false },
-    { name: "MessageBird", logo: "M", connected: false },
-    { name: "Plivo", logo: "P", connected: false },
-  ];
-  return (
-    <Card>
-      <CardHeader><CardTitle>SMS gateways</CardTitle><CardDescription>Connect a provider to send SMS messages.</CardDescription></CardHeader>
-      <CardContent className="grid gap-3 md:grid-cols-2">
-        {providers.map(p => (
-          <div key={p.name} className="flex items-center justify-between rounded-lg border p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted font-bold">{p.logo}</div>
-              <div><p className="font-medium">{p.name}</p>{p.connected ? <p className="text-xs text-muted-foreground">Balance: {p.balance}</p> : <p className="text-xs text-muted-foreground">Not connected</p>}</div>
-            </div>
-            <Button size="sm" variant={p.connected ? "outline" : "default"} className={p.connected ? "" : "gradient-primary text-primary-foreground border-0"}>{p.connected ? "Manage" : "Connect"}</Button>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
   );
 }
 

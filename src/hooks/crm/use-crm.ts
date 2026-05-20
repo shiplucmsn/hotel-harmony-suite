@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { formatCrmStockError } from "@/modules/crm/utils";
 import { showSideEffects } from "@/lib/api-meta";
 import { notificationKeys } from "@/hooks/use-notifications";
 import { crmApi } from "@/modules/crm/crm-api";
@@ -44,6 +45,8 @@ export const crmKeys = {
   tickets: (params?: Record<string, unknown>) => ["crm", "tickets", params] as const,
   ticket: (id: string | number) => ["crm", "tickets", id] as const,
   followups: (params?: Record<string, unknown>) => ["crm", "followups", params] as const,
+  orderStockAvailability: (orderId: string | number, warehouseId: number) =>
+    ["crm", "orders", orderId, "stock-availability", warehouseId] as const,
 };
 
 export function useCrmAnalytics(params?: CrmAnalyticsFilters) {
@@ -344,10 +347,26 @@ export function useConvertQuotation() {
   });
 }
 
+export function useOrderStockAvailability(
+  orderId: string | number | undefined,
+  warehouseId: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: crmKeys.orderStockAvailability(orderId ?? "", warehouseId),
+    queryFn: () => crmApi.orderStockAvailability(orderId!, warehouseId),
+    enabled: enabled && Boolean(orderId) && warehouseId > 0,
+  });
+}
+
 export function useFulfillOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => crmApi.fulfillOrder(id),
+    mutationFn: (vars: { id: number | string; warehouse_id?: number }) =>
+      crmApi.fulfillOrder(
+        vars.id,
+        vars.warehouse_id ? { warehouse_id: vars.warehouse_id } : undefined,
+      ),
     onSuccess: (res) => {
       invalidateCrm(qc);
       qc.invalidateQueries({ queryKey: ["inventory"] });
@@ -376,21 +395,22 @@ export function useFulfillOrder() {
         });
       }
     },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to fulfill order")),
+    onError: (e) => toast.error(formatCrmStockError(e, "Failed to fulfill order")),
   });
 }
 
 export function useConfirmOrder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (id: number | string) => crmApi.confirmOrder(id),
+    mutationFn: (vars: { id: number | string; warehouse_id: number }) =>
+      crmApi.confirmOrder(vars.id, { warehouse_id: vars.warehouse_id }),
     onSuccess: (res) => {
       invalidateCrm(qc);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       showSideEffects(res.meta);
       toast.success("Order confirmed — stock reserved");
     },
-    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to confirm order")),
+    onError: (e) => toast.error(formatCrmStockError(e, "Failed to confirm order")),
   });
 }
 

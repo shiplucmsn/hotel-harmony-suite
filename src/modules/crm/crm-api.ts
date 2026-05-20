@@ -19,6 +19,7 @@ import type {
   CrmInvoiceDto,
   CrmLeadDto,
   CrmOrderDto,
+  OrderStockAvailabilityDto,
   CrmQuotationDto,
   CreateQuotationInput,
   UpdateQuotationInput,
@@ -171,6 +172,13 @@ export const crmApi = {
     api
       .patch<ApiEnvelope<CrmOrderDto>>(`/v1/crm/orders/${id}`, { status: "confirmed", ...body }, { idempotent: true })
       .then((r) => r),
+
+  orderStockAvailability: (id: number | string, warehouseId: number) =>
+    api
+      .get<ApiEnvelope<OrderStockAvailabilityDto>>(
+        `/v1/crm/orders/${id}/stock-availability?warehouse_id=${warehouseId}`,
+      )
+      .then((r) => r.data),
 
   cancelOrder: (id: number | string) =>
     api

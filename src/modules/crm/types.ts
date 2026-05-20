@@ -143,12 +143,35 @@ export type CrmOrderLineDto = {
   line_total: number;
 };
 
+export type CrmOrderWarehouseDto = {
+  id: number;
+  code?: string;
+  name: string;
+};
+
+export type OrderStockAvailabilityLineDto = {
+  sku: string;
+  quantity_needed: number;
+  available_qty: number;
+  qty_on_hand: number;
+  qty_reserved: number;
+  sufficient: boolean;
+  track_inventory: boolean;
+};
+
+export type OrderStockAvailabilityDto = {
+  warehouse_id: number;
+  lines: OrderStockAvailabilityLineDto[];
+};
+
 export type CrmOrderDto = {
   id: number;
   number: string;
   customer?: string | null;
   customer_id?: number | null;
   quotation_id?: number | null;
+  warehouse_id?: number | null;
+  warehouse?: CrmOrderWarehouseDto | null;
   status: string;
   order_date?: string | null;
   subtotal: number;

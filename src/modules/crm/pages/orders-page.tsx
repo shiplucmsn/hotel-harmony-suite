@@ -23,14 +23,11 @@ import { DataTable, type DataTableColumn } from "@/shared/components/data-table/
 import { PaginationBar } from "@/modules/finance/components/pagination-bar";
 import { CrmFilters } from "@/modules/crm/components/crm-filters";
 import { CrmStatusBadge } from "@/modules/crm/components/crm-status-badge";
+import { ConfirmOrderDialog } from "@/modules/crm/components/confirm-order-dialog";
+import { FulfillOrderDialog } from "@/modules/crm/components/fulfill-order-dialog";
 import { InvoiceFormSheet } from "@/modules/crm/components/invoice-form-sheet";
 import { OrderFormSheet } from "@/modules/crm/components/order-form-sheet";
-import {
-  useCancelOrder,
-  useConfirmOrder,
-  useCrmOrders,
-  useFulfillOrder,
-} from "@/hooks/crm/use-crm";
+import { useCancelOrder, useConfirmOrder, useCrmOrders, useFulfillOrder } from "@/hooks/crm/use-crm";
 import { formatMoney } from "@/modules/crm/utils";
 import type { CrmOrderDto } from "@/modules/crm/types";
 
@@ -55,6 +52,8 @@ export function OrdersPage() {
     orderId?: string;
     autoFulfill?: boolean;
   }>({});
+  const [confirmTarget, setConfirmTarget] = useState<CrmOrderDto | null>(null);
+  const [fulfillTarget, setFulfillTarget] = useState<CrmOrderDto | null>(null);
 
   const { data, isLoading } = useCrmOrders({
     page,
@@ -88,6 +87,20 @@ export function OrdersPage() {
     setPage(1);
   };
 
+  const handleFulfill = (o: CrmOrderDto) => {
+    if (o.warehouse_id) {
+      fulfillOrder.mutate({ id: o.id });
+      return;
+    }
+    setFulfillTarget(o);
+  };
+
+  const isConfirming = (id: number) =>
+    confirmOrder.isPending && confirmOrder.variables?.id === id;
+
+  const isFulfilling = (id: number) =>
+    fulfillOrder.isPending && fulfillOrder.variables?.id === id;
+
   const columns: DataTableColumn<CrmOrderDto>[] = [
     { id: "number", header: "Order #", cell: (o) => <span className="font-medium">{o.number}</span> },
     {
@@ -100,6 +113,16 @@ export function OrdersPage() {
       header: "Date",
       className: "hidden md:table-cell",
       cell: (o) => o.order_date ?? "—",
+    },
+    {
+      id: "warehouse",
+      header: "Ship from",
+      className: "hidden lg:table-cell",
+      cell: (o) => (
+        <span className="text-sm text-muted-foreground">
+          {o.warehouse?.name ?? (o.warehouse_id ? `WH #${o.warehouse_id}` : "—")}
+        </span>
+      ),
     },
     {
       id: "status",
@@ -126,10 +149,8 @@ export function OrdersPage() {
       header: "",
       className: "w-10",
       cell: (o) => {
-        const fulfilling =
-          fulfillOrder.isPending && String(fulfillOrder.variables) === String(o.id);
-        const confirming =
-          confirmOrder.isPending && String(confirmOrder.variables) === String(o.id);
+        const fulfilling = isFulfilling(o.id);
+        const confirming = isConfirming(o.id);
         const cancelling =
           cancelOrder.isPending && String(cancelOrder.variables) === String(o.id);
 
@@ -142,7 +163,7 @@ export function OrdersPage() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {o.status === "pending" ? (
-                <DropdownMenuItem disabled={confirming} onClick={() => confirmOrder.mutate(o.id)}>
+                <DropdownMenuItem disabled={confirming} onClick={() => setConfirmTarget(o)}>
                   {confirming ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -152,7 +173,7 @@ export function OrdersPage() {
                 </DropdownMenuItem>
               ) : null}
               {o.status !== "fulfilled" && o.status !== "cancelled" ? (
-                <DropdownMenuItem disabled={fulfilling} onClick={() => fulfillOrder.mutate(o.id)}>
+                <DropdownMenuItem disabled={fulfilling} onClick={() => handleFulfill(o)}>
                   {fulfilling ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
@@ -209,16 +230,19 @@ export function OrdersPage() {
       />
 
       <Card className="border-dashed bg-muted/30">
-        <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-3">
+        <CardContent className="grid gap-2 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
           <p>
             <span className="font-medium text-foreground">1. Create</span> — saves the order only (no
             stock or revenue).
           </p>
           <p>
-            <span className="font-medium text-foreground">2. Fulfill</span> — ships stock and posts COGS.
+            <span className="font-medium text-foreground">2. Confirm</span> — pick warehouse and reserve stock.
           </p>
           <p>
-            <span className="font-medium text-foreground">3. Invoice</span> — records AR and revenue.
+            <span className="font-medium text-foreground">3. Fulfill</span> — ships stock and posts COGS.
+          </p>
+          <p>
+            <span className="font-medium text-foreground">4. Invoice</span> — records AR and revenue.
           </p>
         </CardContent>
       </Card>
@@ -245,6 +269,20 @@ export function OrdersPage() {
         ) : null}
       </Card>
       <OrderFormSheet open={formOpen} onOpenChange={setFormOpen} />
+      <ConfirmOrderDialog
+        order={confirmTarget}
+        open={Boolean(confirmTarget)}
+        onOpenChange={(open) => {
+          if (!open) setConfirmTarget(null);
+        }}
+      />
+      <FulfillOrderDialog
+        order={fulfillTarget}
+        open={Boolean(fulfillTarget)}
+        onOpenChange={(open) => {
+          if (!open) setFulfillTarget(null);
+        }}
+      />
       <InvoiceFormSheet
         open={invoiceOpen}
         onOpenChange={setInvoiceOpen}

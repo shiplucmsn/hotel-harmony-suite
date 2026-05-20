@@ -1,4 +1,41 @@
+import { ApiError } from "@/lib/api-client";
+import { getApiErrorMessage } from "@/lib/api-errors";
 import type { CrmInvoiceDto, CrmLeadDto, CrmOrderDto, CrmPaymentDto } from "@/modules/crm/types";
+
+type StockErrorPayload = {
+  error?: {
+    code?: string;
+    message?: string;
+    details?: Record<string, unknown>;
+  };
+};
+
+export function formatCrmStockError(error: unknown, fallback: string): string {
+  if (!(error instanceof ApiError)) {
+    return getApiErrorMessage(error, fallback);
+  }
+
+  const payload = error.payload as StockErrorPayload;
+  const code = payload?.error?.code;
+  const details = payload?.error?.details;
+
+  if (code === "INSUFFICIENT_STOCK" && details) {
+    const parts = [payload.error?.message ?? fallback];
+    if (details.warehouse_available != null) {
+      parts.push(`Available at warehouse: ${details.warehouse_available}`);
+    }
+    if (details.total_available_all_warehouses != null) {
+      parts.push(`Total available (all warehouses): ${details.total_available_all_warehouses}`);
+    }
+    if (details.sku) {
+      parts.push(`SKU: ${details.sku}`);
+    }
+
+    return parts.join(" — ");
+  }
+
+  return getApiErrorMessage(error, fallback);
+}
 
 export function formatMoney(amount: number, currency = "USD"): string {
   return new Intl.NumberFormat(undefined, {
