@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
@@ -38,7 +39,10 @@ function RawMaterialsPage() {
                 <SheetHeader><SheetTitle>Add raw material</SheetTitle></SheetHeader>
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-2 gap-3">
-                    <div><Label>SKU</Label><Input placeholder="RM-XXX-000" /></div>
+                    <div>
+                      <Label>SKU</Label>
+                      <SkuPicker placeholder="Search material SKU…" />
+                    </div>
                     <div><Label>UoM</Label><Input placeholder="pcs / kg / L" /></div>
                   </div>
                   <div><Label>Name</Label><Input placeholder="Material name" /></div>

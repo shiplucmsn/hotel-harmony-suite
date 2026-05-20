@@ -18,6 +18,35 @@ export type CreateCategoryInput = {
   is_active?: boolean;
 };
 
+/** Lightweight SKU registry row (products table). */
+export type SkuDto = {
+  id: number;
+  product_id: number;
+  sku: string;
+  name: string;
+  barcode?: string | null;
+  category?: string | null;
+  category_id?: number | null;
+  warehouse?: string | null;
+  default_warehouse_id?: number | null;
+  stock: number;
+  price: number;
+  cost_price?: number;
+  status: string;
+};
+
+export type GenerateSkuInput = {
+  category_prefix: string;
+  subcategory_prefix?: string;
+  sequence_padding?: number;
+};
+
+export type GenerateSkuResult = {
+  sku: string;
+  pattern: string;
+  sequence: number;
+};
+
 export type ProductDto = {
   id: number;
   uuid?: string;

@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -73,7 +73,7 @@ export function StockAdjustmentSheet({ open, onOpenChange, defaultSku }: StockAd
           <FormItem>
             <FormLabel>SKU</FormLabel>
             <FormControl>
-              <Input placeholder="Product SKU" {...field} />
+              <SkuPicker value={field.value} onValueChange={field.onChange} placeholder="Search or type SKU…" />
             </FormControl>
             <FormMessage />
           </FormItem>

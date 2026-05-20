@@ -19,6 +19,7 @@ import type {
   CreateTicketInput,
   CreateTicketMessageInput,
   UpdateTicketInput,
+  CreateFollowupInput,
   CrmAnalyticsFilters,
 } from "@/modules/crm/types";
 
@@ -42,6 +43,7 @@ export const crmKeys = {
   payments: (params?: Record<string, unknown>) => ["crm", "payments", params] as const,
   tickets: (params?: Record<string, unknown>) => ["crm", "tickets", params] as const,
   ticket: (id: string | number) => ["crm", "tickets", id] as const,
+  followups: (params?: Record<string, unknown>) => ["crm", "followups", params] as const,
 };
 
 export function useCrmAnalytics(params?: CrmAnalyticsFilters) {
@@ -517,5 +519,57 @@ export function useResolveTicket() {
       toast.success("Ticket resolved");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to resolve ticket")),
+  });
+}
+
+export function useCrmFollowups(params?: {
+  status?: string;
+  type?: string;
+  search?: string;
+  per_page?: number;
+}) {
+  return useQuery({
+    queryKey: crmKeys.followups(params),
+    queryFn: () => crmApi.followups(params),
+  });
+}
+
+export function useCreateFollowup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateFollowupInput) => crmApi.createFollowup(body),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      showSideEffects(res.meta);
+      toast.success("Follow-up scheduled");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to schedule follow-up")),
+  });
+}
+
+export function useCompleteFollowup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => crmApi.completeFollowup(id),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      showSideEffects(res.meta);
+      toast.success("Follow-up completed");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to complete follow-up")),
+  });
+}
+
+export function useSnoozeFollowup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, snoozedUntil }: { id: number | string; snoozedUntil: string }) =>
+      crmApi.snoozeFollowup(id, snoozedUntil),
+    onSuccess: (res) => {
+      invalidateCrm(qc);
+      showSideEffects(res.meta);
+      toast.success("Follow-up snoozed");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to snooze follow-up")),
   });
 }

@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -39,7 +40,16 @@ function POPage() {
                   <div className="space-y-2">
                     {items.map((it, i) => (
                       <div key={i} className="grid grid-cols-12 gap-2 items-center">
-                        <Input className="col-span-5" placeholder="SKU / Product" value={it.sku} onChange={e => { const c = [...items]; c[i].sku = e.target.value; setItems(c); }} />
+                        <SkuPicker
+                          className="col-span-5"
+                          value={it.sku}
+                          onValueChange={(sku) => {
+                            const c = [...items];
+                            c[i].sku = sku;
+                            setItems(c);
+                          }}
+                          placeholder="Search SKU…"
+                        />
                         <Input className="col-span-2" type="number" placeholder="Qty" value={it.qty} onChange={e => { const c = [...items]; c[i].qty = +e.target.value; setItems(c); }} />
                         <Input className="col-span-3" type="number" placeholder="Price" value={it.price} onChange={e => { const c = [...items]; c[i].price = +e.target.value; setItems(c); }} />
                         <div className="col-span-1 text-sm text-right">${(it.qty * it.price).toFixed(0)}</div>

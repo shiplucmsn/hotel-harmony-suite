@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { Label } from "@/components/ui/label";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -39,7 +40,7 @@ function TransfersPage() {
                 <div><Label>Expected date</Label><Input type="date" /></div>
                 <div className="rounded-lg border bg-muted/30 p-3">
                   <p className="text-sm font-medium mb-2">Items</p>
-                  <div className="grid grid-cols-3 gap-2"><Input placeholder="SKU" /><Input placeholder="Qty" type="number" /><Button variant="outline" size="sm">+ Add</Button></div>
+                  <div className="grid grid-cols-3 gap-2"><SkuPicker placeholder="Search SKU…" /><Input placeholder="Qty" type="number" /><Button variant="outline" size="sm">+ Add</Button></div>
                 </div>
                 <div><Label>Notes</Label><Input placeholder="Reference / notes" /></div>
               </div>

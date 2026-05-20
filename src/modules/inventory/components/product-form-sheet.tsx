@@ -3,7 +3,11 @@ import { useForm } from "react-hook-form";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
+import { useGenerateSku } from "@/hooks/inventory/use-skus";
+import { Wand2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -43,6 +47,7 @@ const defaultValues: ProductFormValues = {
 export function ProductFormSheet({ open, onOpenChange, mode, product }: ProductFormSheetProps) {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const generateSku = useGenerateSku();
   const { data: categories = [] } = useInventoryCategories();
   const { data: warehousesData } = useInventoryWarehouses();
   const warehouses = warehousesData?.data ?? [];
@@ -134,9 +139,34 @@ export function ProductFormSheet({ open, onOpenChange, mode, product }: ProductF
           render={({ field }) => (
             <FormItem>
               <FormLabel>SKU</FormLabel>
-              <FormControl>
-                <Input placeholder="Auto-generated if empty" {...field} />
-              </FormControl>
+              <div className="flex gap-2">
+                <FormControl>
+                  <SkuPicker
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    placeholder="Search or type SKU…"
+                    disabled={mode === "edit"}
+                    className="flex-1"
+                  />
+                </FormControl>
+                {mode === "create" && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Generate SKU"
+                    disabled={generateSku.isPending}
+                    onClick={async () => {
+                      const cat = categories.find((c) => String(c.id) === form.getValues("categoryId"));
+                      const prefix = cat?.code?.slice(0, 4) || "SKU";
+                      const result = await generateSku.mutateAsync({ category_prefix: prefix });
+                      field.onChange(result.sku);
+                    }}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
               <FormMessage />
             </FormItem>
           )}

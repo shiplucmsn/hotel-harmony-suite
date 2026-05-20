@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { SearchableSelect } from "@/shared/components/forms/searchable-select";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import {
   Sheet,
   SheetContent,
@@ -17,9 +18,8 @@ import {
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { quotationFormSchema, type QuotationFormValues } from "@/modules/crm/schemas";
 import { useCreateQuotation, useCrmCustomers, useUpdateQuotation } from "@/hooks/crm/use-crm";
-import { useInventoryProducts } from "@/hooks/inventory/use-inventory-products";
 import { formatMoney } from "@/modules/crm/utils";
-import { customerSelectOptions, productSelectOptions } from "@/modules/crm/utils/select-options";
+import { customerSelectOptions } from "@/modules/crm/utils/select-options";
 import type { CrmQuotationDto, CrmQuotationLineDto } from "@/modules/crm/types";
 import { cn } from "@/lib/utils";
 
@@ -105,9 +105,7 @@ export function QuotationFormSheet({ open, onOpenChange, quotation }: QuotationF
   const createQuotation = useCreateQuotation();
   const updateQuotation = useUpdateQuotation();
   const { data: customersData } = useCrmCustomers({ per_page: 200 });
-  const { data: productsData } = useInventoryProducts({ per_page: 200 });
   const customers = customersData?.data ?? [];
-  const products = productsData?.data ?? [];
   const customerOptions = useMemo(
     () =>
       customerSelectOptions(customers).map((o) => {
@@ -119,7 +117,6 @@ export function QuotationFormSheet({ open, onOpenChange, quotation }: QuotationF
       }),
     [customers],
   );
-  const productOptions = useMemo(() => productSelectOptions(products, { label: "Custom line" }), [products]);
   const [submitMode, setSubmitMode] = useState<SubmitMode | null>(null);
 
   const form = useForm<QuotationFormValues>({
@@ -307,20 +304,17 @@ export function QuotationFormSheet({ open, onOpenChange, quotation }: QuotationF
                         <FormItem>
                           <FormLabel>SKU (optional)</FormLabel>
                           <FormControl>
-                            <SearchableSelect
-                              value={f.value || "none"}
-                              onValueChange={(sku) => {
-                                const value = sku === "none" ? "" : sku;
-                                f.onChange(value);
-                                const product = products.find((p) => p.sku === value);
-                                if (product) {
-                                  form.setValue(`lines.${index}.description`, product.name);
-                                  form.setValue(`lines.${index}.unit_price`, Number(product.price ?? 0));
+                            <SkuPicker
+                              value={f.value}
+                              onValueChange={f.onChange}
+                              onSkuSelect={(row) => {
+                                if (row) {
+                                  form.setValue(`lines.${index}.description`, row.name);
+                                  form.setValue(`lines.${index}.unit_price`, Number(row.price ?? 0));
                                 }
                               }}
-                              options={productOptions}
-                              placeholder="Select product"
-                              searchPlaceholder="Search products…"
+                              emptyOption={{ label: "Custom line (no SKU)" }}
+                              placeholder="Search or type SKU…"
                             />
                           </FormControl>
                         </FormItem>

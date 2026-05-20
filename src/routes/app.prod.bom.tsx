@@ -5,6 +5,7 @@ import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
@@ -155,7 +156,10 @@ function BOMPage() {
                 <div className="space-y-4 py-4">
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Name</Label><Input value={name} onChange={(event) => setName(event.target.value)} placeholder="Table BOM" /></div>
-                    <div><Label>Output SKU</Label><Input value={sku} onChange={(event) => setSku(event.target.value)} placeholder="FG-TABLE" /></div>
+                    <div>
+                      <Label>Output SKU</Label>
+                      <SkuPicker value={sku} onValueChange={setSku} placeholder="Search output SKU…" />
+                    </div>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div><Label>Batch size</Label><Input type="number" min={0.001} step="0.001" value={batchSize} onChange={(event) => setBatchSize(event.target.value)} /></div>
@@ -183,13 +187,22 @@ function BOMPage() {
                     </div>
                     {lines.map((line, idx) => (
                       <div key={`${idx}-${line.sku}`} className="grid grid-cols-12 gap-2">
-                        <Input
+                        <SkuPicker
                           className="col-span-5"
-                          placeholder="RM-STEEL"
                           value={line.sku}
-                          onChange={(event) =>
-                            setLines((prev) => prev.map((item, i) => (i === idx ? { ...item, sku: event.target.value } : item)))
+                          onValueChange={(next) =>
+                            setLines((prev) => prev.map((item, i) => (i === idx ? { ...item, sku: next } : item)))
                           }
+                          onSkuSelect={(row) => {
+                            if (row) {
+                              setLines((prev) =>
+                                prev.map((item, i) =>
+                                  i === idx ? { ...item, sku: row.sku, unit_cost: Number(row.cost_price ?? 0) } : item,
+                                ),
+                              );
+                            }
+                          }}
+                          placeholder="Material SKU…"
                         />
                         <Input
                           className="col-span-2"

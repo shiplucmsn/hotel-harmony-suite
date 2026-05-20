@@ -7,12 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormSheet } from "@/shared/components/forms/form-sheet";
 import { SearchableSelect } from "@/shared/components/forms/searchable-select";
+import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
 import { orderFormSchema, type OrderFormValues } from "@/modules/crm/schemas";
 import { useCreateOrder, useCrmCustomers } from "@/hooks/crm/use-crm";
-import { useInventoryProducts } from "@/hooks/inventory/use-inventory-products";
 import { formatMoney } from "@/modules/crm/utils";
-import { customerSelectOptions, productSelectOptions } from "@/modules/crm/utils/select-options";
+import { customerSelectOptions } from "@/modules/crm/utils/select-options";
 
 const defaults: OrderFormValues = {
   customer_id: "",
@@ -28,9 +28,7 @@ type OrderFormSheetProps = {
 export function OrderFormSheet({ open, onOpenChange }: OrderFormSheetProps) {
   const createOrder = useCreateOrder();
   const { data: customersData } = useCrmCustomers({ per_page: 200 });
-  const { data: productsData } = useInventoryProducts({ per_page: 200 });
   const customers = customersData?.data ?? [];
-  const products = productsData?.data ?? [];
 
   const form = useForm<OrderFormValues>({
     resolver: createZodResolver(orderFormSchema),
@@ -120,19 +118,16 @@ export function OrderFormSheet({ open, onOpenChange }: OrderFormSheetProps) {
                 <FormItem>
                   <FormLabel>Product SKU</FormLabel>
                   <FormControl>
-                    <SearchableSelect
+                    <SkuPicker
                       value={f.value}
-                      onValueChange={(sku) => {
-                        f.onChange(sku);
-                        const product = products.find((p) => p.sku === sku);
-                        if (product) {
-                          form.setValue(`lines.${index}.unit_price`, Number(product.price ?? 0));
-                          form.setValue(`lines.${index}.unit_cost`, Number(product.cost_price ?? 0));
+                      onValueChange={f.onChange}
+                      onSkuSelect={(row) => {
+                        if (row) {
+                          form.setValue(`lines.${index}.unit_price`, Number(row.price ?? 0));
+                          form.setValue(`lines.${index}.unit_cost`, Number(row.cost_price ?? 0));
                         }
                       }}
-                      options={productSelectOptions(products)}
-                      placeholder="Select SKU"
-                      searchPlaceholder="Search products…"
+                      placeholder="Search or type SKU…"
                     />
                   </FormControl>
                   <FormMessage />

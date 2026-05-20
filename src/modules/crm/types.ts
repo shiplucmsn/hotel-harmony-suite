@@ -421,3 +421,36 @@ export type UpdateTicketInput = {
   priority?: CrmTicketPriority;
   assigned_to_user_id?: number | null;
 };
+
+export type CrmFollowupType = "call" | "email" | "meeting" | "task";
+export type CrmFollowupStatus = "upcoming" | "overdue" | "done";
+
+export type CrmFollowupDto = {
+  id: number;
+  uuid?: string;
+  customer_id?: number | null;
+  lead_id?: number | null;
+  deal_id?: number | null;
+  customer: string;
+  subject_label?: string | null;
+  type: CrmFollowupType;
+  due_at?: string;
+  due: string;
+  notes?: string | null;
+  status: CrmFollowupStatus;
+  owner: string;
+  assigned_to_user_id?: number | null;
+  completed_at?: string | null;
+  snoozed_until?: string | null;
+  created_at?: string;
+};
+
+export type CreateFollowupInput = {
+  customer_id?: number;
+  lead_id?: number;
+  subject_label?: string;
+  type: CrmFollowupType;
+  due_at: string;
+  notes?: string;
+  assigned_to_user_id?: number;
+};

@@ -8,7 +8,10 @@ import type {
   InventoryCategoryDto,
   MovementListParams,
   PaginatedResult,
+  GenerateSkuInput,
+  GenerateSkuResult,
   ProductDto,
+  SkuDto,
   StockLevelDto,
   StockLevelListParams,
   StockMovementDto,
@@ -93,4 +96,17 @@ export const inventoryApi = {
       body,
       { idempotent: true },
     ),
+
+  skus: (params?: ListParams) =>
+    api.get<ApiEnvelope<SkuDto[]>>(`/v1/inventory/skus${buildQuery(params)}`).then(paginated),
+
+  lookupSku: (sku: string) =>
+    api
+      .get<ApiEnvelope<SkuDto>>(`/v1/inventory/skus/lookup/${encodeURIComponent(sku)}`)
+      .then((r) => r.data),
+
+  generateSku: (body: GenerateSkuInput) =>
+    api
+      .post<ApiEnvelope<GenerateSkuResult>>("/v1/inventory/skus/generate", body, { idempotent: true })
+      .then((r) => r.data),
 };

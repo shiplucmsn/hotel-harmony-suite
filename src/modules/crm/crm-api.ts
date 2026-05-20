@@ -28,6 +28,8 @@ import type {
   CreateTicketInput,
   CreateTicketMessageInput,
   UpdateTicketInput,
+  CrmFollowupDto,
+  CreateFollowupInput,
   CustomerLedgerEntryDto,
   CustomerLedgerFilters,
   PaginatedResult,
@@ -214,4 +216,31 @@ export const crmApi = {
     api
       .post<ApiEnvelope<CrmTicketDto>>(`/v1/crm/tickets/${id}/resolve`, {}, { idempotent: true })
       .then((r) => r.data),
+
+  followups: (params?: ListParams & { status?: string; type?: string; assigned_to_user_id?: number }) =>
+    api
+      .get<ApiEnvelope<CrmFollowupDto[]>>(`/v1/crm/followups${buildQuery(params)}`)
+      .then((res) => ({
+        data: Array.isArray(res.data) ? res.data : [],
+        pagination: res.meta?.pagination,
+      })),
+
+  createFollowup: (body: CreateFollowupInput) =>
+    api
+      .post<ApiEnvelope<CrmFollowupDto>>("/v1/crm/followups", body, { idempotent: true })
+      .then((r) => r),
+
+  completeFollowup: (id: number | string) =>
+    api
+      .post<ApiEnvelope<CrmFollowupDto>>(`/v1/crm/followups/${id}/complete`, {}, { idempotent: true })
+      .then((r) => r),
+
+  snoozeFollowup: (id: number | string, snoozedUntil: string) =>
+    api
+      .post<ApiEnvelope<CrmFollowupDto>>(
+        `/v1/crm/followups/${id}/snooze`,
+        { snoozed_until: snoozedUntil },
+        { idempotent: true },
+      )
+      .then((r) => r),
 };
