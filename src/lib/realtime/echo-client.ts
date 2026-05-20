@@ -29,7 +29,9 @@ declare global {
   }
 }
 
-export async function fetchBroadcastClientConfig(): Promise<BroadcastClientConfig | null> {
+export async function fetchBroadcastClientConfig(
+  userId?: number | string | null,
+): Promise<BroadcastClientConfig | null> {
   const paths = ["/v1/realtime/client", "/v1/company/broadcast/client"];
   let client: BroadcastClientConfig | undefined;
 
@@ -46,6 +48,19 @@ export async function fetchBroadcastClientConfig(): Promise<BroadcastClientConfi
   if (!client?.enabled || !client.key || !client.cluster) {
     return null;
   }
+
+  const resolvedUserId = client.user_id ?? (userId != null ? Number(userId) : null);
+  if (resolvedUserId && !client.user_id) {
+    return {
+      ...client,
+      user_id: resolvedUserId,
+      channels: {
+        ...client.channels,
+        notifications: echoUserNotificationsChannel(resolvedUserId),
+      },
+    };
+  }
+
   return client;
 }
 
@@ -66,6 +81,9 @@ export async function connectEcho(config: BroadcastClientConfig): Promise<EchoIn
   disconnectEcho();
 
   window.Pusher = Pusher;
+  if (import.meta.env.DEV) {
+    Pusher.logToConsole = true;
+  }
 
   const apiBase = (import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000/api").replace(/\/$/, "");
 

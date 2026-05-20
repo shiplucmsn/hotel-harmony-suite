@@ -9,6 +9,9 @@ import {
   type BroadcastClientConfig,
 } from "@/lib/realtime/echo-client";
 import { notificationKeys } from "@/hooks/use-notifications";
+import { useAuth } from "@/hooks/use-auth";
+import { showRealtimeToastOnce } from "@/lib/realtime/realtime-toast";
+import { setNotificationRealtimeActive } from "@/lib/realtime/realtime-state";
 import type { NotificationDto } from "@/modules/core/notifications-api";
 
 type NotificationCreatedPayload = {
@@ -17,22 +20,33 @@ type NotificationCreatedPayload = {
 
 export function useNotificationRealtime(authReady = true) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   useEffect(() => {
-    if (!authReady) return;
+    if (!authReady) {
+      setNotificationRealtimeActive(false);
+      return;
+    }
 
     let cancelled = false;
     let channel: { stopListening: (event: string) => void; unsubscribe: () => void } | null = null;
 
     const setup = async () => {
       try {
-        const config: BroadcastClientConfig | null = await fetchBroadcastClientConfig();
-        if (cancelled || !config?.user_id) return;
+        const config: BroadcastClientConfig | null = await fetchBroadcastClientConfig(user?.id);
+        const userId = config?.user_id ?? (user?.id != null ? Number(user.id) : null);
+        if (cancelled || !config || !userId) {
+          setNotificationRealtimeActive(false);
+          return;
+        }
 
         const echo = await connectEcho(config);
-        if (cancelled || !echo) return;
+        if (cancelled || !echo) {
+          setNotificationRealtimeActive(false);
+          return;
+        }
 
-        const name = echoUserNotificationsChannel(config.user_id);
+        const name = echoUserNotificationsChannel(userId);
         const ch = echo.private(name);
 
         const onCreated = (payload: NotificationCreatedPayload) => {
@@ -42,18 +56,32 @@ export function useNotificationRealtime(authReady = true) {
           void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
 
           if (n.unread) {
-            toast.info(n.title, {
-              description: n.body ?? undefined,
-              duration: 8_000,
+            const messageId =
+              typeof n.data?.message_id === "number" ? n.data.message_id : n.id;
+            showRealtimeToastOnce(`notif-${messageId}`, () => {
+              toast.info(n.title, {
+                description: n.body ?? undefined,
+                duration: 8_000,
+              });
             });
           }
         };
 
         ch.listen(NOTIFICATION_CREATED_EVENT, onCreated);
         ch.listen("Core.Notification.Created", onCreated);
+        ch.subscribed(() => {
+          setNotificationRealtimeActive(true);
+        });
+        ch.error(() => {
+          setNotificationRealtimeActive(false);
+          if (import.meta.env.DEV) {
+            console.warn("[realtime] notification channel subscription failed");
+          }
+        });
 
         channel = ch;
       } catch (error) {
+        setNotificationRealtimeActive(false);
         if (import.meta.env.DEV) {
           console.warn("[realtime] notification channel failed", error);
         }
@@ -64,9 +92,10 @@ export function useNotificationRealtime(authReady = true) {
 
     return () => {
       cancelled = true;
+      setNotificationRealtimeActive(false);
       channel?.stopListening(NOTIFICATION_CREATED_EVENT);
       channel?.stopListening("Core.Notification.Created");
       channel?.unsubscribe();
     };
-  }, [authReady, queryClient]);
+  }, [authReady, queryClient, user?.id]);
 }

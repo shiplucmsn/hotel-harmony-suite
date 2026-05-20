@@ -11,7 +11,10 @@ import {
   type BroadcastClientConfig,
 } from "@/lib/realtime/echo-client";
 import { crmKeys } from "@/hooks/crm/use-crm";
+import { notificationKeys } from "@/hooks/use-notifications";
+import { messagePreview, showRealtimeToastOnce } from "@/lib/realtime/realtime-toast";
 import { setTicketRealtimeActive } from "@/lib/realtime/realtime-state";
+import { useAuth } from "@/hooks/use-auth";
 
 type TicketMessagePayload = {
   ticket_id: number;
@@ -27,15 +30,24 @@ type TicketMessagePayload = {
   test?: boolean;
 };
 
-function messagePreview(body: string, max = 100): string {
-  const trimmed = body.trim();
-  return trimmed.length <= max ? trimmed : `${trimmed.slice(0, max)}…`;
+function showCustomerMessageToast(payload: TicketMessagePayload, msg: NonNullable<TicketMessagePayload["message"]>) {
+  const label = payload.ticket_number
+    ? `${payload.ticket_number}${payload.customer ? ` · ${payload.customer}` : ""}`
+    : undefined;
+  const title = label ? `New message on ${label}` : "New customer message";
+
+  showRealtimeToastOnce(`ticket-msg-${msg.id}`, () => {
+    toast.info(title, {
+      description: `${msg.author}: ${messagePreview(msg.body)}`,
+      duration: 8_000,
+    });
+  });
 }
 
 export function useTicketRealtime(authReady = true) {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const notifiedIdsRef = useRef<Set<number>>(new Set());
   const configRef = useRef<BroadcastClientConfig | null>(null);
 
   useEffect(() => {
@@ -49,16 +61,18 @@ export function useTicketRealtime(authReady = true) {
 
     const setup = async () => {
       try {
-        const config = await fetchBroadcastClientConfig();
+        const config = await fetchBroadcastClientConfig(user?.id);
         if (cancelled || !config) {
           setTicketRealtimeActive(false);
           return;
         }
 
         configRef.current = config;
-        setTicketRealtimeActive(true);
         const echo = await connectEcho(config);
-        if (cancelled || !echo) return;
+        if (cancelled || !echo) {
+          setTicketRealtimeActive(false);
+          return;
+        }
 
         const name = echoChannelName(config.tenant_id);
         const ch = echo.private(name);
@@ -77,20 +91,23 @@ export function useTicketRealtime(authReady = true) {
           void queryClient.invalidateQueries({ queryKey: crmKeys.tickets() });
           void queryClient.invalidateQueries({ queryKey: crmKeys.ticket(payload.ticket_id) });
 
-          if (msg.from === "customer" && !notifiedIdsRef.current.has(msg.id)) {
-            notifiedIdsRef.current.add(msg.id);
-            const label = payload.ticket_number
-              ? `${payload.ticket_number}${payload.customer ? ` · ${payload.customer}` : ""}`
-              : undefined;
-            toast.info(label ? `New customer message · ${label}` : "New customer message", {
-              description: `${msg.author}: ${messagePreview(msg.body)}`,
-              duration: 8_000,
-            });
+          if (msg.from === "customer") {
+            void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+            showCustomerMessageToast(payload, msg);
           }
         };
 
         ch.listen(TICKET_MESSAGE_EVENT, onMessage);
         ch.listen("Crm.Ticket.MessageCreated", onMessage);
+        ch.subscribed(() => {
+          setTicketRealtimeActive(true);
+        });
+        ch.error(() => {
+          setTicketRealtimeActive(false);
+          if (import.meta.env.DEV) {
+            console.warn("[realtime] ticket channel subscription failed");
+          }
+        });
 
         channel = ch;
       } catch (error) {
@@ -110,7 +127,7 @@ export function useTicketRealtime(authReady = true) {
       channel?.stopListening("Crm.Ticket.MessageCreated");
       channel?.unsubscribe();
     };
-  }, [authReady, queryClient]);
+  }, [authReady, queryClient, user?.id]);
 
   useEffect(() => {
     return () => {

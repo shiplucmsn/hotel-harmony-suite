@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { showSideEffects } from "@/lib/api-meta";
+import { notificationKeys } from "@/hooks/use-notifications";
 import { crmApi } from "@/modules/crm/crm-api";
 import type {
   CreateContactInput,
@@ -348,8 +349,30 @@ export function useFulfillOrder() {
     onSuccess: (res) => {
       invalidateCrm(qc);
       qc.invalidateQueries({ queryKey: ["inventory"] });
-      showSideEffects(res.meta);
-      toast.success("Stock updated. Issue an invoice to record revenue.");
+      qc.invalidateQueries({ queryKey: ["finance"] });
+      const effects = res.meta?.sideEffects ?? [];
+      const cogsPosted = effects.some(
+        (e) => e.domain === "finance" && e.action === "posted",
+      );
+      const cogsSkipped = effects.some(
+        (e) => e.domain === "finance" && e.action === "cogs_skipped",
+      );
+      if (cogsPosted) {
+        toast.success("Order fulfilled", {
+          description:
+            "Inventory has been deducted and cost of goods sold has been recorded. Create an invoice when you are ready to bill the customer.",
+        });
+      } else if (cogsSkipped) {
+        toast.warning("Order fulfilled (no COGS entry)", {
+          description:
+            "Stock was updated, but no COGS journal was posted because product costs are missing or zero. Add cost prices, then issue an invoice to complete billing.",
+        });
+      } else {
+        toast.success("Order fulfilled", {
+          description:
+            "Inventory has been updated. Issue an invoice to bill the customer and recognize sales revenue.",
+        });
+      }
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to fulfill order")),
   });
@@ -470,9 +493,12 @@ export function useCreateTicketMessage() {
   return useMutation({
     mutationFn: ({ id, body }: { id: number | string; body: CreateTicketMessageInput }) =>
       crmApi.createTicketMessage(id, body),
-    onSuccess: (res, { id }) => {
+    onSuccess: (res, { id, body }) => {
       invalidateCrm(qc);
       qc.invalidateQueries({ queryKey: crmKeys.ticket(id) });
+      if (body.author_type === "agent") {
+        void qc.invalidateQueries({ queryKey: notificationKeys.all });
+      }
       showSideEffects(res.meta);
       const emailed = res.meta?.sideEffects?.some((s) => s.action === "emailed");
       toast.success(emailed ? "Reply sent and emailed to customer" : "Message added");

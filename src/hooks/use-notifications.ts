@@ -18,7 +18,8 @@ export function useUnreadNotificationCount() {
   return useQuery({
     queryKey: notificationKeys.unreadCount,
     queryFn: () => notificationsApi.unreadCount(),
-    refetchInterval: 60_000,
+    refetchInterval: 15_000,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -36,6 +37,16 @@ export function useMarkAllNotificationsRead() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: notificationKeys.all });
+    },
+  });
+}
+
+export function useMarkTicketNotificationsRead() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (ticketId: number | string) => notificationsApi.markTicketRead(ticketId),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: notificationKeys.all });
     },

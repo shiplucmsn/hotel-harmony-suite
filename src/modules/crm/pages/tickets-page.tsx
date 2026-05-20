@@ -29,12 +29,14 @@ import {
   useResolveTicket,
   useUpdateTicket,
 } from "@/hooks/crm/use-crm";
+import { useAuth } from "@/hooks/use-auth";
+import { useMarkTicketNotificationsRead } from "@/hooks/use-notifications";
 import { isTicketRealtimeActive } from "@/lib/realtime/realtime-state";
 import { crmApi } from "@/modules/crm/crm-api";
 import { rbacApi } from "@/modules/rbac/rbac-api";
 import { userSelectOptions } from "@/modules/crm/utils/select-options";
 import { cn } from "@/lib/utils";
-import type { CrmTicketAuthorType } from "@/modules/crm/types";
+import type { CrmTicketAuthorType, CrmTicketDto, CrmTicketMessageDto } from "@/modules/crm/types";
 
 const priorityVariant: Record<string, string> = {
   low: "bg-muted text-muted-foreground",
@@ -65,6 +67,26 @@ function messagePreview(body: string, max = 100): string {
   return trimmed.length <= max ? trimmed : `${trimmed.slice(0, max)}…`;
 }
 
+function messageDisplayName(
+  message: CrmTicketMessageDto,
+  ticket: CrmTicketDto | undefined,
+  currentUserName?: string | null,
+): string {
+  if (message.from !== "agent") {
+    return message.author;
+  }
+
+  if (ticket?.agent && message.author === ticket.customer) {
+    return ticket.agent;
+  }
+
+  if (currentUserName && ticket?.customer && message.author === ticket.customer) {
+    return currentUserName;
+  }
+
+  return message.author;
+}
+
 function notifyCustomerMessage(author: string, body: string, ticketLabel?: string) {
   toast.info(ticketLabel ? `New customer message · ${ticketLabel}` : "New customer message", {
     description: `${author}: ${messagePreview(body)}`,
@@ -74,6 +96,7 @@ function notifyCustomerMessage(author: string, body: string, ticketLabel?: strin
 
 export function TicketsPage() {
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [activeId, setActiveId] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
@@ -115,6 +138,7 @@ export function TicketsPage() {
   const ticket = ticketDetail ?? tickets.find((t) => t.id === activeId);
 
   const sendMessage = useCreateTicketMessage();
+  const markTicketNotificationsRead = useMarkTicketNotificationsRead();
   const resolveTicket = useResolveTicket();
   const updateTicket = useUpdateTicket();
 
@@ -216,9 +240,17 @@ export function TicketsPage() {
       body: {
         body: replyBody.trim(),
         author_type: replyMode,
+        ...(replyMode === "agent" && user?.name ? { author_name: user.name } : {}),
         send_email: replyMode === "agent" ? sendEmail : false,
       },
     });
+    if (replyMode === "agent") {
+      try {
+        await markTicketNotificationsRead.mutateAsync(activeId);
+      } catch {
+        // Backend also marks read on agent reply; ignore duplicate client call failures.
+      }
+    }
     const latest = res.data?.message;
     if (latest) {
       seenMessageIdsRef.current.add(latest.id);
@@ -371,14 +403,16 @@ export function TicketsPage() {
                         </Button>
                       </div>
                     )}
-                    {messages.map((m) => (
+                    {messages.map((m) => {
+                      const displayName = messageDisplayName(m, ticket, user?.name);
+                      return (
                       <div key={m.id} className={cn("flex gap-3", m.from === "agent" && "flex-row-reverse")}>
                         <Avatar className="h-8 w-8 shrink-0">
-                          <AvatarFallback className="text-xs">{initials(m.author)}</AvatarFallback>
+                          <AvatarFallback className="text-xs">{initials(displayName)}</AvatarFallback>
                         </Avatar>
                         <div className={cn("max-w-[70%]", m.from === "agent" && "items-end flex flex-col")}>
                           <div className="flex items-center gap-2 text-xs text-muted-foreground mb-1">
-                            <span className="font-medium text-foreground">{m.author}</span>
+                            <span className="font-medium text-foreground">{displayName}</span>
                             <span>{m.time}</span>
                           </div>
                           <div
@@ -393,7 +427,8 @@ export function TicketsPage() {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                     <div ref={messagesEndRef} aria-hidden />
                   </div>
                 </div>

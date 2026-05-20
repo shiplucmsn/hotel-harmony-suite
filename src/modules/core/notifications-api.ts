@@ -41,6 +41,11 @@ export const notificationsApi = {
   markRead: (id: number | string) =>
     api.patch<ApiEnvelope<NotificationDto>>(`/v1/notifications/${id}/read`).then((r) => r.data),
 
+  markTicketRead: (ticketId: number | string) =>
+    api
+      .post<ApiEnvelope<{ marked: number }>>(`/v1/notifications/tickets/${ticketId}/read`, {})
+      .then((r) => r.data?.marked ?? 0),
+
   markAllRead: () =>
     api.post<ApiEnvelope<{ marked: number }>>("/v1/notifications/read-all").then((r) => r.data?.marked ?? 0),
 };
