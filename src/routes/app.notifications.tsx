@@ -151,9 +151,17 @@ function NotificationsPage() {
                         type="button"
                         className="flex-1 min-w-0 text-left"
                         onClick={() => {
-                          if (n.unread) void markRead.mutate(n.id);
-                          const url = typeof n.data?.action_url === "string" ? n.data.action_url : undefined;
-                          if (url) navigate({ to: url });
+                          void (async () => {
+                            if (n.unread) {
+                              try {
+                                await markRead.mutateAsync(n.id);
+                              } catch {
+                                return;
+                              }
+                            }
+                            const url = typeof n.data?.action_url === "string" ? n.data.action_url : undefined;
+                            if (url) navigate({ to: url });
+                          })();
                         }}
                       >
                         <div className="flex items-center gap-2">
@@ -171,7 +179,7 @@ function NotificationsPage() {
                           className="h-7 w-7"
                           title="Mark as read"
                           disabled={markRead.isPending}
-                          onClick={() => void markRead.mutate(n.id)}
+                          onClick={() => void markRead.mutateAsync(n.id)}
                         >
                           <Check className="h-3.5 w-3.5" />
                         </Button>

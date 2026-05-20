@@ -39,7 +39,9 @@ export const notificationsApi = {
     api.get<ApiEnvelope<{ count: number }>>("/v1/notifications/unread-count").then((r) => r.data?.count ?? 0),
 
   markRead: (id: number | string) =>
-    api.patch<ApiEnvelope<NotificationDto>>(`/v1/notifications/${id}/read`).then((r) => r.data),
+    api
+      .patch<ApiEnvelope<NotificationDto>>(`/v1/notifications/${id}/read`, {}, { idempotent: true })
+      .then((r) => r.data),
 
   markTicketRead: (ticketId: number | string) =>
     api

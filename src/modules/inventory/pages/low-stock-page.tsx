@@ -1,6 +1,6 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { AlertTriangle, Loader2, Search, ShoppingCart, ShoppingBag } from "lucide-react";
+import { AlertTriangle, Bell, Loader2, Search, ShoppingBag, ShoppingCart } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,11 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useInventoryLowStockList, useInventoryLowStockSummary } from "@/hooks/inventory/use-inventory-low-stock";
+import {
+  useDispatchLowStockAlerts,
+  useInventoryLowStockList,
+  useInventoryLowStockSummary,
+} from "@/hooks/inventory/use-inventory-low-stock";
 import { cn } from "@/lib/utils";
 
 const SEVERITY_TABS = [
@@ -46,6 +50,7 @@ export function LowStockPage() {
 
   const { data: summary, isLoading: summaryLoading } = useInventoryLowStockSummary();
   const { data: listRes, isLoading: listLoading, isFetching } = useInventoryLowStockList(listParams);
+  const dispatchAlerts = useDispatchLowStockAlerts();
 
   const rows = listRes?.data ?? [];
   const loading = listLoading || isFetching;
@@ -58,12 +63,27 @@ export function LowStockPage() {
         description="Warehouse stock levels at or below each product's reorder point."
         breadcrumbs={[{ label: "Inventory" }, { label: "Low stock" }]}
         actions={
-          <Button size="sm" variant="outline" asChild>
-            <Link to="/app/inv/purchase-orders">
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              Purchase orders
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={dispatchAlerts.isPending || totalAlerts === 0}
+              onClick={() => dispatchAlerts.mutate()}
+            >
+              {dispatchAlerts.isPending ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Bell className="mr-2 h-4 w-4" />
+              )}
+              Send alerts now
+            </Button>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/app/inv/purchase-orders">
+                <ShoppingBag className="mr-2 h-4 w-4" />
+                Purchase orders
+              </Link>
+            </Button>
+          </div>
         }
       />
 

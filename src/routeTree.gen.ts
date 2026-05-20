@@ -46,6 +46,7 @@ import { Route as AppCrmRouteImport } from './routes/app.crm'
 import { Route as AppComponentsRouteImport } from './routes/app.components'
 import { Route as AppAnalyticsRouteImport } from './routes/app.analytics'
 import { Route as AppActivityRouteImport } from './routes/app.activity'
+import { Route as AppProductsIndexRouteImport } from './routes/app.products.index'
 import { Route as AppUsersNewRouteImport } from './routes/app.users.new'
 import { Route as AppUsersUserIdRouteImport } from './routes/app.users.$userId'
 import { Route as AppSaasTenantsRouteImport } from './routes/app.saas.tenants'
@@ -320,6 +321,11 @@ const AppActivityRoute = AppActivityRouteImport.update({
   id: '/activity',
   path: '/activity',
   getParentRoute: () => AppRoute,
+} as any)
+const AppProductsIndexRoute = AppProductsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppProductsRoute,
 } as any)
 const AppUsersNewRoute = AppUsersNewRouteImport.update({
   id: '/new',
@@ -893,6 +899,7 @@ export interface FileRoutesByFullPath {
   '/app/saas/tenants': typeof AppSaasTenantsRoute
   '/app/users/$userId': typeof AppUsersUserIdRoute
   '/app/users/new': typeof AppUsersNewRoute
+  '/app/products/': typeof AppProductsIndexRoute
   '/app/crm/customers/$customerId': typeof AppCrmCustomersCustomerIdRoute
   '/app/hr/attendance/daily': typeof AppHrAttendanceDailyRoute
   '/app/hr/employees/$employeeId': typeof AppHrEmployeesEmployeeIdRoute
@@ -924,7 +931,6 @@ export interface FileRoutesByTo {
   '/app/pm': typeof AppPmRouteWithChildren
   '/app/pos': typeof AppPosRouteWithChildren
   '/app/prod': typeof AppProdRouteWithChildren
-  '/app/products': typeof AppProductsRouteWithChildren
   '/app/profile': typeof AppProfileRoute
   '/app/reports': typeof AppReportsRoute
   '/app/roles': typeof AppRolesRoute
@@ -1021,6 +1027,7 @@ export interface FileRoutesByTo {
   '/app/saas/tenants': typeof AppSaasTenantsRoute
   '/app/users/$userId': typeof AppUsersUserIdRoute
   '/app/users/new': typeof AppUsersNewRoute
+  '/app/products': typeof AppProductsIndexRoute
   '/app/crm/customers/$customerId': typeof AppCrmCustomersCustomerIdRoute
   '/app/hr/attendance/daily': typeof AppHrAttendanceDailyRoute
   '/app/hr/employees/$employeeId': typeof AppHrEmployeesEmployeeIdRoute
@@ -1150,6 +1157,7 @@ export interface FileRoutesById {
   '/app/saas/tenants': typeof AppSaasTenantsRoute
   '/app/users/$userId': typeof AppUsersUserIdRoute
   '/app/users/new': typeof AppUsersNewRoute
+  '/app/products/': typeof AppProductsIndexRoute
   '/app/crm/customers/$customerId': typeof AppCrmCustomersCustomerIdRoute
   '/app/hr/attendance/daily': typeof AppHrAttendanceDailyRoute
   '/app/hr/employees/$employeeId': typeof AppHrEmployeesEmployeeIdRoute
@@ -1280,6 +1288,7 @@ export interface FileRouteTypes {
     | '/app/saas/tenants'
     | '/app/users/$userId'
     | '/app/users/new'
+    | '/app/products/'
     | '/app/crm/customers/$customerId'
     | '/app/hr/attendance/daily'
     | '/app/hr/employees/$employeeId'
@@ -1311,7 +1320,6 @@ export interface FileRouteTypes {
     | '/app/pm'
     | '/app/pos'
     | '/app/prod'
-    | '/app/products'
     | '/app/profile'
     | '/app/reports'
     | '/app/roles'
@@ -1408,6 +1416,7 @@ export interface FileRouteTypes {
     | '/app/saas/tenants'
     | '/app/users/$userId'
     | '/app/users/new'
+    | '/app/products'
     | '/app/crm/customers/$customerId'
     | '/app/hr/attendance/daily'
     | '/app/hr/employees/$employeeId'
@@ -1536,6 +1545,7 @@ export interface FileRouteTypes {
     | '/app/saas/tenants'
     | '/app/users/$userId'
     | '/app/users/new'
+    | '/app/products/'
     | '/app/crm/customers/$customerId'
     | '/app/hr/attendance/daily'
     | '/app/hr/employees/$employeeId'
@@ -1817,6 +1827,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/activity'
       preLoaderRoute: typeof AppActivityRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/app/products/': {
+      id: '/app/products/'
+      path: '/'
+      fullPath: '/app/products/'
+      preLoaderRoute: typeof AppProductsIndexRouteImport
+      parentRoute: typeof AppProductsRoute
     }
     '/app/users/new': {
       id: '/app/users/new'
@@ -2702,10 +2719,12 @@ const AppProdRouteWithChildren =
 
 interface AppProductsRouteChildren {
   AppProductsProductIdRoute: typeof AppProductsProductIdRoute
+  AppProductsIndexRoute: typeof AppProductsIndexRoute
 }
 
 const AppProductsRouteChildren: AppProductsRouteChildren = {
   AppProductsProductIdRoute: AppProductsProductIdRoute,
+  AppProductsIndexRoute: AppProductsIndexRoute,
 }
 
 const AppProductsRouteWithChildren = AppProductsRoute._addFileChildren(

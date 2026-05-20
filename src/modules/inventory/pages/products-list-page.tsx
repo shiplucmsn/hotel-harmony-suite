@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Plus, Eye, Pencil, ScanBarcode } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -22,6 +28,7 @@ const STATUS_OPTIONS = [
 ];
 
 export function ProductsListPage() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
@@ -92,7 +99,30 @@ export function ProductsListPage() {
       id: "stock",
       header: "Stock",
       className: "text-right",
-      cell: (p) => <span className="tabular-nums">{p.stock}</span>,
+      cell: (p) => (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="tabular-nums text-right hover:text-primary hover:underline"
+                onClick={() =>
+                  navigate({
+                    to: "/app/products/$productId",
+                    params: { productId: String(p.id) },
+                    search: { tab: "stock" },
+                  })
+                }
+              >
+                {p.stock}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent>
+              Total on-hand (all warehouses). Click to see qty per warehouse.
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      ),
     },
     {
       id: "status",
@@ -111,10 +141,19 @@ export function ProductsListPage() {
       className: "w-24 text-right",
       cell: (p) => (
         <div className="flex justify-end gap-1">
-          <Button variant="ghost" size="icon" className="h-8 w-8" asChild>
-            <Link to="/app/products/$productId" params={{ productId: String(p.id) }}>
-              <Eye className="h-4 w-4" />
-            </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            title="View product & stock by warehouse"
+            onClick={() =>
+              navigate({
+                to: "/app/products/$productId",
+                params: { productId: String(p.id) },
+              })
+            }
+          >
+            <Eye className="h-4 w-4" />
           </Button>
           <Button
             variant="ghost"

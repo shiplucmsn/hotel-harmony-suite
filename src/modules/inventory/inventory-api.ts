@@ -148,6 +148,13 @@ export const inventoryApi = {
       .get<ApiEnvelope<InventoryLowStockDto[]>>(`/v1/inventory/low-stock${buildQuery(params)}`)
       .then(paginated),
 
+  dispatchLowStockAlerts: () =>
+    api
+      .post<
+        ApiEnvelope<{ low_stock_jobs: number; expiry_jobs: number; total_jobs: number }>
+      >("/v1/inventory/low-stock/dispatch-alerts", {}, { idempotent: true })
+      .then((r) => r.data),
+
   expirySummary: () =>
     api
       .get<ApiEnvelope<InventoryExpirySummaryDto>>("/v1/inventory/expiry/summary")

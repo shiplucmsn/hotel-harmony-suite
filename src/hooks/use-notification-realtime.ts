@@ -53,6 +53,17 @@ export function useNotificationRealtime(authReady = true) {
           const n = payload.notification;
           if (!n) return;
 
+          queryClient.setQueriesData<{ data: NotificationDto[]; meta?: unknown }>(
+            { queryKey: notificationKeys.all },
+            (old) => {
+              const rows = old?.data ?? [];
+              if (rows.some((row) => row.id === n.id)) {
+                return old ?? { data: rows };
+              }
+              return { ...old, data: [n, ...rows] };
+            },
+          );
+
           void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
 
           if (n.unread) {

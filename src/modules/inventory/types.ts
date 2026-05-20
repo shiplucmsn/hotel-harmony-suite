@@ -63,6 +63,7 @@ export type ProductDto = {
   track_inventory?: boolean;
   default_warehouse_id?: number | null;
   stock: number;
+  available_stock?: number;
   reorder_point?: number;
   status: ProductStatus | string;
   category_ref?: { id: number; code: string; name: string } | null;
@@ -122,6 +123,7 @@ export type StockMovementDto = {
   sku: string;
   product_id?: number | null;
   warehouse_id?: number | null;
+  warehouse?: { id: number; code: string; name: string } | null;
   movement_type: string;
   quantity: number;
   quantity_delta: number;

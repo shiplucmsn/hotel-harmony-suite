@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useParams, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, Pencil, ScanBarcode, Package, Warehouse } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -13,14 +13,17 @@ import { ProductStatusBadge } from "@/modules/inventory/components/product-statu
 import { MovementTypeBadge } from "@/modules/inventory/components/movement-type-badge";
 import { StockAdjustmentSheet } from "@/modules/inventory/components/stock-adjustment-sheet";
 import { useInventoryProduct } from "@/hooks/inventory/use-inventory-products";
+import { useInventoryWarehouses } from "@/hooks/inventory/use-inventory-warehouses";
 import { useStockLevels, useStockMovements } from "@/hooks/inventory/use-stock-movements";
 import { formatMoney, productDisplayStatus } from "@/modules/inventory/utils";
 import type { StockLevelDto, StockMovementDto } from "@/modules/inventory/types";
 
 export function ProductDetailPage() {
   const { productId } = useParams({ from: "/app/products/$productId" });
+  const { tab: tabSearch } = useSearch({ from: "/app/products/$productId" });
   const [editOpen, setEditOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const defaultTab = tabSearch === "movements" ? "movements" : "stock";
 
   const { data: product, isLoading, isError } = useInventoryProduct(productId);
   const { data: levelsData } = useStockLevels(
@@ -35,6 +38,19 @@ export function ProductDetailPage() {
     : (levelsData?.data ?? []);
 
   const movements = movementsData?.data ?? [];
+  const { data: warehousesData } = useInventoryWarehouses();
+  const warehouseNameById = useMemo(() => {
+    const map = new Map<number, string>();
+    for (const w of warehousesData?.data ?? []) {
+      map.set(w.id, w.name);
+    }
+    return map;
+  }, [warehousesData?.data]);
+
+  const totalAvailable = useMemo(
+    () => stockLevels.reduce((sum, l) => sum + (l.available_qty ?? 0), 0),
+    [stockLevels],
+  );
 
   const levelColumns: DataTableColumn<StockLevelDto>[] = useMemo(
     () => [
@@ -69,6 +85,17 @@ export function ProductDetailPage() {
 
   const movementColumns: DataTableColumn<StockMovementDto>[] = useMemo(
     () => [
+      {
+        id: "warehouse",
+        header: "Warehouse",
+        className: "hidden sm:table-cell",
+        cell: (m) => (
+          <span className="text-sm">
+            {m.warehouse?.name ??
+              (m.warehouse_id ? warehouseNameById.get(m.warehouse_id) ?? `WH #${m.warehouse_id}` : "—")}
+          </span>
+        ),
+      },
       {
         id: "type",
         header: "Type",
@@ -119,7 +146,7 @@ export function ProductDetailPage() {
         ),
       },
     ],
-    [],
+    [warehouseNameById],
   );
 
   if (isLoading) return <PageLoading />;
@@ -188,7 +215,11 @@ export function ProductDetailPage() {
               { label: "Category", value: product.category_ref?.name ?? product.category ?? "—" },
               { label: "Brand", value: product.brand ?? "—" },
               { label: "Status", value: <ProductStatusBadge status={displayStatus} /> },
-              { label: "Total stock", value: String(product.stock) },
+              { label: "Total on-hand", value: String(product.stock) },
+              {
+                label: "Total available",
+                value: String(Math.round(totalAvailable)),
+              },
               { label: "Selling price", value: formatMoney(Number(product.price)) },
               { label: "Cost", value: formatMoney(Number(product.cost_price ?? 0)) },
               { label: "Unit", value: product.unit?.name ?? "—" },
@@ -225,7 +256,7 @@ export function ProductDetailPage() {
         </Card>
       </div>
 
-      <Tabs defaultValue="stock">
+      <Tabs defaultValue={defaultTab} key={defaultTab}>
         <TabsList className="w-full justify-start overflow-x-auto">
           <TabsTrigger value="stock">
             <Warehouse className="mr-2 h-4 w-4" />
