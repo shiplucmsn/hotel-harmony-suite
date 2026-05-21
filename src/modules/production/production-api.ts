@@ -2,6 +2,7 @@ import { api } from "@/lib/api-client";
 import type { ApiEnvelope } from "@/services/api/types";
 import type {
   CompleteProductionWorkOrderInput,
+  MaterialAvailabilityLineDto,
   CreateProductionBomInput,
   CreateProductionWorkOrderInput,
   PaginatedResult,
@@ -56,5 +57,19 @@ export const productionApi = {
 
   completeWorkOrder: (id: number | string, body: CompleteProductionWorkOrderInput) =>
     api.post<ApiEnvelope<ProductionWorkOrderDto>>(`/v1/production/work-orders/${id}/complete`, body, { idempotent: true }),
+
+  materialAvailability: (params?: { bom_id?: number; warehouse_id?: number; skus?: string[] }) => {
+    const q = new URLSearchParams();
+    if (params?.bom_id) q.set("bom_id", String(params.bom_id));
+    if (params?.warehouse_id) q.set("warehouse_id", String(params.warehouse_id));
+    if (params?.skus?.length) q.set("skus", params.skus.join(","));
+    const qs = q.toString();
+
+    return api
+      .get<ApiEnvelope<{ warehouse_id: number | null; lines: MaterialAvailabilityLineDto[] }>>(
+        `/v1/production/material-availability${qs ? `?${qs}` : ""}`,
+      )
+      .then((r) => r.data);
+  },
 };
 

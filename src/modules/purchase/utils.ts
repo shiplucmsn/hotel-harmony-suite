@@ -13,6 +13,7 @@ export function purchaseStatusTone(status: string): string {
     case "sent":
       return "bg-info/15 text-info border-info/30";
     case "draft":
+    case "pending_approval":
       return "bg-muted text-muted-foreground";
     case "cancelled":
     case "inactive":

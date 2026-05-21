@@ -10,6 +10,15 @@ export type PaginatedResult<T> = {
   };
 };
 
+export type MaterialAvailabilityLineDto = {
+  sku: string;
+  qty_per_batch?: number;
+  on_hand: number;
+  available_qty: number;
+  sufficient_for_one_batch?: boolean;
+  product_name?: string;
+};
+
 export type ProductionBomLineDto = {
   id: number;
   sku: string;

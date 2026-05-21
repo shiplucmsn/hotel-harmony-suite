@@ -140,6 +140,8 @@ export const NAV_MENU: NavSectionMeta[] = [
       { title: "Suppliers", url: "/app/inv/suppliers", iconName: "truck" },
       { title: "Purchase Orders", url: "/app/inv/purchase-orders", iconName: "shoppingBag" },
       { title: "GRN", url: "/app/inv/grn", iconName: "packageCheck" },
+      { title: "GRN QC Queue", url: "/app/inv/grn-qc", iconName: "clipboardCheck" },
+      { title: "Supplier Invoices", url: "/app/inv/vendor-invoices", iconName: "fileText" },
       { title: "Purchase Returns", url: "/app/inv/purchase-returns", iconName: "undo2" },
       { title: "Vendor Payments", url: "/app/inv/vendor-payments", iconName: "wallet" },
       { title: "Supplier Ledger", url: "/app/inv/supplier-ledger", iconName: "bookUser" },

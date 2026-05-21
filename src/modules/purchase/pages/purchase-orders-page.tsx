@@ -1,21 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Loader2, MoreHorizontal, Plus, Trash2 } from "lucide-react";
+import { Plus } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { SkuPicker } from "@/shared/components/forms/sku-picker";
-import {
-  Sheet,
-  SheetContent,
-  SheetFooter,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Table,
@@ -25,30 +14,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { PaginationBar } from "@/modules/finance/components/pagination-bar";
-import { SupplierSelect } from "@/modules/purchase/components/supplier-select";
+import { PurchaseOrderFormSheet } from "@/modules/purchase/components/purchase-order-form-sheet";
+import { PurchaseOrderRowActions } from "@/modules/purchase/components/purchase-order-row-actions";
 import {
-  useCancelPurchaseOrder,
-  useCreatePurchaseOrder,
+  usePurchaseApSummary,
+  usePurchaseOpenSummary,
   usePurchaseOrders,
 } from "@/hooks/purchase/use-purchase";
-import { useInventoryWarehouses } from "@/hooks/inventory/use-inventory-warehouses";
+import { poStatusLabel } from "@/modules/purchase/po-workflow";
 import { formatMoney, purchaseStatusTone } from "@/modules/purchase/utils";
-
-type PoLine = { sku: string; qty: number; price: number };
+import type { PurchaseOrderDto } from "@/modules/purchase/types";
 
 type PurchaseOrdersPageProps = {
   initialSupplierId?: number;
@@ -56,22 +32,19 @@ type PurchaseOrdersPageProps = {
 };
 
 export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrdersPageProps) {
-  const [open, setOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+  const [editOrderId, setEditOrderId] = useState<number | string | null>(null);
   const [statusTab, setStatusTab] = useState<string>("all");
   const [page, setPage] = useState(1);
-  const [supplierId, setSupplierId] = useState(initialSupplierId ? String(initialSupplierId) : "");
-  const [warehouseId, setWarehouseId] = useState("");
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
-  const [expectedDate, setExpectedDate] = useState("");
-  const [items, setItems] = useState<PoLine[]>([{ sku: "", qty: 1, price: 0 }]);
 
   useEffect(() => {
-    if (openNewPo) setOpen(true);
+    if (openNewPo) {
+      setFormMode("create");
+      setEditOrderId(null);
+      setFormOpen(true);
+    }
   }, [openNewPo]);
-
-  useEffect(() => {
-    if (initialSupplierId) setSupplierId(String(initialSupplierId));
-  }, [initialSupplierId]);
 
   const listParams = useMemo(
     () => ({
@@ -84,229 +57,98 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
   );
 
   const { data, isLoading, isFetching } = usePurchaseOrders(listParams);
+  const { data: openSummary } = usePurchaseOpenSummary();
+  const { data: apSummary } = usePurchaseApSummary();
   const orders = data?.data ?? [];
   const pagination = data?.pagination;
-  const { data: warehousesRes } = useInventoryWarehouses();
-  const warehouses = warehousesRes?.data ?? [];
-  const createOrder = useCreatePurchaseOrder();
-  const cancelOrder = useCancelPurchaseOrder();
 
-  const total = items.reduce((a, i) => a + i.qty * i.price, 0);
+  const pageSpend = useMemo(
+    () => orders.reduce((s, o) => s + o.total_amount, 0),
+    [orders],
+  );
 
-  const stats = useMemo(() => {
-    const open = orders.filter((o) => ["pending", "draft", "sent"].includes(o.status)).length;
-    const spend = orders.reduce((s, o) => s + o.total_amount, 0);
-    return { open, spend, count: orders.length };
-  }, [orders]);
+  const openCreate = () => {
+    setFormMode("create");
+    setEditOrderId(null);
+    setFormOpen(true);
+  };
 
-  const submitPo = async (asDraft: boolean) => {
-    const lines = items.filter((i) => i.sku && i.qty > 0);
-    if (!supplierId) return;
-    if (lines.length === 0) return;
+  const openEdit = (order: PurchaseOrderDto) => {
+    setFormMode("edit");
+    setEditOrderId(order.id);
+    setFormOpen(true);
+  };
 
-    const res = await createOrder.mutateAsync({
-      supplier_id: Number(supplierId),
-      warehouse_id: warehouseId ? Number(warehouseId) : undefined,
-      order_date: orderDate,
-      expected_date: expectedDate || undefined,
-      status: asDraft ? "draft" : "pending",
-      lines: lines.map((i) => ({
-        sku: i.sku,
-        quantity: i.qty,
-        unit_cost: i.price,
-      })),
-    });
-    setOpen(false);
+  const handleSaved = (order: PurchaseOrderDto) => {
     setPage(1);
-    const createdStatus = res.data?.status;
-    if (createdStatus && ["draft", "pending", "pending_approval", "partial", "received", "cancelled"].includes(createdStatus)) {
-      setStatusTab(createdStatus);
+    if (order.status && ["draft", "pending", "pending_approval", "partial", "received", "cancelled"].includes(order.status)) {
+      setStatusTab(order.status);
     }
-    setItems([{ sku: "", qty: 1, price: 0 }]);
   };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Purchase Orders"
-        description="Procurement requests to suppliers."
+        description="Procurement requests to suppliers — create, approve, receive, and track AP impact."
         breadcrumbs={[{ label: "Purchases" }, { label: "Orders" }]}
         actions={
           <div className="flex gap-2">
             <Button size="sm" variant="outline" asChild>
               <Link to="/app/inv/suppliers">Suppliers</Link>
             </Button>
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button size="sm" className="gradient-primary border-0 text-primary-foreground">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New PO
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto sm:max-w-2xl">
-                <SheetHeader>
-                  <SheetTitle>Create purchase order</SheetTitle>
-                </SheetHeader>
-                <div className="space-y-4 py-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Supplier *</Label>
-                      <SupplierSelect value={supplierId} onValueChange={setSupplierId} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Warehouse</Label>
-                      <Select value={warehouseId} onValueChange={setWarehouseId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Receiving location…" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {warehouses.map((w) => (
-                            <SelectItem key={w.id} value={String(w.id)}>
-                              {w.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label>Order date</Label>
-                      <Input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label>Expected</Label>
-                      <Input
-                        type="date"
-                        value={expectedDate}
-                        onChange={(e) => setExpectedDate(e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <Card>
-                    <CardContent className="p-3">
-                      <div className="mb-3 flex items-center justify-between">
-                        <Label>Line items</Label>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          type="button"
-                          onClick={() => setItems([...items, { sku: "", qty: 1, price: 0 }])}
-                        >
-                          + Add line
-                        </Button>
-                      </div>
-                      <div
-                        className="mb-1 grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground"
-                        aria-hidden={items.length === 0}
-                      >
-                        <span className="col-span-5">Product (SKU)</span>
-                        <span className="col-span-2">Quantity</span>
-                        <span className="col-span-3">Unit cost</span>
-                        <span className="col-span-1 text-right">Line total</span>
-                        <span className="col-span-1" />
-                      </div>
-                      <div className="space-y-2">
-                        {items.map((it, i) => (
-                          <div key={i} className="grid grid-cols-12 items-center gap-2">
-                            <SkuPicker
-                              className="col-span-5"
-                              value={it.sku}
-                              onValueChange={(sku) => {
-                                const c = [...items];
-                                c[i].sku = sku;
-                                setItems(c);
-                              }}
-                              placeholder="Search SKU…"
-                              aria-label={`Line ${i + 1} product`}
-                            />
-                            <Input
-                              className="col-span-2"
-                              type="number"
-                              min={0}
-                              step="any"
-                              aria-label={`Line ${i + 1} quantity`}
-                              value={it.qty}
-                              onChange={(e) => {
-                                const c = [...items];
-                                c[i].qty = +e.target.value;
-                                setItems(c);
-                              }}
-                            />
-                            <Input
-                              className="col-span-3"
-                              type="number"
-                              min={0}
-                              step="0.01"
-                              aria-label={`Line ${i + 1} unit cost`}
-                              value={it.price}
-                              onChange={(e) => {
-                                const c = [...items];
-                                c[i].price = +e.target.value;
-                                setItems(c);
-                              }}
-                            />
-                            <div className="col-span-1 text-right text-sm tabular-nums">
-                              {(it.qty * it.price).toFixed(0)}
-                            </div>
-                            <Button
-                              className="col-span-1"
-                              variant="ghost"
-                              size="icon"
-                              type="button"
-                              onClick={() => setItems(items.filter((_, j) => j !== i))}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                      <div className="mt-3 flex justify-between border-t pt-3 text-sm">
-                        <span className="font-medium">Total</span>
-                        <span className="font-semibold">{formatMoney(total)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-                <SheetFooter>
-                  <Button
-                    variant="outline"
-                    disabled={createOrder.isPending}
-                    onClick={() => void submitPo(true)}
-                  >
-                    Save draft
-                  </Button>
-                  <Button
-                    disabled={createOrder.isPending || !supplierId}
-                    onClick={() => void submitPo(false)}
-                  >
-                    {createOrder.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Submit PO
-                  </Button>
-                </SheetFooter>
-              </SheetContent>
-            </Sheet>
+            <Button
+              size="sm"
+              className="gradient-primary border-0 text-primary-foreground"
+              onClick={openCreate}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New PO
+            </Button>
           </div>
         }
       />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-muted-foreground">On this page</p>
-            <p className="mt-2 text-2xl font-semibold">{stats.count}</p>
+            <p className="text-xs uppercase text-muted-foreground">Open POs (tenant)</p>
+            <p className="mt-2 text-2xl font-semibold">{openSummary?.open_order_count ?? "—"}</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {openSummary?.awaiting_receive_count ?? 0} awaiting receive
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-muted-foreground">Open POs</p>
-            <p className="mt-2 text-2xl font-semibold">{stats.open}</p>
+            <p className="text-xs uppercase text-muted-foreground">Pending receive value</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums">
+              {openSummary ? formatMoney(openSummary.pending_receive_value) : "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {openSummary?.pending_receive_line_count ?? 0} lines open
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-5">
-            <p className="text-xs uppercase text-muted-foreground">Page total</p>
-            <p className="mt-2 text-2xl font-semibold">{formatMoney(stats.spend)}</p>
+            <p className="text-xs uppercase text-muted-foreground">AP outstanding</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums">
+              {apSummary ? formatMoney(apSummary.total_outstanding) : "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {apSummary?.supplier_count ?? 0} suppliers with balance
+              {apSummary?.aging && (
+                <> · 0–30d {formatMoney(apSummary.aging.current_0_30)}</>
+              )}
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-5">
+            <p className="text-xs uppercase text-muted-foreground">This page total</p>
+            <p className="mt-2 text-2xl font-semibold tabular-nums">{formatMoney(pageSpend)}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{orders.length} orders shown</p>
           </CardContent>
         </Card>
       </div>
@@ -353,7 +195,7 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                   {!isLoading && orders.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
-                        No purchase orders yet.
+                        No purchase orders in this view.
                       </TableCell>
                     </TableRow>
                   )}
@@ -390,45 +232,11 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className={purchaseStatusTone(po.status)}>
-                          {po.status}
+                          {poStatusLabel(po.status)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link
-                                to="/app/inv/purchase-orders/$orderId"
-                                params={{ orderId: String(po.id) }}
-                              >
-                                View details
-                              </Link>
-                            </DropdownMenuItem>
-                            {po.supplier_id && (
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  to="/app/inv/supplier-ledger"
-                                  search={{ supplier_id: po.supplier_id }}
-                                >
-                                  Supplier ledger
-                                </Link>
-                              </DropdownMenuItem>
-                            )}
-                            {!["received", "cancelled"].includes(po.status) && (
-                              <DropdownMenuItem
-                                className="text-destructive"
-                                onClick={() => void cancelOrder.mutateAsync(po.id)}
-                              >
-                                Cancel PO
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <PurchaseOrderRowActions order={po} onEdit={openEdit} />
                       </TableCell>
                     </TableRow>
                   ))}
@@ -441,6 +249,15 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
           </Card>
         </TabsContent>
       </Tabs>
+
+      <PurchaseOrderFormSheet
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        mode={formMode}
+        orderId={editOrderId}
+        defaultSupplierId={initialSupplierId}
+        onSaved={handleSaved}
+      />
     </div>
   );
 }

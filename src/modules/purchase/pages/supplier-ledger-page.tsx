@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Select,
@@ -21,7 +21,12 @@ import {
 } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PaginationBar } from "@/modules/finance/components/pagination-bar";
-import { useSupplier, useSupplierLedger, useSuppliers } from "@/hooks/purchase/use-purchase";
+import {
+  useSupplier,
+  useSupplierInvoices,
+  useSupplierLedger,
+  useSuppliers,
+} from "@/hooks/purchase/use-purchase";
 import { formatMoney, supplierInitials } from "@/modules/purchase/utils";
 
 type SupplierLedgerPageProps = {
@@ -38,8 +43,13 @@ export function SupplierLedgerPage({ initialSupplierId }: SupplierLedgerPageProp
   const activeId = supplierId ?? suppliers[0]?.id;
   const { data: supplier } = useSupplier(activeId);
   const { data: ledgerRes, isLoading } = useSupplierLedger(activeId, { page, per_page: 25 });
+  const { data: invoicesRes } = useSupplierInvoices({
+    supplier_id: activeId,
+    per_page: 10,
+  });
   const entries = ledgerRes?.data ?? [];
   const pagination = ledgerRes?.pagination;
+  const invoices = invoicesRes?.data ?? [];
 
   const totals = useMemo(() => {
     let debit = 0;
@@ -128,6 +138,47 @@ export function SupplierLedgerPage({ initialSupplierId }: SupplierLedgerPageProp
           </CardContent>
         </Card>
       </div>
+
+      {invoices.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <CardTitle className="text-base">Supplier invoices</CardTitle>
+            <Button size="sm" variant="outline" asChild>
+              <Link to="/app/inv/vendor-invoices">All invoices</Link>
+            </Button>
+          </CardHeader>
+          <CardContent className="p-0">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Number</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Total</TableHead>
+                  <TableHead className="text-right">Due</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {invoices.map((inv) => (
+                  <TableRow key={inv.id}>
+                    <TableCell>
+                      <Link
+                        to="/app/inv/vendor-invoices/$invoiceId"
+                        params={{ invoiceId: String(inv.id) }}
+                        className="text-primary hover:underline"
+                      >
+                        {inv.number}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{inv.status}</TableCell>
+                    <TableCell className="text-right">{formatMoney(inv.total_amount)}</TableCell>
+                    <TableCell className="text-right">{formatMoney(inv.balance_due)}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

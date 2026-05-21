@@ -19,6 +19,7 @@ import {
   useCompleteProductionWorkOrder,
   useCreateProductionWorkOrder,
   useProductionBoms,
+  useProductionMaterialAvailability,
   useProductionWorkOrders,
   useStartProductionWorkOrder,
 } from "@/hooks/production/use-production";
@@ -45,6 +46,7 @@ function WorkOrdersPage() {
   const startWorkOrder = useStartProductionWorkOrder();
   const completeWorkOrder = useCompleteProductionWorkOrder();
   const { data: bomsData } = useProductionBoms({ per_page: 200, status: "active" });
+  const { data: rmAvailability } = useProductionMaterialAvailability(bomId ? Number(bomId) : null);
   const { data: workOrdersData, isLoading } = useProductionWorkOrders({
     per_page: 300,
     status: tab === "all" ? undefined : tab,
@@ -98,6 +100,24 @@ function WorkOrdersPage() {
                     <div><Label>Scheduled date</Label><Input type="date" value={scheduledDate} onChange={(event) => setScheduledDate(event.target.value)} /></div>
                   </div>
                   <div><Label>Notes</Label><Input placeholder="Optional" value={notes} onChange={(event) => setNotes(event.target.value)} /></div>
+                  {bomId && (rmAvailability?.lines?.length ?? 0) > 0 && (
+                    <div className="rounded-md border p-3 space-y-2">
+                      <p className="text-xs font-medium uppercase text-muted-foreground">
+                        Raw material on-hand (after receipts)
+                      </p>
+                      {rmAvailability!.lines.map((line) => (
+                        <div key={line.sku} className="flex justify-between text-sm">
+                          <span className="font-mono text-xs">{line.sku}</span>
+                          <span>
+                            {line.on_hand} on hand
+                            {line.sufficient_for_one_batch === false && (
+                              <span className="text-destructive ml-1">· low</span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <SheetFooter>
                   <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

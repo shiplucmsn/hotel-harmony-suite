@@ -76,6 +76,7 @@ import { Route as AppPmDashboardRouteImport } from './routes/app.pm.dashboard'
 import { Route as AppInvWarehousesDashboardRouteImport } from './routes/app.inv.warehouses-dashboard'
 import { Route as AppInvWarehousesRouteImport } from './routes/app.inv.warehouses'
 import { Route as AppInvVendorPaymentsRouteImport } from './routes/app.inv.vendor-payments'
+import { Route as AppInvVendorInvoicesRouteImport } from './routes/app.inv.vendor-invoices'
 import { Route as AppInvTransfersRouteImport } from './routes/app.inv.transfers'
 import { Route as AppInvSuppliersRouteImport } from './routes/app.inv.suppliers'
 import { Route as AppInvSupplierLedgerRouteImport } from './routes/app.inv.supplier-ledger'
@@ -85,6 +86,7 @@ import { Route as AppInvPurchaseOrdersRouteImport } from './routes/app.inv.purch
 import { Route as AppInvProductsRouteImport } from './routes/app.inv.products'
 import { Route as AppInvMovementsRouteImport } from './routes/app.inv.movements'
 import { Route as AppInvLowStockRouteImport } from './routes/app.inv.low-stock'
+import { Route as AppInvGrnQcRouteImport } from './routes/app.inv.grn-qc'
 import { Route as AppInvGrnRouteImport } from './routes/app.inv.grn'
 import { Route as AppInvExpiryRouteImport } from './routes/app.inv.expiry'
 import { Route as AppInvCategoriesRouteImport } from './routes/app.inv.categories'
@@ -132,6 +134,10 @@ import { Route as AppCrmFollowupsRouteImport } from './routes/app.crm.followups'
 import { Route as AppCrmCustomersRouteImport } from './routes/app.crm.customers'
 import { Route as AppCrmContactsRouteImport } from './routes/app.crm.contacts'
 import { Route as AppCrmAnalyticsRouteImport } from './routes/app.crm.analytics'
+import { Route as AppInvVendorInvoicesIndexRouteImport } from './routes/app.inv.vendor-invoices.index'
+import { Route as AppInvPurchaseOrdersIndexRouteImport } from './routes/app.inv.purchase-orders.index'
+import { Route as AppInvGrnIndexRouteImport } from './routes/app.inv.grn.index'
+import { Route as AppInvVendorInvoicesInvoiceIdRouteImport } from './routes/app.inv.vendor-invoices.$invoiceId'
 import { Route as AppInvPurchaseOrdersOrderIdRouteImport } from './routes/app.inv.purchase-orders.$orderId'
 import { Route as AppInvGrnGrnIdRouteImport } from './routes/app.inv.grn.$grnId'
 import { Route as AppHrEmployeesNewRouteImport } from './routes/app.hr.employees.new'
@@ -475,6 +481,11 @@ const AppInvVendorPaymentsRoute = AppInvVendorPaymentsRouteImport.update({
   path: '/vendor-payments',
   getParentRoute: () => AppInvRoute,
 } as any)
+const AppInvVendorInvoicesRoute = AppInvVendorInvoicesRouteImport.update({
+  id: '/vendor-invoices',
+  path: '/vendor-invoices',
+  getParentRoute: () => AppInvRoute,
+} as any)
 const AppInvTransfersRoute = AppInvTransfersRouteImport.update({
   id: '/transfers',
   path: '/transfers',
@@ -518,6 +529,11 @@ const AppInvMovementsRoute = AppInvMovementsRouteImport.update({
 const AppInvLowStockRoute = AppInvLowStockRouteImport.update({
   id: '/low-stock',
   path: '/low-stock',
+  getParentRoute: () => AppInvRoute,
+} as any)
+const AppInvGrnQcRoute = AppInvGrnQcRouteImport.update({
+  id: '/grn-qc',
+  path: '/grn-qc',
   getParentRoute: () => AppInvRoute,
 } as any)
 const AppInvGrnRoute = AppInvGrnRouteImport.update({
@@ -755,6 +771,29 @@ const AppCrmAnalyticsRoute = AppCrmAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppCrmRoute,
 } as any)
+const AppInvVendorInvoicesIndexRoute =
+  AppInvVendorInvoicesIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppInvVendorInvoicesRoute,
+  } as any)
+const AppInvPurchaseOrdersIndexRoute =
+  AppInvPurchaseOrdersIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppInvPurchaseOrdersRoute,
+  } as any)
+const AppInvGrnIndexRoute = AppInvGrnIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppInvGrnRoute,
+} as any)
+const AppInvVendorInvoicesInvoiceIdRoute =
+  AppInvVendorInvoicesInvoiceIdRouteImport.update({
+    id: '/$invoiceId',
+    path: '/$invoiceId',
+    getParentRoute: () => AppInvVendorInvoicesRoute,
+  } as any)
 const AppInvPurchaseOrdersOrderIdRoute =
   AppInvPurchaseOrdersOrderIdRouteImport.update({
     id: '/$orderId',
@@ -874,6 +913,7 @@ export interface FileRoutesByFullPath {
   '/app/inv/categories': typeof AppInvCategoriesRoute
   '/app/inv/expiry': typeof AppInvExpiryRoute
   '/app/inv/grn': typeof AppInvGrnRouteWithChildren
+  '/app/inv/grn-qc': typeof AppInvGrnQcRoute
   '/app/inv/low-stock': typeof AppInvLowStockRoute
   '/app/inv/movements': typeof AppInvMovementsRoute
   '/app/inv/products': typeof AppInvProductsRoute
@@ -883,6 +923,7 @@ export interface FileRoutesByFullPath {
   '/app/inv/supplier-ledger': typeof AppInvSupplierLedgerRoute
   '/app/inv/suppliers': typeof AppInvSuppliersRoute
   '/app/inv/transfers': typeof AppInvTransfersRoute
+  '/app/inv/vendor-invoices': typeof AppInvVendorInvoicesRouteWithChildren
   '/app/inv/vendor-payments': typeof AppInvVendorPaymentsRoute
   '/app/inv/warehouses': typeof AppInvWarehousesRoute
   '/app/inv/warehouses-dashboard': typeof AppInvWarehousesDashboardRoute
@@ -919,6 +960,10 @@ export interface FileRoutesByFullPath {
   '/app/hr/employees/new': typeof AppHrEmployeesNewRoute
   '/app/inv/grn/$grnId': typeof AppInvGrnGrnIdRoute
   '/app/inv/purchase-orders/$orderId': typeof AppInvPurchaseOrdersOrderIdRoute
+  '/app/inv/vendor-invoices/$invoiceId': typeof AppInvVendorInvoicesInvoiceIdRoute
+  '/app/inv/grn/': typeof AppInvGrnIndexRoute
+  '/app/inv/purchase-orders/': typeof AppInvPurchaseOrdersIndexRoute
+  '/app/inv/vendor-invoices/': typeof AppInvVendorInvoicesIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -1003,11 +1048,10 @@ export interface FileRoutesByTo {
   '/app/inv/batches': typeof AppInvBatchesRoute
   '/app/inv/categories': typeof AppInvCategoriesRoute
   '/app/inv/expiry': typeof AppInvExpiryRoute
-  '/app/inv/grn': typeof AppInvGrnRouteWithChildren
+  '/app/inv/grn-qc': typeof AppInvGrnQcRoute
   '/app/inv/low-stock': typeof AppInvLowStockRoute
   '/app/inv/movements': typeof AppInvMovementsRoute
   '/app/inv/products': typeof AppInvProductsRoute
-  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRouteWithChildren
   '/app/inv/purchase-returns': typeof AppInvPurchaseReturnsRoute
   '/app/inv/sku': typeof AppInvSkuRoute
   '/app/inv/supplier-ledger': typeof AppInvSupplierLedgerRoute
@@ -1049,6 +1093,10 @@ export interface FileRoutesByTo {
   '/app/hr/employees/new': typeof AppHrEmployeesNewRoute
   '/app/inv/grn/$grnId': typeof AppInvGrnGrnIdRoute
   '/app/inv/purchase-orders/$orderId': typeof AppInvPurchaseOrdersOrderIdRoute
+  '/app/inv/vendor-invoices/$invoiceId': typeof AppInvVendorInvoicesInvoiceIdRoute
+  '/app/inv/grn': typeof AppInvGrnIndexRoute
+  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersIndexRoute
+  '/app/inv/vendor-invoices': typeof AppInvVendorInvoicesIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1136,6 +1184,7 @@ export interface FileRoutesById {
   '/app/inv/categories': typeof AppInvCategoriesRoute
   '/app/inv/expiry': typeof AppInvExpiryRoute
   '/app/inv/grn': typeof AppInvGrnRouteWithChildren
+  '/app/inv/grn-qc': typeof AppInvGrnQcRoute
   '/app/inv/low-stock': typeof AppInvLowStockRoute
   '/app/inv/movements': typeof AppInvMovementsRoute
   '/app/inv/products': typeof AppInvProductsRoute
@@ -1145,6 +1194,7 @@ export interface FileRoutesById {
   '/app/inv/supplier-ledger': typeof AppInvSupplierLedgerRoute
   '/app/inv/suppliers': typeof AppInvSuppliersRoute
   '/app/inv/transfers': typeof AppInvTransfersRoute
+  '/app/inv/vendor-invoices': typeof AppInvVendorInvoicesRouteWithChildren
   '/app/inv/vendor-payments': typeof AppInvVendorPaymentsRoute
   '/app/inv/warehouses': typeof AppInvWarehousesRoute
   '/app/inv/warehouses-dashboard': typeof AppInvWarehousesDashboardRoute
@@ -1181,6 +1231,10 @@ export interface FileRoutesById {
   '/app/hr/employees/new': typeof AppHrEmployeesNewRoute
   '/app/inv/grn/$grnId': typeof AppInvGrnGrnIdRoute
   '/app/inv/purchase-orders/$orderId': typeof AppInvPurchaseOrdersOrderIdRoute
+  '/app/inv/vendor-invoices/$invoiceId': typeof AppInvVendorInvoicesInvoiceIdRoute
+  '/app/inv/grn/': typeof AppInvGrnIndexRoute
+  '/app/inv/purchase-orders/': typeof AppInvPurchaseOrdersIndexRoute
+  '/app/inv/vendor-invoices/': typeof AppInvVendorInvoicesIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1269,6 +1323,7 @@ export interface FileRouteTypes {
     | '/app/inv/categories'
     | '/app/inv/expiry'
     | '/app/inv/grn'
+    | '/app/inv/grn-qc'
     | '/app/inv/low-stock'
     | '/app/inv/movements'
     | '/app/inv/products'
@@ -1278,6 +1333,7 @@ export interface FileRouteTypes {
     | '/app/inv/supplier-ledger'
     | '/app/inv/suppliers'
     | '/app/inv/transfers'
+    | '/app/inv/vendor-invoices'
     | '/app/inv/vendor-payments'
     | '/app/inv/warehouses'
     | '/app/inv/warehouses-dashboard'
@@ -1314,6 +1370,10 @@ export interface FileRouteTypes {
     | '/app/hr/employees/new'
     | '/app/inv/grn/$grnId'
     | '/app/inv/purchase-orders/$orderId'
+    | '/app/inv/vendor-invoices/$invoiceId'
+    | '/app/inv/grn/'
+    | '/app/inv/purchase-orders/'
+    | '/app/inv/vendor-invoices/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1398,11 +1458,10 @@ export interface FileRouteTypes {
     | '/app/inv/batches'
     | '/app/inv/categories'
     | '/app/inv/expiry'
-    | '/app/inv/grn'
+    | '/app/inv/grn-qc'
     | '/app/inv/low-stock'
     | '/app/inv/movements'
     | '/app/inv/products'
-    | '/app/inv/purchase-orders'
     | '/app/inv/purchase-returns'
     | '/app/inv/sku'
     | '/app/inv/supplier-ledger'
@@ -1444,6 +1503,10 @@ export interface FileRouteTypes {
     | '/app/hr/employees/new'
     | '/app/inv/grn/$grnId'
     | '/app/inv/purchase-orders/$orderId'
+    | '/app/inv/vendor-invoices/$invoiceId'
+    | '/app/inv/grn'
+    | '/app/inv/purchase-orders'
+    | '/app/inv/vendor-invoices'
   id:
     | '__root__'
     | '/'
@@ -1530,6 +1593,7 @@ export interface FileRouteTypes {
     | '/app/inv/categories'
     | '/app/inv/expiry'
     | '/app/inv/grn'
+    | '/app/inv/grn-qc'
     | '/app/inv/low-stock'
     | '/app/inv/movements'
     | '/app/inv/products'
@@ -1539,6 +1603,7 @@ export interface FileRouteTypes {
     | '/app/inv/supplier-ledger'
     | '/app/inv/suppliers'
     | '/app/inv/transfers'
+    | '/app/inv/vendor-invoices'
     | '/app/inv/vendor-payments'
     | '/app/inv/warehouses'
     | '/app/inv/warehouses-dashboard'
@@ -1575,6 +1640,10 @@ export interface FileRouteTypes {
     | '/app/hr/employees/new'
     | '/app/inv/grn/$grnId'
     | '/app/inv/purchase-orders/$orderId'
+    | '/app/inv/vendor-invoices/$invoiceId'
+    | '/app/inv/grn/'
+    | '/app/inv/purchase-orders/'
+    | '/app/inv/vendor-invoices/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2063,6 +2132,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppInvVendorPaymentsRouteImport
       parentRoute: typeof AppInvRoute
     }
+    '/app/inv/vendor-invoices': {
+      id: '/app/inv/vendor-invoices'
+      path: '/vendor-invoices'
+      fullPath: '/app/inv/vendor-invoices'
+      preLoaderRoute: typeof AppInvVendorInvoicesRouteImport
+      parentRoute: typeof AppInvRoute
+    }
     '/app/inv/transfers': {
       id: '/app/inv/transfers'
       path: '/transfers'
@@ -2124,6 +2200,13 @@ declare module '@tanstack/react-router' {
       path: '/low-stock'
       fullPath: '/app/inv/low-stock'
       preLoaderRoute: typeof AppInvLowStockRouteImport
+      parentRoute: typeof AppInvRoute
+    }
+    '/app/inv/grn-qc': {
+      id: '/app/inv/grn-qc'
+      path: '/grn-qc'
+      fullPath: '/app/inv/grn-qc'
+      preLoaderRoute: typeof AppInvGrnQcRouteImport
       parentRoute: typeof AppInvRoute
     }
     '/app/inv/grn': {
@@ -2455,6 +2538,34 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCrmAnalyticsRouteImport
       parentRoute: typeof AppCrmRoute
     }
+    '/app/inv/vendor-invoices/': {
+      id: '/app/inv/vendor-invoices/'
+      path: '/'
+      fullPath: '/app/inv/vendor-invoices/'
+      preLoaderRoute: typeof AppInvVendorInvoicesIndexRouteImport
+      parentRoute: typeof AppInvVendorInvoicesRoute
+    }
+    '/app/inv/purchase-orders/': {
+      id: '/app/inv/purchase-orders/'
+      path: '/'
+      fullPath: '/app/inv/purchase-orders/'
+      preLoaderRoute: typeof AppInvPurchaseOrdersIndexRouteImport
+      parentRoute: typeof AppInvPurchaseOrdersRoute
+    }
+    '/app/inv/grn/': {
+      id: '/app/inv/grn/'
+      path: '/'
+      fullPath: '/app/inv/grn/'
+      preLoaderRoute: typeof AppInvGrnIndexRouteImport
+      parentRoute: typeof AppInvGrnRoute
+    }
+    '/app/inv/vendor-invoices/$invoiceId': {
+      id: '/app/inv/vendor-invoices/$invoiceId'
+      path: '/$invoiceId'
+      fullPath: '/app/inv/vendor-invoices/$invoiceId'
+      preLoaderRoute: typeof AppInvVendorInvoicesInvoiceIdRouteImport
+      parentRoute: typeof AppInvVendorInvoicesRoute
+    }
     '/app/inv/purchase-orders/$orderId': {
       id: '/app/inv/purchase-orders/$orderId'
       path: '/$orderId'
@@ -2649,10 +2760,12 @@ const AppHrRouteWithChildren = AppHrRoute._addFileChildren(AppHrRouteChildren)
 
 interface AppInvGrnRouteChildren {
   AppInvGrnGrnIdRoute: typeof AppInvGrnGrnIdRoute
+  AppInvGrnIndexRoute: typeof AppInvGrnIndexRoute
 }
 
 const AppInvGrnRouteChildren: AppInvGrnRouteChildren = {
   AppInvGrnGrnIdRoute: AppInvGrnGrnIdRoute,
+  AppInvGrnIndexRoute: AppInvGrnIndexRoute,
 }
 
 const AppInvGrnRouteWithChildren = AppInvGrnRoute._addFileChildren(
@@ -2661,14 +2774,29 @@ const AppInvGrnRouteWithChildren = AppInvGrnRoute._addFileChildren(
 
 interface AppInvPurchaseOrdersRouteChildren {
   AppInvPurchaseOrdersOrderIdRoute: typeof AppInvPurchaseOrdersOrderIdRoute
+  AppInvPurchaseOrdersIndexRoute: typeof AppInvPurchaseOrdersIndexRoute
 }
 
 const AppInvPurchaseOrdersRouteChildren: AppInvPurchaseOrdersRouteChildren = {
   AppInvPurchaseOrdersOrderIdRoute: AppInvPurchaseOrdersOrderIdRoute,
+  AppInvPurchaseOrdersIndexRoute: AppInvPurchaseOrdersIndexRoute,
 }
 
 const AppInvPurchaseOrdersRouteWithChildren =
   AppInvPurchaseOrdersRoute._addFileChildren(AppInvPurchaseOrdersRouteChildren)
+
+interface AppInvVendorInvoicesRouteChildren {
+  AppInvVendorInvoicesInvoiceIdRoute: typeof AppInvVendorInvoicesInvoiceIdRoute
+  AppInvVendorInvoicesIndexRoute: typeof AppInvVendorInvoicesIndexRoute
+}
+
+const AppInvVendorInvoicesRouteChildren: AppInvVendorInvoicesRouteChildren = {
+  AppInvVendorInvoicesInvoiceIdRoute: AppInvVendorInvoicesInvoiceIdRoute,
+  AppInvVendorInvoicesIndexRoute: AppInvVendorInvoicesIndexRoute,
+}
+
+const AppInvVendorInvoicesRouteWithChildren =
+  AppInvVendorInvoicesRoute._addFileChildren(AppInvVendorInvoicesRouteChildren)
 
 interface AppInvRouteChildren {
   AppInvAdjustmentsRoute: typeof AppInvAdjustmentsRoute
@@ -2677,6 +2805,7 @@ interface AppInvRouteChildren {
   AppInvCategoriesRoute: typeof AppInvCategoriesRoute
   AppInvExpiryRoute: typeof AppInvExpiryRoute
   AppInvGrnRoute: typeof AppInvGrnRouteWithChildren
+  AppInvGrnQcRoute: typeof AppInvGrnQcRoute
   AppInvLowStockRoute: typeof AppInvLowStockRoute
   AppInvMovementsRoute: typeof AppInvMovementsRoute
   AppInvProductsRoute: typeof AppInvProductsRoute
@@ -2686,6 +2815,7 @@ interface AppInvRouteChildren {
   AppInvSupplierLedgerRoute: typeof AppInvSupplierLedgerRoute
   AppInvSuppliersRoute: typeof AppInvSuppliersRoute
   AppInvTransfersRoute: typeof AppInvTransfersRoute
+  AppInvVendorInvoicesRoute: typeof AppInvVendorInvoicesRouteWithChildren
   AppInvVendorPaymentsRoute: typeof AppInvVendorPaymentsRoute
   AppInvWarehousesRoute: typeof AppInvWarehousesRoute
   AppInvWarehousesDashboardRoute: typeof AppInvWarehousesDashboardRoute
@@ -2698,6 +2828,7 @@ const AppInvRouteChildren: AppInvRouteChildren = {
   AppInvCategoriesRoute: AppInvCategoriesRoute,
   AppInvExpiryRoute: AppInvExpiryRoute,
   AppInvGrnRoute: AppInvGrnRouteWithChildren,
+  AppInvGrnQcRoute: AppInvGrnQcRoute,
   AppInvLowStockRoute: AppInvLowStockRoute,
   AppInvMovementsRoute: AppInvMovementsRoute,
   AppInvProductsRoute: AppInvProductsRoute,
@@ -2707,6 +2838,7 @@ const AppInvRouteChildren: AppInvRouteChildren = {
   AppInvSupplierLedgerRoute: AppInvSupplierLedgerRoute,
   AppInvSuppliersRoute: AppInvSuppliersRoute,
   AppInvTransfersRoute: AppInvTransfersRoute,
+  AppInvVendorInvoicesRoute: AppInvVendorInvoicesRouteWithChildren,
   AppInvVendorPaymentsRoute: AppInvVendorPaymentsRoute,
   AppInvWarehousesRoute: AppInvWarehousesRoute,
   AppInvWarehousesDashboardRoute: AppInvWarehousesDashboardRoute,

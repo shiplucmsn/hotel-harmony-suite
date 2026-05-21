@@ -20,6 +20,7 @@ import {
   CalendarDays,
   CalendarRange,
   CheckSquare,
+  ClipboardCheck,
   ClipboardList,
   Clock,
   Cpu,
@@ -102,6 +103,7 @@ export const NAV_ICONS = {
   phone: Phone,
   kanban: Kanban,
   fileSignature: FileSignature,
+  clipboardCheck: ClipboardCheck,
   clipboardList: ClipboardList,
   bookUser: BookUser,
   handCoins: HandCoins,
@@ -154,5 +156,5 @@ export const NAV_ICONS = {
 export type NavIconName = keyof typeof NAV_ICONS;
 
 export function getNavIcon(name: NavIconName): LucideIcon {
-  return NAV_ICONS[name];
+  return NAV_ICONS[name] ?? LayoutDashboard;
 }

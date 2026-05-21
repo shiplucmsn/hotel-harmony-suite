@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Loader2, PackageCheck, Plus, Trash2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,7 +39,7 @@ import { useInventoryWarehouses } from "@/hooks/inventory/use-inventory-warehous
 import { formatMoney, purchaseStatusTone } from "@/modules/purchase/utils";
 import type { PurchaseGrnDto } from "@/modules/purchase/types";
 
-type GrnLine = { sku: string; qty: number; cost: number };
+type GrnLine = { sku: string; qty: number; cost: number; batch?: string; expiry?: string };
 
 type GrnListPageProps = {
   initialSupplierId?: number;
@@ -70,15 +71,22 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
   const [warehouseId, setWarehouseId] = useState("");
   const [poId, setPoId] = useState("");
   const [receivedDate, setReceivedDate] = useState(new Date().toISOString().slice(0, 10));
-  const [items, setItems] = useState<GrnLine[]>([{ sku: "", qty: 1, cost: 0 }]);
+  const [items, setItems] = useState<GrnLine[]>([{ sku: "", qty: 1, cost: 0, batch: "", expiry: "" }]);
+  const [updateProductCost, setUpdateProductCost] = useState(false);
+  const [requiresQc, setRequiresQc] = useState(false);
+  const [freightCost, setFreightCost] = useState("");
+  const [headerTax, setHeaderTax] = useState("");
+
+  const [poFilter, setPoFilter] = useState("");
 
   const listParams = useMemo(
     () => ({
       page,
       per_page: 20,
       supplier_id: supplierFilter ? Number(supplierFilter) : undefined,
+      purchase_order_id: poFilter ? Number(poFilter) : undefined,
     }),
-    [page, supplierFilter],
+    [page, supplierFilter, poFilter],
   );
 
   const { data, isLoading, isFetching } = usePurchaseGrns(listParams);
@@ -91,19 +99,31 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
   const submit = async () => {
     const lines = items.filter((i) => i.sku && i.qty > 0);
     if (lines.length === 0) return;
+    const landed_costs = [];
+    const freight = Number(freightCost);
+    if (freight > 0) {
+      landed_costs.push({ cost_type: "freight" as const, amount: freight, allocation_method: "qty" as const });
+    }
+
     await createGrn.mutateAsync({
       supplier_id: supplierId ? Number(supplierId) : undefined,
       warehouse_id: warehouseId ? Number(warehouseId) : undefined,
       purchase_order_id: poId ? Number(poId) : undefined,
       received_date: receivedDate,
+      tax_amount: headerTax ? Number(headerTax) : undefined,
       lines: lines.map((l) => ({
         sku: l.sku,
         quantity: l.qty,
         unit_cost: l.cost,
+        batch_number: l.batch?.trim() || undefined,
+        expiry_date: l.expiry || undefined,
       })),
+      landed_costs: landed_costs.length ? landed_costs : undefined,
+      update_product_cost: updateProductCost,
+      requires_qc: requiresQc,
     });
     setOpen(false);
-    setItems([{ sku: "", qty: 1, cost: 0 }]);
+    setItems([{ sku: "", qty: 1, cost: 0, batch: "", expiry: "" }]);
     setPoId("");
   };
 
@@ -170,14 +190,16 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                   </div>
                   <div className="space-y-2">
                     <Label>Lines</Label>
-                    <div className="grid grid-cols-[1fr_72px_88px_32px] gap-2 text-xs font-medium text-muted-foreground">
+                    <div className="grid grid-cols-[1fr_72px_88px_96px_110px_32px] gap-2 text-xs font-medium text-muted-foreground">
                       <span>Product (SKU)</span>
                       <span>Quantity</span>
                       <span>Unit cost</span>
+                      <span>Lot</span>
+                      <span>Expiry</span>
                       <span />
                     </div>
                     {items.map((line, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_72px_88px_32px] gap-2">
+                      <div key={idx} className="grid grid-cols-[1fr_72px_88px_96px_110px_32px] gap-2">
                         <SkuPicker
                           value={line.sku}
                           onValueChange={(sku) => {
@@ -211,6 +233,26 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                             setItems(next);
                           }}
                         />
+                        <Input
+                          placeholder="Lot"
+                          aria-label={`Line ${idx + 1} batch`}
+                          value={line.batch ?? ""}
+                          onChange={(e) => {
+                            const next = [...items];
+                            next[idx] = { ...next[idx], batch: e.target.value };
+                            setItems(next);
+                          }}
+                        />
+                        <Input
+                          type="date"
+                          aria-label={`Line ${idx + 1} expiry`}
+                          value={line.expiry ?? ""}
+                          onChange={(e) => {
+                            const next = [...items];
+                            next[idx] = { ...next[idx], expiry: e.target.value };
+                            setItems(next);
+                          }}
+                        />
                         <Button
                           type="button"
                           variant="ghost"
@@ -226,10 +268,54 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setItems([...items, { sku: "", qty: 1, cost: 0 }])}
+                      onClick={() => setItems([...items, { sku: "", qty: 1, cost: 0, batch: "", expiry: "" }])}
                     >
                       Add line
                     </Button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3 px-1">
+                  <div className="space-y-1.5">
+                    <Label>Freight (base)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={freightCost}
+                      onChange={(e) => setFreightCost(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Header tax (base)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={headerTax}
+                      onChange={(e) => setHeaderTax(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2 px-1">
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="grn-requires-qc"
+                      checked={requiresQc}
+                      onCheckedChange={(v) => setRequiresQc(v === true)}
+                    />
+                    <Label htmlFor="grn-requires-qc" className="text-sm font-normal">
+                      Send to QC quarantine
+                    </Label>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Checkbox
+                      id="grn-update-product-cost"
+                      checked={updateProductCost}
+                      onCheckedChange={(v) => setUpdateProductCost(v === true)}
+                    />
+                    <Label htmlFor="grn-update-product-cost" className="text-sm font-normal">
+                      Update product cost from receipt
+                    </Label>
                   </div>
                 </div>
                 <SheetFooter>
@@ -249,6 +335,17 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
 
       <Card>
         <CardContent className="flex flex-wrap items-end gap-4 p-4">
+          <div className="min-w-[160px] space-y-1.5">
+            <Label>PO id</Label>
+            <Input
+              placeholder="Purchase order id"
+              value={poFilter}
+              onChange={(e) => {
+                setPoFilter(e.target.value);
+                setPage(1);
+              }}
+            />
+          </div>
           <div className="min-w-[200px] flex-1 space-y-1.5">
             <Label>Filter by supplier</Label>
             <SupplierSelect
@@ -261,9 +358,16 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
               activeOnly={false}
             />
           </div>
-          {supplierFilter && (
-            <Button variant="ghost" size="sm" onClick={() => setSupplierFilter("")}>
-              Clear filter
+          {(supplierFilter || poFilter) && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSupplierFilter("");
+                setPoFilter("");
+              }}
+            >
+              Clear filters
             </Button>
           )}
         </CardContent>
@@ -330,6 +434,11 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                       <Badge variant="outline" className={purchaseStatusTone(g.status)}>
                         {g.status}
                       </Badge>
+                      {g.qc_status && g.qc_status !== "none" && (
+                        <Badge variant="secondary" className="ml-1 text-xs">
+                          QC: {g.qc_status}
+                        </Badge>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

@@ -28,6 +28,14 @@ export function useProductionWorkOrders(params?: { per_page?: number; status?: s
   return useQuery({ queryKey: productionKeys.workOrders(params), queryFn: () => productionApi.workOrders(params) });
 }
 
+export function useProductionMaterialAvailability(bomId: number | string | null | undefined) {
+  return useQuery({
+    queryKey: ["production", "material-availability", bomId],
+    queryFn: () => productionApi.materialAvailability({ bom_id: Number(bomId) }),
+    enabled: bomId != null && bomId !== "",
+  });
+}
+
 export function useCreateProductionBom() {
   const qc = useQueryClient();
   return useMutation({

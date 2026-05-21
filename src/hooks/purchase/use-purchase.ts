@@ -8,7 +8,9 @@ import type {
   CreatePurchaseOrderInput,
   CreatePurchaseReturnInput,
   CreateSupplierInput,
+  CreateSupplierInvoiceInput,
   CreateVendorPaymentInput,
+  UpdatePurchaseOrderInput,
   UpdateSupplierInput,
 } from "@/modules/purchase/types";
 
@@ -22,10 +24,15 @@ export const purchaseKeys = {
   /** Prefix for invalidating every orders list query (any page/tab/filter). */
   ordersList: () => [...purchaseKeys.all, "orders"] as const,
   order: (id: number | string) => [...purchaseKeys.all, "order", id] as const,
+  orderActivity: (id: number | string) => [...purchaseKeys.all, "order-activity", id] as const,
   payments: (params?: Record<string, unknown>) => [...purchaseKeys.all, "payments", params] as const,
   grns: (params?: Record<string, unknown>) => [...purchaseKeys.all, "grns", params] as const,
   grn: (id: number | string) => [...purchaseKeys.all, "grn", id] as const,
+  grnQcQueue: (params?: Record<string, unknown>) => [...purchaseKeys.all, "grn-qc-queue", params] as const,
   returns: (params?: Record<string, unknown>) => [...purchaseKeys.all, "returns", params] as const,
+  supplierInvoices: (params?: Record<string, unknown>) =>
+    [...purchaseKeys.all, "supplier-invoices", params] as const,
+  supplierInvoice: (id: number | string) => [...purchaseKeys.all, "supplier-invoice", id] as const,
 };
 
 export function useSuppliers(params?: {
@@ -85,6 +92,20 @@ export function useUpdateSupplier() {
   });
 }
 
+export function usePurchaseOpenSummary() {
+  return useQuery({
+    queryKey: [...purchaseKeys.all, "open-summary"] as const,
+    queryFn: () => purchaseApi.openOrdersSummary(),
+  });
+}
+
+export function usePurchaseApSummary() {
+  return useQuery({
+    queryKey: [...purchaseKeys.all, "ap-summary"] as const,
+    queryFn: () => purchaseApi.apSummary(),
+  });
+}
+
 export function usePurchaseOrders(params?: {
   page?: number;
   per_page?: number;
@@ -105,6 +126,14 @@ export function usePurchaseOrder(id: number | string | null | undefined) {
   });
 }
 
+export function usePurchaseOrderActivity(id: number | string | null | undefined) {
+  return useQuery({
+    queryKey: purchaseKeys.orderActivity(id ?? ""),
+    queryFn: () => purchaseApi.orderActivity(id!),
+    enabled: id != null && id !== "",
+  });
+}
+
 export function useCreatePurchaseOrder() {
   const qc = useQueryClient();
   return useMutation({
@@ -115,6 +144,41 @@ export function useCreatePurchaseOrder() {
       toast.success("Purchase order created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create purchase order")),
+  });
+}
+
+export function useUpdatePurchaseOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdatePurchaseOrderInput }) =>
+      purchaseApi.updateOrder(id, body),
+    onSuccess: (res, vars) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.ordersList() });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.order(vars.id) });
+      showSideEffects(res.meta);
+      toast.success("Purchase order updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update purchase order")),
+  });
+}
+
+export function useSubmitPurchaseOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      requires_approval,
+    }: {
+      id: number | string;
+      requires_approval?: boolean;
+    }) => purchaseApi.submitOrder(id, { requires_approval }),
+    onSuccess: (res, vars) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.ordersList() });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.order(vars.id) });
+      showSideEffects(res.meta);
+      toast.success("Purchase order submitted");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to submit purchase order")),
   });
 }
 
@@ -166,14 +230,19 @@ export function useCreateVendorPayment() {
   });
 }
 
-export function usePurchaseGrns(params?: {
-  page?: number;
-  per_page?: number;
-  supplier_id?: number;
-}) {
+export function usePurchaseGrns(
+  params?: {
+    page?: number;
+    per_page?: number;
+    supplier_id?: number;
+    purchase_order_id?: number;
+  },
+  options?: { enabled?: boolean },
+) {
   return useQuery({
     queryKey: purchaseKeys.grns(params),
     queryFn: () => purchaseApi.grns(params),
+    enabled: options?.enabled ?? true,
   });
 }
 
@@ -195,6 +264,47 @@ export function useCreateGrn() {
       toast.success("GRN posted");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to post GRN")),
+  });
+}
+
+export function useGrnQcQueue(params?: { page?: number; per_page?: number; supplier_id?: number }) {
+  return useQuery({
+    queryKey: purchaseKeys.grnQcQueue(params),
+    queryFn: () => purchaseApi.grnQcQueue(params),
+  });
+}
+
+export function useQcAcceptGrn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => purchaseApi.qcAcceptGrn(id),
+    onSuccess: (res, id) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.grn(id) });
+      showSideEffects(res.meta);
+      toast.success("QC accepted — stock moved to sellable");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "QC accept failed")),
+  });
+}
+
+export function useQcRejectGrn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      id,
+      body,
+    }: {
+      id: number | string;
+      body?: { create_return?: boolean; notes?: string };
+    }) => purchaseApi.qcRejectGrn(id, body),
+    onSuccess: (res, vars) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.grn(vars.id) });
+      showSideEffects(res.meta);
+      toast.success("QC rejected");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "QC reject failed")),
   });
 }
 
@@ -220,6 +330,68 @@ export function usePurchaseReturns(params?: {
   return useQuery({
     queryKey: purchaseKeys.returns(params),
     queryFn: () => purchaseApi.returns(params),
+  });
+}
+
+export function useSupplierInvoices(params?: {
+  page?: number;
+  per_page?: number;
+  supplier_id?: number;
+  status?: string;
+}) {
+  return useQuery({
+    queryKey: purchaseKeys.supplierInvoices(params),
+    queryFn: () => purchaseApi.supplierInvoices(params),
+  });
+}
+
+export function useSupplierInvoice(id: number | string | null | undefined) {
+  return useQuery({
+    queryKey: purchaseKeys.supplierInvoice(id ?? ""),
+    queryFn: () => purchaseApi.supplierInvoice(id!),
+    enabled: id != null && id !== "",
+  });
+}
+
+export function useCreateSupplierInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateSupplierInvoiceInput) => purchaseApi.createSupplierInvoice(body),
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      showSideEffects(res.meta);
+      toast.success("Supplier invoice created");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create invoice")),
+  });
+}
+
+export function useMatchSupplierInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, force }: { id: number | string; force?: boolean }) =>
+      purchaseApi.matchSupplierInvoice(id, { force }),
+    onSuccess: (res, vars) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.supplierInvoice(vars.id) });
+      showSideEffects(res.meta);
+      toast.success("3-way match completed");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Match failed")),
+  });
+}
+
+export function useApproveSupplierInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => purchaseApi.approveSupplierInvoice(id),
+    onSuccess: (res, id) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.supplierInvoice(id) });
+      showSideEffects(res.meta);
+      toast.success("Invoice approved");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Approval failed")),
   });
 }
 
