@@ -161,6 +161,12 @@ export function PurchaseReturnsPage({ initialSupplierId, openNew }: PurchaseRetu
                   </div>
                   <div className="space-y-2">
                     <Label>Lines *</Label>
+                    <div className="grid grid-cols-[1fr_72px_88px_32px] gap-2 text-xs font-medium text-muted-foreground">
+                      <span>Product (SKU)</span>
+                      <span>Quantity</span>
+                      <span>Unit cost</span>
+                      <span />
+                    </div>
                     {items.map((line, idx) => (
                       <div key={idx} className="grid grid-cols-[1fr_72px_88px_32px] gap-2">
                         <SkuPicker
@@ -175,7 +181,8 @@ export function PurchaseReturnsPage({ initialSupplierId, openNew }: PurchaseRetu
                         <Input
                           type="number"
                           min={0}
-                          placeholder="Qty"
+                          step="any"
+                          aria-label={`Line ${idx + 1} quantity`}
                           value={line.qty || ""}
                           onChange={(e) => {
                             const next = [...items];
@@ -187,7 +194,7 @@ export function PurchaseReturnsPage({ initialSupplierId, openNew }: PurchaseRetu
                           type="number"
                           min={0}
                           step="0.01"
-                          placeholder="Cost"
+                          aria-label={`Line ${idx + 1} unit cost`}
                           value={line.cost || ""}
                           onChange={(e) => {
                             const next = [...items];

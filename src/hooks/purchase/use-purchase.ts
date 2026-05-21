@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { showSideEffects } from "@/lib/api-meta";
 import { purchaseApi } from "@/modules/purchase/purchase-api";
 import type {
   CreateGrnInput,
@@ -18,8 +19,12 @@ export const purchaseKeys = {
   supplierLedger: (id: number | string, params?: Record<string, unknown>) =>
     [...purchaseKeys.all, "supplier-ledger", id, params] as const,
   orders: (params?: Record<string, unknown>) => [...purchaseKeys.all, "orders", params] as const,
+  /** Prefix for invalidating every orders list query (any page/tab/filter). */
+  ordersList: () => [...purchaseKeys.all, "orders"] as const,
+  order: (id: number | string) => [...purchaseKeys.all, "order", id] as const,
   payments: (params?: Record<string, unknown>) => [...purchaseKeys.all, "payments", params] as const,
   grns: (params?: Record<string, unknown>) => [...purchaseKeys.all, "grns", params] as const,
+  grn: (id: number | string) => [...purchaseKeys.all, "grn", id] as const,
   returns: (params?: Record<string, unknown>) => [...purchaseKeys.all, "returns", params] as const,
 };
 
@@ -92,15 +97,38 @@ export function usePurchaseOrders(params?: {
   });
 }
 
+export function usePurchaseOrder(id: number | string | null | undefined) {
+  return useQuery({
+    queryKey: purchaseKeys.order(id ?? ""),
+    queryFn: () => purchaseApi.order(id!),
+    enabled: id != null && id !== "",
+  });
+}
+
 export function useCreatePurchaseOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreatePurchaseOrderInput) => purchaseApi.createOrder(body),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.orders() });
+    onSuccess: (res) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.ordersList() });
+      showSideEffects(res.meta);
       toast.success("Purchase order created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create purchase order")),
+  });
+}
+
+export function useApprovePurchaseOrder() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => purchaseApi.approveOrder(id),
+    onSuccess: (res, id) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.ordersList() });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.order(id) });
+      showSideEffects(res.meta);
+      toast.success("Purchase order approved");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to approve order")),
   });
 }
 
@@ -108,8 +136,10 @@ export function useCancelPurchaseOrder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number | string) => purchaseApi.cancelOrder(id),
-    onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.orders() });
+    onSuccess: (res, id) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.ordersList() });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.order(id) });
+      showSideEffects(res.meta);
       toast.success("Purchase order cancelled");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to cancel order")),
@@ -127,8 +157,9 @@ export function useCreateVendorPayment() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateVendorPaymentInput) => purchaseApi.createPayment(body),
-    onSuccess: () => {
+    onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      showSideEffects(res.meta);
       toast.success("Payment recorded");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to record payment")),
@@ -146,15 +177,38 @@ export function usePurchaseGrns(params?: {
   });
 }
 
+export function usePurchaseGrn(id: number | string | null | undefined) {
+  return useQuery({
+    queryKey: purchaseKeys.grn(id ?? ""),
+    queryFn: () => purchaseApi.grn(id!),
+    enabled: id != null && id !== "",
+  });
+}
+
 export function useCreateGrn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreateGrnInput) => purchaseApi.createGrn(body),
-    onSuccess: () => {
+    onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: purchaseKeys.all });
-      toast.success("GRN posted — stock and AP updated");
+      showSideEffects(res.meta);
+      toast.success("GRN posted");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to post GRN")),
+  });
+}
+
+export function useVoidGrn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: number | string) => purchaseApi.voidGrn(id),
+    onSuccess: (res, id) => {
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.grn(id) });
+      showSideEffects(res.meta);
+      toast.success("GRN voided");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to void GRN")),
   });
 }
 
@@ -173,8 +227,9 @@ export function useCreatePurchaseReturn() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (body: CreatePurchaseReturnInput) => purchaseApi.createReturn(body),
-    onSuccess: () => {
+    onSuccess: (res) => {
       void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      showSideEffects(res.meta);
       toast.success("Purchase return posted");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to post return")),

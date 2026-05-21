@@ -104,7 +104,7 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
     if (!supplierId) return;
     if (lines.length === 0) return;
 
-    await createOrder.mutateAsync({
+    const res = await createOrder.mutateAsync({
       supplier_id: Number(supplierId),
       warehouse_id: warehouseId ? Number(warehouseId) : undefined,
       order_date: orderDate,
@@ -117,6 +117,11 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
       })),
     });
     setOpen(false);
+    setPage(1);
+    const createdStatus = res.data?.status;
+    if (createdStatus && ["draft", "pending", "pending_approval", "partial", "received", "cancelled"].includes(createdStatus)) {
+      setStatusTab(createdStatus);
+    }
     setItems([{ sku: "", qty: 1, price: 0 }]);
   };
 
@@ -191,6 +196,16 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                           + Add line
                         </Button>
                       </div>
+                      <div
+                        className="mb-1 grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground"
+                        aria-hidden={items.length === 0}
+                      >
+                        <span className="col-span-5">Product (SKU)</span>
+                        <span className="col-span-2">Quantity</span>
+                        <span className="col-span-3">Unit cost</span>
+                        <span className="col-span-1 text-right">Line total</span>
+                        <span className="col-span-1" />
+                      </div>
                       <div className="space-y-2">
                         {items.map((it, i) => (
                           <div key={i} className="grid grid-cols-12 items-center gap-2">
@@ -203,12 +218,14 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                                 setItems(c);
                               }}
                               placeholder="Search SKU…"
+                              aria-label={`Line ${i + 1} product`}
                             />
                             <Input
                               className="col-span-2"
                               type="number"
                               min={0}
-                              placeholder="Qty"
+                              step="any"
+                              aria-label={`Line ${i + 1} quantity`}
                               value={it.qty}
                               onChange={(e) => {
                                 const c = [...items];
@@ -221,7 +238,7 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                               type="number"
                               min={0}
                               step="0.01"
-                              placeholder="Cost"
+                              aria-label={`Line ${i + 1} unit cost`}
                               value={it.price}
                               onChange={(e) => {
                                 const c = [...items];
@@ -305,6 +322,8 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="draft">Draft</TabsTrigger>
           <TabsTrigger value="pending">Pending</TabsTrigger>
+          <TabsTrigger value="pending_approval">Awaiting approval</TabsTrigger>
+          <TabsTrigger value="partial">Partial</TabsTrigger>
           <TabsTrigger value="received">Received</TabsTrigger>
           <TabsTrigger value="cancelled">Cancelled</TabsTrigger>
         </TabsList>
@@ -340,7 +359,15 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                   )}
                   {orders.map((po) => (
                     <TableRow key={po.id}>
-                      <TableCell className="font-mono text-xs">{po.number}</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        <Link
+                          to="/app/inv/purchase-orders/$orderId"
+                          params={{ orderId: String(po.id) }}
+                          className="hover:underline"
+                        >
+                          {po.number}
+                        </Link>
+                      </TableCell>
                       <TableCell className="font-medium">
                         {po.supplier_id ? (
                           <Link
@@ -374,6 +401,14 @@ export function PurchaseOrdersPage({ initialSupplierId, openNewPo }: PurchaseOrd
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link
+                                to="/app/inv/purchase-orders/$orderId"
+                                params={{ orderId: String(po.id) }}
+                              >
+                                View details
+                              </Link>
+                            </DropdownMenuItem>
                             {po.supplier_id && (
                               <DropdownMenuItem asChild>
                                 <Link

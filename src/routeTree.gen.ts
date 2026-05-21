@@ -132,6 +132,8 @@ import { Route as AppCrmFollowupsRouteImport } from './routes/app.crm.followups'
 import { Route as AppCrmCustomersRouteImport } from './routes/app.crm.customers'
 import { Route as AppCrmContactsRouteImport } from './routes/app.crm.contacts'
 import { Route as AppCrmAnalyticsRouteImport } from './routes/app.crm.analytics'
+import { Route as AppInvPurchaseOrdersOrderIdRouteImport } from './routes/app.inv.purchase-orders.$orderId'
+import { Route as AppInvGrnGrnIdRouteImport } from './routes/app.inv.grn.$grnId'
 import { Route as AppHrEmployeesNewRouteImport } from './routes/app.hr.employees.new'
 import { Route as AppHrEmployeesEmployeeIdRouteImport } from './routes/app.hr.employees.$employeeId'
 import { Route as AppHrAttendanceDailyRouteImport } from './routes/app.hr.attendance.daily'
@@ -753,6 +755,17 @@ const AppCrmAnalyticsRoute = AppCrmAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppCrmRoute,
 } as any)
+const AppInvPurchaseOrdersOrderIdRoute =
+  AppInvPurchaseOrdersOrderIdRouteImport.update({
+    id: '/$orderId',
+    path: '/$orderId',
+    getParentRoute: () => AppInvPurchaseOrdersRoute,
+  } as any)
+const AppInvGrnGrnIdRoute = AppInvGrnGrnIdRouteImport.update({
+  id: '/$grnId',
+  path: '/$grnId',
+  getParentRoute: () => AppInvGrnRoute,
+} as any)
 const AppHrEmployeesNewRoute = AppHrEmployeesNewRouteImport.update({
   id: '/new',
   path: '/new',
@@ -860,11 +873,11 @@ export interface FileRoutesByFullPath {
   '/app/inv/batches': typeof AppInvBatchesRoute
   '/app/inv/categories': typeof AppInvCategoriesRoute
   '/app/inv/expiry': typeof AppInvExpiryRoute
-  '/app/inv/grn': typeof AppInvGrnRoute
+  '/app/inv/grn': typeof AppInvGrnRouteWithChildren
   '/app/inv/low-stock': typeof AppInvLowStockRoute
   '/app/inv/movements': typeof AppInvMovementsRoute
   '/app/inv/products': typeof AppInvProductsRoute
-  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRoute
+  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRouteWithChildren
   '/app/inv/purchase-returns': typeof AppInvPurchaseReturnsRoute
   '/app/inv/sku': typeof AppInvSkuRoute
   '/app/inv/supplier-ledger': typeof AppInvSupplierLedgerRoute
@@ -904,6 +917,8 @@ export interface FileRoutesByFullPath {
   '/app/hr/attendance/daily': typeof AppHrAttendanceDailyRoute
   '/app/hr/employees/$employeeId': typeof AppHrEmployeesEmployeeIdRoute
   '/app/hr/employees/new': typeof AppHrEmployeesNewRoute
+  '/app/inv/grn/$grnId': typeof AppInvGrnGrnIdRoute
+  '/app/inv/purchase-orders/$orderId': typeof AppInvPurchaseOrdersOrderIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -988,11 +1003,11 @@ export interface FileRoutesByTo {
   '/app/inv/batches': typeof AppInvBatchesRoute
   '/app/inv/categories': typeof AppInvCategoriesRoute
   '/app/inv/expiry': typeof AppInvExpiryRoute
-  '/app/inv/grn': typeof AppInvGrnRoute
+  '/app/inv/grn': typeof AppInvGrnRouteWithChildren
   '/app/inv/low-stock': typeof AppInvLowStockRoute
   '/app/inv/movements': typeof AppInvMovementsRoute
   '/app/inv/products': typeof AppInvProductsRoute
-  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRoute
+  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRouteWithChildren
   '/app/inv/purchase-returns': typeof AppInvPurchaseReturnsRoute
   '/app/inv/sku': typeof AppInvSkuRoute
   '/app/inv/supplier-ledger': typeof AppInvSupplierLedgerRoute
@@ -1032,6 +1047,8 @@ export interface FileRoutesByTo {
   '/app/hr/attendance/daily': typeof AppHrAttendanceDailyRoute
   '/app/hr/employees/$employeeId': typeof AppHrEmployeesEmployeeIdRoute
   '/app/hr/employees/new': typeof AppHrEmployeesNewRoute
+  '/app/inv/grn/$grnId': typeof AppInvGrnGrnIdRoute
+  '/app/inv/purchase-orders/$orderId': typeof AppInvPurchaseOrdersOrderIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -1118,11 +1135,11 @@ export interface FileRoutesById {
   '/app/inv/batches': typeof AppInvBatchesRoute
   '/app/inv/categories': typeof AppInvCategoriesRoute
   '/app/inv/expiry': typeof AppInvExpiryRoute
-  '/app/inv/grn': typeof AppInvGrnRoute
+  '/app/inv/grn': typeof AppInvGrnRouteWithChildren
   '/app/inv/low-stock': typeof AppInvLowStockRoute
   '/app/inv/movements': typeof AppInvMovementsRoute
   '/app/inv/products': typeof AppInvProductsRoute
-  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRoute
+  '/app/inv/purchase-orders': typeof AppInvPurchaseOrdersRouteWithChildren
   '/app/inv/purchase-returns': typeof AppInvPurchaseReturnsRoute
   '/app/inv/sku': typeof AppInvSkuRoute
   '/app/inv/supplier-ledger': typeof AppInvSupplierLedgerRoute
@@ -1162,6 +1179,8 @@ export interface FileRoutesById {
   '/app/hr/attendance/daily': typeof AppHrAttendanceDailyRoute
   '/app/hr/employees/$employeeId': typeof AppHrEmployeesEmployeeIdRoute
   '/app/hr/employees/new': typeof AppHrEmployeesNewRoute
+  '/app/inv/grn/$grnId': typeof AppInvGrnGrnIdRoute
+  '/app/inv/purchase-orders/$orderId': typeof AppInvPurchaseOrdersOrderIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -1293,6 +1312,8 @@ export interface FileRouteTypes {
     | '/app/hr/attendance/daily'
     | '/app/hr/employees/$employeeId'
     | '/app/hr/employees/new'
+    | '/app/inv/grn/$grnId'
+    | '/app/inv/purchase-orders/$orderId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -1421,6 +1442,8 @@ export interface FileRouteTypes {
     | '/app/hr/attendance/daily'
     | '/app/hr/employees/$employeeId'
     | '/app/hr/employees/new'
+    | '/app/inv/grn/$grnId'
+    | '/app/inv/purchase-orders/$orderId'
   id:
     | '__root__'
     | '/'
@@ -1550,6 +1573,8 @@ export interface FileRouteTypes {
     | '/app/hr/attendance/daily'
     | '/app/hr/employees/$employeeId'
     | '/app/hr/employees/new'
+    | '/app/inv/grn/$grnId'
+    | '/app/inv/purchase-orders/$orderId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -2430,6 +2455,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCrmAnalyticsRouteImport
       parentRoute: typeof AppCrmRoute
     }
+    '/app/inv/purchase-orders/$orderId': {
+      id: '/app/inv/purchase-orders/$orderId'
+      path: '/$orderId'
+      fullPath: '/app/inv/purchase-orders/$orderId'
+      preLoaderRoute: typeof AppInvPurchaseOrdersOrderIdRouteImport
+      parentRoute: typeof AppInvPurchaseOrdersRoute
+    }
+    '/app/inv/grn/$grnId': {
+      id: '/app/inv/grn/$grnId'
+      path: '/$grnId'
+      fullPath: '/app/inv/grn/$grnId'
+      preLoaderRoute: typeof AppInvGrnGrnIdRouteImport
+      parentRoute: typeof AppInvGrnRoute
+    }
     '/app/hr/employees/new': {
       id: '/app/hr/employees/new'
       path: '/new'
@@ -2608,17 +2647,40 @@ const AppHrRouteChildren: AppHrRouteChildren = {
 
 const AppHrRouteWithChildren = AppHrRoute._addFileChildren(AppHrRouteChildren)
 
+interface AppInvGrnRouteChildren {
+  AppInvGrnGrnIdRoute: typeof AppInvGrnGrnIdRoute
+}
+
+const AppInvGrnRouteChildren: AppInvGrnRouteChildren = {
+  AppInvGrnGrnIdRoute: AppInvGrnGrnIdRoute,
+}
+
+const AppInvGrnRouteWithChildren = AppInvGrnRoute._addFileChildren(
+  AppInvGrnRouteChildren,
+)
+
+interface AppInvPurchaseOrdersRouteChildren {
+  AppInvPurchaseOrdersOrderIdRoute: typeof AppInvPurchaseOrdersOrderIdRoute
+}
+
+const AppInvPurchaseOrdersRouteChildren: AppInvPurchaseOrdersRouteChildren = {
+  AppInvPurchaseOrdersOrderIdRoute: AppInvPurchaseOrdersOrderIdRoute,
+}
+
+const AppInvPurchaseOrdersRouteWithChildren =
+  AppInvPurchaseOrdersRoute._addFileChildren(AppInvPurchaseOrdersRouteChildren)
+
 interface AppInvRouteChildren {
   AppInvAdjustmentsRoute: typeof AppInvAdjustmentsRoute
   AppInvBarcodeRoute: typeof AppInvBarcodeRoute
   AppInvBatchesRoute: typeof AppInvBatchesRoute
   AppInvCategoriesRoute: typeof AppInvCategoriesRoute
   AppInvExpiryRoute: typeof AppInvExpiryRoute
-  AppInvGrnRoute: typeof AppInvGrnRoute
+  AppInvGrnRoute: typeof AppInvGrnRouteWithChildren
   AppInvLowStockRoute: typeof AppInvLowStockRoute
   AppInvMovementsRoute: typeof AppInvMovementsRoute
   AppInvProductsRoute: typeof AppInvProductsRoute
-  AppInvPurchaseOrdersRoute: typeof AppInvPurchaseOrdersRoute
+  AppInvPurchaseOrdersRoute: typeof AppInvPurchaseOrdersRouteWithChildren
   AppInvPurchaseReturnsRoute: typeof AppInvPurchaseReturnsRoute
   AppInvSkuRoute: typeof AppInvSkuRoute
   AppInvSupplierLedgerRoute: typeof AppInvSupplierLedgerRoute
@@ -2635,11 +2697,11 @@ const AppInvRouteChildren: AppInvRouteChildren = {
   AppInvBatchesRoute: AppInvBatchesRoute,
   AppInvCategoriesRoute: AppInvCategoriesRoute,
   AppInvExpiryRoute: AppInvExpiryRoute,
-  AppInvGrnRoute: AppInvGrnRoute,
+  AppInvGrnRoute: AppInvGrnRouteWithChildren,
   AppInvLowStockRoute: AppInvLowStockRoute,
   AppInvMovementsRoute: AppInvMovementsRoute,
   AppInvProductsRoute: AppInvProductsRoute,
-  AppInvPurchaseOrdersRoute: AppInvPurchaseOrdersRoute,
+  AppInvPurchaseOrdersRoute: AppInvPurchaseOrdersRouteWithChildren,
   AppInvPurchaseReturnsRoute: AppInvPurchaseReturnsRoute,
   AppInvSkuRoute: AppInvSkuRoute,
   AppInvSupplierLedgerRoute: AppInvSupplierLedgerRoute,

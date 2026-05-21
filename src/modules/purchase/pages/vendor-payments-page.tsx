@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/table";
 import { PaginationBar } from "@/modules/finance/components/pagination-bar";
 import { SupplierSelect } from "@/modules/purchase/components/supplier-select";
-import { useCreateVendorPayment, useVendorPayments } from "@/hooks/purchase/use-purchase";
+import { useCreateVendorPayment, useSupplier, useVendorPayments } from "@/hooks/purchase/use-purchase";
 import { formatMoney, purchaseStatusTone } from "@/modules/purchase/utils";
 
 type VendorPaymentsPageProps = {
@@ -57,6 +57,8 @@ export function VendorPaymentsPage({ initialSupplierId }: VendorPaymentsPageProp
   const payments = data?.data ?? [];
   const pagination = data?.pagination;
   const createPayment = useCreateVendorPayment();
+  const { data: supplierDetail } = useSupplier(supplierId || null);
+  const supplierBalance = supplierDetail?.balance ?? 0;
 
   const monthTotal = useMemo(
     () => payments.reduce((s, p) => s + p.amount, 0),
@@ -104,6 +106,11 @@ export function VendorPaymentsPage({ initialSupplierId }: VendorPaymentsPageProp
                   <div className="space-y-1.5">
                     <Label>Supplier *</Label>
                     <SupplierSelect value={supplierId} onValueChange={setSupplierId} />
+                    {supplierId && (
+                      <p className="text-xs text-muted-foreground">
+                        Outstanding balance: {formatMoney(supplierBalance)}
+                      </p>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
@@ -148,7 +155,14 @@ export function VendorPaymentsPage({ initialSupplierId }: VendorPaymentsPageProp
                   <Button variant="outline" onClick={() => setOpen(false)}>
                     Cancel
                   </Button>
-                  <Button disabled={createPayment.isPending || !supplierId} onClick={() => void submit()}>
+                  <Button
+                    disabled={
+                      createPayment.isPending ||
+                      !supplierId ||
+                      (parseFloat(amount) > supplierBalance && supplierBalance > 0)
+                    }
+                    onClick={() => void submit()}
+                  >
                     {createPayment.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save
                   </Button>

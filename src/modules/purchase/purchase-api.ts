@@ -76,14 +76,13 @@ export const purchaseApi = {
     api.get<ApiEnvelope<PurchaseOrderDto>>(`/v1/purchase/orders/${id}`).then((r) => r.data),
 
   createOrder: (body: CreatePurchaseOrderInput) =>
-    api
-      .post<ApiEnvelope<PurchaseOrderDto>>("/v1/purchase/orders", body, { idempotent: true })
-      .then((r) => r.data),
+    api.post<ApiEnvelope<PurchaseOrderDto>>("/v1/purchase/orders", body, { idempotent: true }),
+
+  approveOrder: (id: number | string) =>
+    api.post<ApiEnvelope<PurchaseOrderDto>>(`/v1/purchase/orders/${id}/approve`, {}, { idempotent: true }),
 
   cancelOrder: (id: number | string) =>
-    api
-      .post<ApiEnvelope<PurchaseOrderDto>>(`/v1/purchase/orders/${id}/cancel`, {}, { idempotent: true })
-      .then((r) => r.data),
+    api.post<ApiEnvelope<PurchaseOrderDto>>(`/v1/purchase/orders/${id}/cancel`, {}, { idempotent: true }),
 
   payments: (params?: ListParams) =>
     api
@@ -91,19 +90,25 @@ export const purchaseApi = {
       .then(paginated),
 
   createPayment: (body: CreateVendorPaymentInput) =>
-    api
-      .post<ApiEnvelope<VendorPaymentDto>>("/v1/purchase/payments", body, { idempotent: true })
-      .then((r) => r.data),
+    api.post<ApiEnvelope<VendorPaymentDto>>("/v1/purchase/payments", body, { idempotent: true }),
 
   grns: (params?: ListParams) =>
     api
       .get<ApiEnvelope<PurchaseGrnDto[]>>(`/v1/purchase/grns${buildQuery(params)}`)
       .then(paginated),
 
+  grn: (id: number | string) =>
+    api.get<ApiEnvelope<PurchaseGrnDto>>(`/v1/purchase/grns/${id}`).then((r) => r.data),
+
   createGrn: (body: CreateGrnInput) =>
-    api
-      .post<ApiEnvelope<{ grn: PurchaseGrnDto }>>("/v1/purchase/grn", body, { idempotent: true })
-      .then((r) => r.data?.grn ?? (r.data as unknown as PurchaseGrnDto)),
+    api.post<ApiEnvelope<{ grnId?: number; grn?: PurchaseGrnDto; amount?: number }>>(
+      "/v1/purchase/grn",
+      body,
+      { idempotent: true },
+    ),
+
+  voidGrn: (id: number | string) =>
+    api.post<ApiEnvelope<PurchaseGrnDto>>(`/v1/purchase/grns/${id}/void`, {}, { idempotent: true }),
 
   returns: (params?: ListParams) =>
     api
@@ -111,7 +116,5 @@ export const purchaseApi = {
       .then(paginated),
 
   createReturn: (body: CreatePurchaseReturnInput) =>
-    api
-      .post<ApiEnvelope<PurchaseReturnDto>>("/v1/purchase/returns", body, { idempotent: true })
-      .then((r) => r.data),
+    api.post<ApiEnvelope<PurchaseReturnDto>>("/v1/purchase/returns", body, { idempotent: true }),
 };

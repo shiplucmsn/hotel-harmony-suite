@@ -170,6 +170,12 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                   </div>
                   <div className="space-y-2">
                     <Label>Lines</Label>
+                    <div className="grid grid-cols-[1fr_72px_88px_32px] gap-2 text-xs font-medium text-muted-foreground">
+                      <span>Product (SKU)</span>
+                      <span>Quantity</span>
+                      <span>Unit cost</span>
+                      <span />
+                    </div>
                     {items.map((line, idx) => (
                       <div key={idx} className="grid grid-cols-[1fr_72px_88px_32px] gap-2">
                         <SkuPicker
@@ -184,7 +190,8 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                         <Input
                           type="number"
                           min={0}
-                          placeholder="Qty"
+                          step="any"
+                          aria-label={`Line ${idx + 1} quantity`}
                           value={line.qty || ""}
                           onChange={(e) => {
                             const next = [...items];
@@ -196,7 +203,7 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                           type="number"
                           min={0}
                           step="0.01"
-                          placeholder="Cost"
+                          aria-label={`Line ${idx + 1} unit cost`}
                           value={line.cost || ""}
                           onChange={(e) => {
                             const next = [...items];
@@ -285,15 +292,29 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
               </TableHeader>
               <TableBody>
                 {grns.map((g) => (
-                  <TableRow key={g.id}>
+                  <TableRow key={g.id} className="cursor-pointer hover:bg-muted/50">
                     <TableCell>
-                      <span className="inline-flex items-center gap-2 font-mono text-xs">
+                      <Link
+                        to="/app/inv/grn/$grnId"
+                        params={{ grnId: String(g.id) }}
+                        className="inline-flex items-center gap-2 font-mono text-xs hover:underline"
+                      >
                         <PackageCheck className="h-4 w-4 text-success" />
                         {g.number}
-                      </span>
+                      </Link>
                     </TableCell>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {g.purchase_order_id ? `#${g.purchase_order_id}` : "—"}
+                      {g.purchase_order_id ? (
+                        <Link
+                          to="/app/inv/purchase-orders/$orderId"
+                          params={{ orderId: String(g.purchase_order_id) }}
+                          className="hover:underline"
+                        >
+                          #{g.purchase_order_id}
+                        </Link>
+                      ) : (
+                        "—"
+                      )}
                     </TableCell>
                     <TableCell className="font-medium">{grnSupplierName(g)}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">
