@@ -236,6 +236,10 @@ export function usePurchaseGrns(
     per_page?: number;
     supplier_id?: number;
     purchase_order_id?: number;
+    status?: string;
+    qc_status?: string;
+    uninvoiced?: boolean;
+    invoiceable?: boolean;
   },
   options?: { enabled?: boolean },
 ) {
@@ -338,6 +342,8 @@ export function useSupplierInvoices(params?: {
   per_page?: number;
   supplier_id?: number;
   status?: string;
+  search?: string;
+  purchase_order_id?: number;
 }) {
   return useQuery({
     queryKey: purchaseKeys.supplierInvoices(params),

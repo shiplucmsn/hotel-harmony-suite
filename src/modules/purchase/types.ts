@@ -5,9 +5,18 @@ export type PaginationDto = {
   lastPage: number;
 };
 
+export type GrnInvoiceEligibilityDto = {
+  posted: number;
+  invoiceable: number;
+  pending_qc: number;
+  already_invoiced: number;
+  rejected_qc: number;
+};
+
 export type PaginatedResult<T> = {
   data: T[];
   pagination?: PaginationDto;
+  invoiceEligibility?: GrnInvoiceEligibilityDto;
 };
 
 export type SupplierDto = {
@@ -109,7 +118,8 @@ export type LandedCostInput = {
 };
 
 export type CreateGrnInput = {
-  purchase_order_id?: number;
+  purchase_order_id?: number | string;
+  purchase_order_number?: string;
   supplier_id?: number;
   warehouse_id?: number;
   received_date?: string;

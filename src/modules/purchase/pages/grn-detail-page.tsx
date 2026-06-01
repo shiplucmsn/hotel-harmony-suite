@@ -28,6 +28,7 @@ export function GrnDetailPage() {
   const { data: grn, isLoading } = usePurchaseGrn(grnId);
   const { can } = usePermissions();
   const canManageQc = can("purchase.grn.qc.manage");
+  const canManageInvoice = can("purchase.invoices.manage");
   const voidGrn = useVoidGrn();
   const qcAccept = useQcAcceptGrn();
   const qcReject = useQcRejectGrn();
@@ -71,7 +72,7 @@ export function GrnDetailPage() {
                   </Button>
                 </>
               )}
-              {grn.status === "posted" && (
+              {grn.status === "posted" && canManageInvoice && (
                 <>
                   <Button
                     size="sm"
@@ -94,20 +95,22 @@ export function GrnDetailPage() {
                     {createInvoice.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Create supplier invoice
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={voidGrn.isPending}
-                    onClick={() => {
-                      if (confirm("Void this GRN? Stock and AP will be reversed.")) {
-                        void voidGrn.mutateAsync(grn.id);
-                      }
-                    }}
-                  >
-                    {voidGrn.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Void GRN
-                  </Button>
                 </>
+              )}
+              {grn.status === "posted" && can("purchase.grn.void") && (
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  disabled={voidGrn.isPending}
+                  onClick={() => {
+                    if (confirm("Void this GRN? Stock and AP will be reversed.")) {
+                      void voidGrn.mutateAsync(grn.id);
+                    }
+                  }}
+                >
+                  {voidGrn.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Void GRN
+                </Button>
               )}
             </div>
           )

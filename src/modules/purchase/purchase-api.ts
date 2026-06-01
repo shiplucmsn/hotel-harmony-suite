@@ -30,22 +30,34 @@ type ListParams = {
   status?: string;
   supplier_id?: number;
   purchase_order_id?: number;
+  uninvoiced?: boolean;
+  invoiceable?: boolean;
+  qc_status?: string;
 };
 
 function buildQuery(params?: Record<string, string | number | undefined>): string {
   const q = new URLSearchParams();
   if (!params) return "";
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") q.set(key, String(value));
+    if (value === undefined || value === "") continue;
+    if (typeof value === "boolean") {
+      q.set(key, value ? "1" : "0");
+      continue;
+    }
+    q.set(key, String(value));
   }
   const qs = q.toString();
   return qs ? `?${qs}` : "";
 }
 
 function paginated<T>(res: ApiEnvelope<T[]>): PaginatedResult<T> {
+  const meta = res.meta as
+    | { pagination?: PaginatedResult<T>["pagination"]; invoice_eligibility?: PaginatedResult<T>["invoiceEligibility"] }
+    | undefined;
   return {
     data: Array.isArray(res.data) ? res.data : [],
-    pagination: res.meta?.pagination,
+    pagination: meta?.pagination,
+    invoiceEligibility: meta?.invoice_eligibility,
   };
 }
 

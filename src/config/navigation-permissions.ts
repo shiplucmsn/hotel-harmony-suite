@@ -49,4 +49,6 @@ export const ROUTE_NAV_PERMISSION_MAP: Record<string, string> = {
   "/app/subscription": "core.settings.view",
   "/app/inv/grn": "purchase.grn.view",
   "/app/inv/grn-qc": "purchase.grn.qc.view",
+  "/app/inv/vendor-invoices": "purchase.invoices.view",
+  "/app/inv/vendor-payments": "purchase.payments.view",
 };

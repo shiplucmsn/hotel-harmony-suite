@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,6 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePermissions } from "@/hooks/rbac/use-permissions";
 import {
   useApproveSupplierInvoice,
   useCreateVendorPayment,
@@ -35,7 +36,10 @@ type VendorInvoiceDetailPageProps = {
 };
 
 export function VendorInvoiceDetailPage({ invoiceId }: VendorInvoiceDetailPageProps) {
-  const navigate = useNavigate();
+  const { can } = usePermissions();
+  const canManage = can("purchase.invoices.manage");
+  const canPay = can("purchase.payments.manage");
+
   const { data: invoice, isLoading } = useSupplierInvoice(invoiceId);
   const match = useMatchSupplierInvoice();
   const approve = useApproveSupplierInvoice();
@@ -54,7 +58,6 @@ export function VendorInvoiceDetailPage({ invoiceId }: VendorInvoiceDetailPagePr
       payment_date: new Date().toISOString().slice(0, 10),
     });
     setPayOpen(false);
-    navigate({ to: "/app/inv/vendor-invoices" });
   };
 
   return (
@@ -68,7 +71,7 @@ export function VendorInvoiceDetailPage({ invoiceId }: VendorInvoiceDetailPagePr
           { label: invoice?.number ?? invoiceId },
         ]}
         actions={
-          invoice && (
+          invoice && canManage && (
             <div className="flex flex-wrap gap-2">
               {invoice.status === "draft" && (
                 <>
@@ -101,7 +104,8 @@ export function VendorInvoiceDetailPage({ invoiceId }: VendorInvoiceDetailPagePr
                   Approve
                 </Button>
               )}
-              {(invoice.status === "approved" || invoice.balance_due > 0) &&
+              {canPay &&
+                (invoice.status === "approved" || invoice.balance_due > 0) &&
                 invoice.status !== "paid" && (
                   <Button
                     size="sm"

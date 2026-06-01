@@ -35,7 +35,7 @@ import {
 } from "@/components/ui/select";
 import { PaginationBar } from "@/modules/finance/components/pagination-bar";
 import { SupplierSelect } from "@/modules/purchase/components/supplier-select";
-import { useCreateGrn, usePurchaseGrns } from "@/hooks/purchase/use-purchase";
+import { useCreateGrn, usePurchaseGrns, usePurchaseOrder } from "@/hooks/purchase/use-purchase";
 import { useInventoryWarehouses } from "@/hooks/inventory/use-inventory-warehouses";
 import { formatMoney, purchaseStatusTone } from "@/modules/purchase/utils";
 import type { PurchaseGrnDto } from "@/modules/purchase/types";
@@ -103,6 +103,8 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
   const { data: warehousesRes } = useInventoryWarehouses();
   const warehouses = warehousesRes?.data ?? [];
   const createGrn = useCreateGrn();
+  const poRef = poId.trim();
+  const { data: linkedPo, isError: linkedPoError } = usePurchaseOrder(poRef || null);
 
   const resetForm = () => {
     setItems([{ sku: "", qty: 1, cost: 0, batch: "", expiry: "" }]);
@@ -130,7 +132,7 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
     await createGrn.mutateAsync({
       supplier_id: supplierId ? Number(supplierId) : undefined,
       warehouse_id: warehouseId ? Number(warehouseId) : undefined,
-      purchase_order_id: poId ? Number(poId) : undefined,
+      purchase_order_id: poRef || undefined,
       received_date: receivedDate,
       tax_amount: headerTax ? Number(headerTax) : undefined,
       notes: notes.trim() || undefined,
@@ -213,19 +215,21 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                   {/* ── PO ID + Date ── */}
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="grn-po">PO ID (optional)</Label>
+                      <Label htmlFor="grn-po">PO number or ID (optional)</Label>
                       <Input
                         id="grn-po"
-                        type="number"
-                        placeholder="Link to Purchase Order #"
+                        placeholder="e.g. PO-20260601080548 or internal ID"
                         value={poId}
                         onChange={(e) => setPoId(e.target.value)}
                       />
-                      {poId && (
-                        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                      {poRef && linkedPo && (
+                        <p className="flex items-center gap-1 text-[11px] text-emerald-700 dark:text-emerald-400">
                           <AlertCircle className="h-3 w-3" />
-                          Linked to PO #{poId} — qty capped by remaining ordered lines
+                          Linked to {linkedPo.number} · {linkedPo.supplier} · qty capped by remaining lines
                         </p>
+                      )}
+                      {poRef && linkedPoError && (
+                        <p className="text-[11px] text-destructive">Purchase order not found for this reference.</p>
                       )}
                     </div>
                     <div className="space-y-1.5">

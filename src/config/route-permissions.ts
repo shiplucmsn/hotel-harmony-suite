@@ -8,6 +8,7 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   "/app/settings": "core.settings.view",
   "/app/subscription": "core.settings.view",
   "/app/inv/grn-qc": "purchase.grn.qc.view",
+  "/app/inv/vendor-invoices": "purchase.invoices.view",
 };
 
 export function permissionForPath(pathname: string): string | string[] | null {
