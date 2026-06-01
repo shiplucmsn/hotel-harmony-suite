@@ -31,6 +31,8 @@ export type SearchableSelectProps = {
   className?: string;
   /** Set false when used inside Sheet/Dialog so the list remains clickable. */
   modal?: boolean;
+  /** Raise z-index when used inside Sheet/Dialog. */
+  inOverlay?: boolean;
 };
 
 export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSelectProps>(
@@ -45,6 +47,7 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
       disabled,
       className,
       modal = false,
+      inOverlay = false,
     },
     ref,
   ) => {
@@ -71,7 +74,13 @@ export const SearchableSelect = React.forwardRef<HTMLButtonElement, SearchableSe
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+        <PopoverContent
+          className={cn(
+            "w-[var(--radix-popover-trigger-width)] p-0",
+            inOverlay && "z-[200]",
+          )}
+          align="start"
+        >
           <Command shouldFilter>
             <CommandInput placeholder={searchPlaceholder} />
             <CommandList>

@@ -1,5 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
+import { CompleteWorkOrderSheet } from "@/modules/production/components/complete-work-order-sheet";
+import { WorkOrderCostingSheet } from "@/modules/production/components/work-order-costing-sheet";
+import type { ProductionWorkOrderDto } from "@/modules/production/types";
+import { workOrderProgress } from "@/modules/production/utils/work-order-progress";
 import { PageHeader } from "@/components/page-header";
 import { EmptyState } from "@/components/empty-state";
 import { Card, CardContent } from "@/components/ui/card";
@@ -16,7 +20,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, MoreHorizontal, Download } from "lucide-react";
 import { toast } from "sonner";
 import {
-  useCompleteProductionWorkOrder,
   useCreateProductionWorkOrder,
   useProductionBoms,
   useProductionMaterialAvailability,
@@ -41,11 +44,14 @@ function WorkOrdersPage() {
   const [plannedQty, setPlannedQty] = useState("1");
   const [scheduledDate, setScheduledDate] = useState("");
   const [notes, setNotes] = useState("");
+  const [costingOpen, setCostingOpen] = useState(false);
+  const [costingWo, setCostingWo] = useState<ProductionWorkOrderDto | null>(null);
+  const [completeOpen, setCompleteOpen] = useState(false);
+  const [completeWo, setCompleteWo] = useState<ProductionWorkOrderDto | null>(null);
 
   const createWorkOrder = useCreateProductionWorkOrder();
   const startWorkOrder = useStartProductionWorkOrder();
-  const completeWorkOrder = useCompleteProductionWorkOrder();
-  const { data: bomsData } = useProductionBoms({ per_page: 200, status: "active" });
+  const { data: bomsData } = useProductionBoms({ per_page: 100, status: "active" });
   const { data: rmAvailability } = useProductionMaterialAvailability(bomId ? Number(bomId) : null);
   const { data: workOrdersData, isLoading } = useProductionWorkOrders({
     per_page: 300,
@@ -203,7 +209,7 @@ function WorkOrdersPage() {
               </TableHeader>
               <TableBody>
                 {workOrders.map((wo) => {
-                  const progress = wo.planned_qty > 0 ? Math.min(100, Math.round((wo.actual_qty / wo.planned_qty) * 100)) : 0;
+                  const progress = workOrderProgress(wo);
                   return (
                     <TableRow key={wo.id}>
                       <TableCell className="font-mono text-xs">{wo.number}</TableCell>
@@ -212,9 +218,11 @@ function WorkOrdersPage() {
                       <TableCell>{wo.actual_qty}</TableCell>
                       <TableCell className="text-sm">{wo.scheduled_date ?? "-"}</TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={progress} className="h-1.5 w-24" />
-                          <span className="text-xs text-muted-foreground">{progress}%</span>
+                        <div className="flex items-center gap-2" title={progress.label}>
+                          <Progress value={progress.value} className="h-1.5 w-24" />
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            {progress.label}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -231,19 +239,20 @@ function WorkOrdersPage() {
                             ) : null}
                             {(wo.status === "in_progress" || wo.status === "released") ? (
                               <DropdownMenuItem
-                                onClick={() =>
-                                  completeWorkOrder.mutate({
-                                    id: wo.id,
-                                    body: {
-                                      overhead_cost: 0,
-                                    },
-                                  })
-                                }
+                                onClick={() => {
+                                  setCompleteWo(wo);
+                                  setCompleteOpen(true);
+                                }}
                               >
-                                Complete
+                                Complete…
                               </DropdownMenuItem>
                             ) : null}
-                            <DropdownMenuItem onClick={() => toast.message(`Journal: ${wo.journal_entry_id ?? "Not posted yet"}`)}>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setCostingWo(wo);
+                                setCostingOpen(true);
+                              }}
+                            >
                               View costing
                             </DropdownMenuItem>
                           </DropdownMenuContent>
@@ -257,6 +266,20 @@ function WorkOrdersPage() {
           )}
         </CardContent>
       </Card>
+
+      <WorkOrderCostingSheet
+        workOrderId={costingWo?.id ?? null}
+        open={costingOpen}
+        onOpenChange={setCostingOpen}
+        summary={costingWo}
+      />
+
+      <CompleteWorkOrderSheet
+        workOrderId={completeWo?.id ?? null}
+        open={completeOpen}
+        onOpenChange={setCompleteOpen}
+        summary={completeWo}
+      />
     </div>
   );
 }

@@ -12,6 +12,8 @@ export const ROUTE_PERMISSIONS: Record<string, string | string[]> = {
   "/app/prod/bom": "production.boms.view",
   "/app/prod/raw-materials": "production.materials.view",
   "/app/prod/finished-goods": "production.materials.view",
+  "/app/prod/planning": "production.boms.view",
+  "/app/prod/work-orders": "production.boms.view",
 };
 
 export function permissionForPath(pathname: string): string | string[] | null {

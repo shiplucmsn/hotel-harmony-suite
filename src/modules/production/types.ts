@@ -93,6 +93,19 @@ export type ProductionBomDto = {
   updated_at?: string;
 };
 
+export type ProductionMaterialReadinessDto = {
+  sku: string;
+  product_name?: string | null;
+  planned_qty: number;
+  on_hand: number;
+  available_qty: number;
+  shortfall: number;
+  sufficient: boolean;
+  unit_cost: number;
+  planned_cost: number;
+  warehouse_id?: number | null;
+};
+
 export type ProductionWorkOrderMaterialDto = {
   id: number;
   sku: string;
@@ -115,6 +128,17 @@ export type ProductionWorkOrderOutputDto = {
   line_cost: number;
 };
 
+export type ProductionWorkOrderJournalDto = {
+  id: number;
+  entry_number: string;
+  entry_date: string;
+  reference_type?: string | null;
+  reference_id?: string | null;
+  memo?: string | null;
+  status: string;
+  lines?: { id: number; account_code: string; debit: number; credit: number }[];
+};
+
 export type ProductionWorkOrderDto = {
   id: number;
   uuid: string;
@@ -129,6 +153,10 @@ export type ProductionWorkOrderDto = {
   overhead_cost: number;
   total_cost: number;
   journal_entry_id?: number | null;
+  journal_entry?: ProductionWorkOrderJournalDto | null;
+  estimated_material_cost?: number;
+  estimated_output_qty?: number;
+  material_readiness?: ProductionMaterialReadinessDto[];
   scheduled_date?: string | null;
   started_at?: string | null;
   completed_at?: string | null;
@@ -182,6 +210,56 @@ export type CompleteProductionWorkOrderInput = {
     actual_qty: number;
     unit_cost?: number;
   }[];
+};
+
+export type ProductionPlanningWorkOrderCardDto = {
+  id: number;
+  number: string;
+  status: string;
+  bom_id: number | null;
+  bom_name?: string | null;
+  planned_qty: number;
+  actual_qty: number;
+  scheduled_date?: string | null;
+  warehouse_id?: number | null;
+  warehouse_name?: string | null;
+};
+
+export type ProductionPlanningDayDto = {
+  date: string;
+  label: string;
+  work_orders: ProductionPlanningWorkOrderCardDto[];
+};
+
+export type ProductionPlanningTrendDto = {
+  date: string;
+  label: string;
+  planned: number;
+  actual: number;
+};
+
+export type ProductionPlanningCapacityDto = {
+  warehouse_id: number | null;
+  name: string;
+  planned_qty: number;
+  load_percent: number;
+  work_order_count: number;
+};
+
+export type ProductionPlanningDashboardDto = {
+  week_start: string;
+  week_end: string;
+  summary: {
+    scheduled: number;
+    in_progress: number;
+    draft: number;
+    backlog: number;
+    completed_week: number;
+    on_time_rate: number;
+  };
+  trend: ProductionPlanningTrendDto[];
+  schedule: ProductionPlanningDayDto[];
+  capacity: ProductionPlanningCapacityDto[];
 };
 
 export type ProductionMutationMeta = {

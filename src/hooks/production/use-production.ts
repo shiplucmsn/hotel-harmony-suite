@@ -17,8 +17,10 @@ export const productionKeys = {
   rawMaterials: (params?: Record<string, unknown>) => ["production", "raw-materials", params] as const,
   finishedGoods: (params?: Record<string, unknown>) => ["production", "finished-goods", params] as const,
   productSkus: (params?: Record<string, unknown>) => ["production", "product-skus", params] as const,
+  planning: (params?: Record<string, unknown>) => ["production", "planning", params] as const,
   bom: (id: number | string) => ["production", "boms", id] as const,
   workOrders: (params?: Record<string, unknown>) => ["production", "work-orders", params] as const,
+  workOrder: (id: number | string) => ["production", "work-orders", id] as const,
 };
 
 function invalidateProduction(qc: ReturnType<typeof useQueryClient>) {
@@ -35,6 +37,13 @@ export function useProductionRawMaterials(params?: {
   return useQuery({
     queryKey: productionKeys.rawMaterials(params),
     queryFn: () => productionApi.rawMaterials(params),
+  });
+}
+
+export function useProductionPlanning(weekStart?: string) {
+  return useQuery({
+    queryKey: productionKeys.planning({ week_start: weekStart }),
+    queryFn: () => productionApi.planning({ week_start: weekStart }),
   });
 }
 
@@ -84,6 +93,14 @@ export function useProductionBom(id: number | string | null | undefined) {
 
 export function useProductionWorkOrders(params?: { per_page?: number; status?: string; bom_id?: number | string }) {
   return useQuery({ queryKey: productionKeys.workOrders(params), queryFn: () => productionApi.workOrders(params) });
+}
+
+export function useProductionWorkOrder(id: number | string | null | undefined) {
+  return useQuery({
+    queryKey: productionKeys.workOrder(id ?? ""),
+    queryFn: () => productionApi.workOrder(id!),
+    enabled: id != null && id !== "",
+  });
 }
 
 export function useProductionMaterialAvailability(bomId: number | string | null | undefined) {
@@ -151,8 +168,9 @@ export function useCompleteProductionWorkOrder() {
   return useMutation({
     mutationFn: ({ id, body }: { id: number | string; body: CompleteProductionWorkOrderInput }) =>
       productionApi.completeWorkOrder(id, body),
-    onSuccess: (res) => {
+    onSuccess: (res, { id }) => {
       invalidateProduction(qc);
+      qc.invalidateQueries({ queryKey: productionKeys.workOrder(id) });
       showSideEffects(res.meta);
       qc.invalidateQueries({ queryKey: ["inventory"] });
       qc.invalidateQueries({ queryKey: ["finance"] });

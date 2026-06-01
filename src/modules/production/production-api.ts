@@ -9,6 +9,7 @@ import type {
   PaginatedResult,
   ProductionBomDto,
   ProductionFinishedGoodsDto,
+  ProductionPlanningDashboardDto,
   ProductionRawMaterialDto,
   ProductionWorkOrderDto,
   RegisterProductionRawMaterialInput,
@@ -62,6 +63,11 @@ export const productionApi = {
   productSkus: (params?: ListParams & { purpose?: "component" | "finished" }) =>
     api.get<ApiEnvelope<SkuDto[]>>(`/v1/production/product-skus${buildQuery(params)}`).then(paginated),
 
+  planning: (params?: { week_start?: string }) =>
+    api
+      .get<ApiEnvelope<ProductionPlanningDashboardDto>>(`/v1/production/planning${buildQuery(params)}`)
+      .then((r) => r.data),
+
   registerRawMaterial: (body: RegisterProductionRawMaterialInput) =>
     api.post<ApiEnvelope<{ material: ProductionRawMaterialDto; product_supplier_id?: number | null }>>(
       "/v1/production/raw-materials",
@@ -83,6 +89,9 @@ export const productionApi = {
 
   workOrders: (params?: ListParams) =>
     api.get<ApiEnvelope<ProductionWorkOrderDto[]>>(`/v1/production/work-orders${buildQuery(params)}`).then(paginated),
+
+  workOrder: (id: number | string) =>
+    api.get<ApiEnvelope<ProductionWorkOrderDto>>(`/v1/production/work-orders/${id}`).then((r) => r.data),
 
   createWorkOrder: (body: CreateProductionWorkOrderInput) =>
     api.post<ApiEnvelope<ProductionWorkOrderDto>>("/v1/production/work-orders", body, { idempotent: true }),
