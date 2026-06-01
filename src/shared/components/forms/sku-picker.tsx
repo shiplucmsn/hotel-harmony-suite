@@ -10,7 +10,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Popover, PopoverAnchor, PopoverContent } from "@/components/ui/popover";
-import { useSkuSearch } from "@/hooks/inventory/use-skus";
+import { useSkuSearch, type SkuSearchRegistry } from "@/hooks/inventory/use-skus";
 import type { SkuDto } from "@/modules/inventory/types";
 
 export type SkuPickerProps = {
@@ -24,6 +24,12 @@ export type SkuPickerProps = {
   className?: string;
   /** Optional first row (e.g. quotation custom line). value="" clears SKU. */
   emptyOption?: { label: string };
+  /** inventory = /inventory/skus; production = /production/product-skus (BOM sheets). */
+  registry?: SkuSearchRegistry;
+  /** component = tracked materials; finished = any active product (production registry). */
+  purpose?: "component" | "finished";
+  /** Raise z-index when rendered inside Sheet/Dialog so the list appears above the panel. */
+  inOverlay?: boolean;
 };
 
 export function SkuPicker({
@@ -35,15 +41,22 @@ export function SkuPicker({
   disabled,
   className,
   emptyOption,
+  registry = "inventory",
+  purpose = "finished",
+  inOverlay = false,
 }: SkuPickerProps) {
   const [open, setOpen] = React.useState(false);
   const [input, setInput] = React.useState(value);
 
   React.useEffect(() => {
-    setInput(value);
+    setInput((prev) => (prev === value ? prev : value));
   }, [value]);
 
-  const { data, isFetching, isError } = useSkuSearch(input, { enabled: open });
+  const { data, isFetching, isError } = useSkuSearch(input, {
+    enabled: open && !disabled,
+    registry,
+    purpose,
+  });
   const items = data?.data ?? [];
 
   const pick = (sku: string, row: SkuDto | null) => {
@@ -54,7 +67,7 @@ export function SkuPicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal={false}>
+    <Popover open={open} onOpenChange={setOpen} modal={inOverlay}>
       <PopoverAnchor asChild>
         <div className={cn("relative", className)}>
           <Input
@@ -86,9 +99,15 @@ export function SkuPicker({
         </div>
       </PopoverAnchor>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
+        className={cn(
+          "w-[var(--radix-popover-trigger-width)] p-0",
+          inOverlay && "z-[200]",
+        )}
         align="start"
+        side="bottom"
+        collisionPadding={12}
         onOpenAutoFocus={(e) => e.preventDefault()}
+        onCloseAutoFocus={(e) => e.preventDefault()}
       >
         <Command shouldFilter={false}>
           <CommandList>

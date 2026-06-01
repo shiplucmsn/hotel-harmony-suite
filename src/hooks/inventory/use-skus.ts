@@ -2,7 +2,9 @@ import { useDeferredValue } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { productionKeys } from "@/hooks/production/use-production";
 import { inventoryApi } from "@/modules/inventory/inventory-api";
+import { productionApi } from "@/modules/production/production-api";
 import type { GenerateSkuInput } from "@/modules/inventory/types";
 
 export const skuKeys = {
@@ -23,18 +25,46 @@ export function useSkuRegistry(params?: {
   });
 }
 
+export type SkuSearchRegistry = "inventory" | "production";
+
 /** Debounced server search for autocomplete (pass raw search string). */
-export function useSkuSearch(search: string, options?: { enabled?: boolean; perPage?: number }) {
+export function useSkuSearch(
+  search: string,
+  options?: {
+    enabled?: boolean;
+    perPage?: number;
+    /** Use production API when user lacks inventory.stock.view (BOM sheets). */
+    registry?: SkuSearchRegistry;
+    /** Raw material line vs finished output (production registry only). */
+    purpose?: "component" | "finished";
+  },
+) {
   const deferred = useDeferredValue(search.trim());
   const enabled = options?.enabled !== false;
+  const perPage = options?.perPage ?? 25;
+  const registry = options?.registry ?? "inventory";
+  const purpose = options?.purpose ?? "finished";
 
   return useQuery({
-    queryKey: skuKeys.list({ search: deferred || undefined, per_page: options?.perPage ?? 25 }),
+    queryKey:
+      registry === "production"
+        ? productionKeys.productSkus({
+            search: deferred || undefined,
+            purpose,
+            per_page: perPage,
+          })
+        : skuKeys.list({ search: deferred || undefined, per_page: perPage }),
     queryFn: () =>
-      inventoryApi.skus({
-        search: deferred || undefined,
-        per_page: options?.perPage ?? 25,
-      }),
+      registry === "production"
+        ? productionApi.productSkus({
+            search: deferred || undefined,
+            purpose,
+            per_page: perPage,
+          })
+        : inventoryApi.skus({
+            search: deferred || undefined,
+            per_page: perPage,
+          }),
     enabled,
     staleTime: 20_000,
   });

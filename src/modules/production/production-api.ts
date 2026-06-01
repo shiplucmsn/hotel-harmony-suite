@@ -1,5 +1,6 @@
 import { api } from "@/lib/api-client";
 import type { ApiEnvelope } from "@/services/api/types";
+import type { SkuDto } from "@/modules/inventory/types";
 import type {
   CompleteProductionWorkOrderInput,
   MaterialAvailabilityLineDto,
@@ -7,7 +8,10 @@ import type {
   CreateProductionWorkOrderInput,
   PaginatedResult,
   ProductionBomDto,
+  ProductionFinishedGoodsDto,
+  ProductionRawMaterialDto,
   ProductionWorkOrderDto,
+  RegisterProductionRawMaterialInput,
   UpdateProductionBomInput,
 } from "@/modules/production/types";
 
@@ -17,13 +21,20 @@ type ListParams = {
   search?: string;
   status?: string;
   bom_id?: number | string;
+  scope?: string;
+  stock_status?: string;
 };
 
-function buildQuery(params?: Record<string, string | number | undefined>): string {
+function buildQuery(params?: Record<string, string | number | boolean | undefined>): string {
   const q = new URLSearchParams();
   if (!params) return "";
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== "") q.set(key, String(value));
+    if (value === undefined || value === "") continue;
+    if (typeof value === "boolean") {
+      q.set(key, value ? "1" : "0");
+      continue;
+    }
+    q.set(key, String(value));
   }
   const qs = q.toString();
   return qs ? `?${qs}` : "";
@@ -37,8 +48,32 @@ function paginated<T>(res: ApiEnvelope<T[]>): PaginatedResult<T> {
 }
 
 export const productionApi = {
+  rawMaterials: (params?: ListParams) =>
+    api
+      .get<ApiEnvelope<ProductionRawMaterialDto[]>>(`/v1/production/raw-materials${buildQuery(params)}`)
+      .then(paginated),
+
+  finishedGoods: (params?: ListParams) =>
+    api
+      .get<ApiEnvelope<ProductionFinishedGoodsDto[]>>(`/v1/production/finished-goods${buildQuery(params)}`)
+      .then(paginated),
+
+  /** BOM / production SKU autocomplete (production.boms.view — no inventory.stock.view required). */
+  productSkus: (params?: ListParams & { purpose?: "component" | "finished" }) =>
+    api.get<ApiEnvelope<SkuDto[]>>(`/v1/production/product-skus${buildQuery(params)}`).then(paginated),
+
+  registerRawMaterial: (body: RegisterProductionRawMaterialInput) =>
+    api.post<ApiEnvelope<{ material: ProductionRawMaterialDto; product_supplier_id?: number | null }>>(
+      "/v1/production/raw-materials",
+      body,
+      { idempotent: true },
+    ),
+
   boms: (params?: ListParams) =>
     api.get<ApiEnvelope<ProductionBomDto[]>>(`/v1/production/boms${buildQuery(params)}`).then(paginated),
+
+  bom: (id: number | string) =>
+    api.get<ApiEnvelope<ProductionBomDto>>(`/v1/production/boms/${id}`).then((r) => r.data),
 
   createBom: (body: CreateProductionBomInput) =>
     api.post<ApiEnvelope<ProductionBomDto>>("/v1/production/boms", body, { idempotent: true }),

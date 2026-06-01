@@ -10,6 +10,53 @@ export type PaginatedResult<T> = {
   };
 };
 
+export type ProductionRawMaterialDto = {
+  id: number;
+  product_id: number;
+  sku: string;
+  name: string;
+  uom: string;
+  stock: number;
+  reorder_point: number;
+  cost_price: number;
+  status: "ok" | "low" | "out_of_stock" | string;
+  product_status?: string;
+  preferred_supplier_id?: number | null;
+  preferred_supplier_name?: string | null;
+  in_bom: boolean;
+  bom_usage_count: number;
+  fill_percent: number;
+};
+
+export type ProductionFinishedGoodsDto = {
+  id: number;
+  product_id: number;
+  sku: string;
+  name: string;
+  uom: string;
+  stock: number;
+  reorder_point: number;
+  cost_price: number;
+  price: number;
+  status: "ok" | "low" | "out_of_stock" | string;
+  product_status?: string;
+  bom_output_count: number;
+  bom_codes: string[];
+  preferred_supplier_id?: number | null;
+  preferred_supplier_name?: string | null;
+  fill_percent: number;
+};
+
+export type RegisterProductionRawMaterialInput = {
+  product_id?: number;
+  sku?: string;
+  name?: string;
+  cost_price?: number;
+  reorder_point?: number;
+  supplier_id?: number;
+  opening_qty?: number;
+};
+
 export type MaterialAvailabilityLineDto = {
   sku: string;
   qty_per_batch?: number;

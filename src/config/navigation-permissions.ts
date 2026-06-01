@@ -51,4 +51,7 @@ export const ROUTE_NAV_PERMISSION_MAP: Record<string, string> = {
   "/app/inv/grn-qc": "purchase.grn.qc.view",
   "/app/inv/vendor-invoices": "purchase.invoices.view",
   "/app/inv/vendor-payments": "purchase.payments.view",
+  "/app/prod/bom": "production.boms.view",
+  "/app/prod/raw-materials": "production.materials.view",
+  "/app/prod/finished-goods": "production.materials.view",
 };
