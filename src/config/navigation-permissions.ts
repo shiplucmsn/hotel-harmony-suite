@@ -47,4 +47,6 @@ export const ROUTE_NAV_PERMISSION_MAP: Record<string, string> = {
   "/app/super-admin": "platform.super_admin.view",
   "/app/settings": "core.settings.view",
   "/app/subscription": "core.settings.view",
+  "/app/inv/grn": "purchase.grn.view",
+  "/app/inv/grn-qc": "purchase.grn.qc.view",
 };

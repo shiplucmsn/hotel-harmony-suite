@@ -16,12 +16,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { PaginationBar } from "@/modules/finance/components/pagination-bar";
+import { usePermissions } from "@/hooks/rbac/use-permissions";
 import { useGrnQcQueue, useQcAcceptGrn, useQcRejectGrn } from "@/hooks/purchase/use-purchase";
 import { formatMoney, purchaseStatusTone } from "@/modules/purchase/utils";
 
 export function GrnQcQueuePage() {
   const [page, setPage] = useState(1);
   const [createReturnOnReject, setCreateReturnOnReject] = useState(false);
+  const { can } = usePermissions();
+  const canManageQc = can("purchase.grn.qc.manage");
   const { data, isLoading } = useGrnQcQueue({ page, per_page: 20 });
   const grns = data?.data ?? [];
   const pagination = data?.pagination;
@@ -32,7 +35,11 @@ export function GrnQcQueuePage() {
     <div className="space-y-6">
       <PageHeader
         title="GRN QC queue"
-        description="Goods in quarantine awaiting inspection. Accept moves stock to sellable warehouse."
+        description={
+          canManageQc
+            ? "Goods in quarantine awaiting inspection. Accept moves stock to sellable warehouse."
+            : "View-only: you need Accept/Reject GRN QC permission to process items."
+        }
         breadcrumbs={[{ label: "Purchases" }, { label: "QC queue" }]}
         actions={
           <div className="flex items-center gap-2">
@@ -93,39 +100,43 @@ export function GrnQcQueuePage() {
                   <TableCell>{g.received_date ?? "—"}</TableCell>
                   <TableCell className="text-right tabular-nums">{formatMoney(g.total_amount)}</TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        disabled={accept.isPending || reject.isPending}
-                        onClick={() => void accept.mutateAsync(g.id)}
-                      >
-                        {accept.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Check className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">Accept</span>
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        disabled={accept.isPending || reject.isPending}
-                        onClick={() =>
-                          void reject.mutateAsync({
-                            id: g.id,
-                            body: { create_return: createReturnOnReject },
-                          })
-                        }
-                      >
-                        {reject.isPending ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
-                        <span className="sr-only">Reject</span>
-                      </Button>
-                    </div>
+                    {canManageQc ? (
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={accept.isPending || reject.isPending}
+                          onClick={() => void accept.mutateAsync(g.id)}
+                        >
+                          {accept.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Check className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">Accept</span>
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          disabled={accept.isPending || reject.isPending}
+                          onClick={() =>
+                            void reject.mutateAsync({
+                              id: g.id,
+                              body: { create_return: createReturnOnReject },
+                            })
+                          }
+                        >
+                          {reject.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <X className="h-4 w-4" />
+                          )}
+                          <span className="sr-only">Reject</span>
+                        </Button>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">No QC manage access</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

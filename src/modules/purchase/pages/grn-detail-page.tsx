@@ -12,6 +12,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { usePermissions } from "@/hooks/rbac/use-permissions";
 import {
   useCreateSupplierInvoice,
   usePurchaseGrn,
@@ -25,6 +26,8 @@ export function GrnDetailPage() {
   const { grnId } = useParams({ strict: false }) as { grnId: string };
   const navigate = useNavigate();
   const { data: grn, isLoading } = usePurchaseGrn(grnId);
+  const { can } = usePermissions();
+  const canManageQc = can("purchase.grn.qc.manage");
   const voidGrn = useVoidGrn();
   const qcAccept = useQcAcceptGrn();
   const qcReject = useQcRejectGrn();
@@ -43,7 +46,7 @@ export function GrnDetailPage() {
         actions={
           grn && (
             <div className="flex flex-wrap gap-2">
-              {grn.qc_status === "pending" && (
+              {grn.qc_status === "pending" && canManageQc && (
                 <>
                   <Button
                     size="sm"

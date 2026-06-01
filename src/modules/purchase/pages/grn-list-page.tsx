@@ -1,13 +1,15 @@
 import { useMemo, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Loader2, PackageCheck, Plus, Trash2 } from "lucide-react";
+import { Loader2, PackageCheck, Plus, Trash2, AlertCircle } from "lucide-react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
 import { SkuPicker } from "@/shared/components/forms/sku-picker";
 import {
   Sheet,
@@ -15,7 +17,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
 import {
   Table,
@@ -75,9 +76,16 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
   const [updateProductCost, setUpdateProductCost] = useState(false);
   const [requiresQc, setRequiresQc] = useState(false);
   const [freightCost, setFreightCost] = useState("");
+  const [dutyCost, setDutyCost] = useState("");
   const [headerTax, setHeaderTax] = useState("");
+  const [notes, setNotes] = useState("");
 
   const [poFilter, setPoFilter] = useState("");
+
+  // Derived totals — live as user types
+  const subtotal = items.reduce((acc, line) => acc + line.qty * line.cost, 0);
+  const grandTotal =
+    subtotal + Number(freightCost || 0) + Number(dutyCost || 0) + Number(headerTax || 0);
 
   const listParams = useMemo(
     () => ({
@@ -96,14 +104,28 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
   const warehouses = warehousesRes?.data ?? [];
   const createGrn = useCreateGrn();
 
+  const resetForm = () => {
+    setItems([{ sku: "", qty: 1, cost: 0, batch: "", expiry: "" }]);
+    setPoId("");
+    setFreightCost("");
+    setDutyCost("");
+    setHeaderTax("");
+    setNotes("");
+    setRequiresQc(false);
+    setUpdateProductCost(false);
+  };
+
   const submit = async () => {
     const lines = items.filter((i) => i.sku && i.qty > 0);
     if (lines.length === 0) return;
+
     const landed_costs = [];
     const freight = Number(freightCost);
-    if (freight > 0) {
+    const duty = Number(dutyCost);
+    if (freight > 0)
       landed_costs.push({ cost_type: "freight" as const, amount: freight, allocation_method: "qty" as const });
-    }
+    if (duty > 0)
+      landed_costs.push({ cost_type: "duty" as const, amount: duty, allocation_method: "value" as const });
 
     await createGrn.mutateAsync({
       supplier_id: supplierId ? Number(supplierId) : undefined,
@@ -111,6 +133,7 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
       purchase_order_id: poId ? Number(poId) : undefined,
       received_date: receivedDate,
       tax_amount: headerTax ? Number(headerTax) : undefined,
+      notes: notes.trim() || undefined,
       lines: lines.map((l) => ({
         sku: l.sku,
         quantity: l.qty,
@@ -123,8 +146,7 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
       requires_qc: requiresQc,
     });
     setOpen(false);
-    setItems([{ sku: "", qty: 1, cost: 0, batch: "", expiry: "" }]);
-    setPoId("");
+    resetForm();
   };
 
   return (
@@ -138,28 +160,44 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
             <Button size="sm" variant="outline" asChild>
               <Link to="/app/inv/suppliers">Suppliers</Link>
             </Button>
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button size="sm" className="gradient-primary border-0 text-primary-foreground">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New GRN
-                </Button>
-              </SheetTrigger>
-              <SheetContent className="overflow-y-auto sm:max-w-lg">
-                <SheetHeader>
+
+            <Sheet
+              open={open}
+              onOpenChange={(v) => {
+                setOpen(v);
+                if (!v) resetForm();
+              }}
+            >
+              <Button
+                size="sm"
+                className="gradient-primary border-0 text-primary-foreground"
+                onClick={() => setOpen(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                New GRN
+              </Button>
+
+              <SheetContent className="flex flex-col overflow-y-auto sm:max-w-3xl">
+                <SheetHeader className="pb-2">
                   <SheetTitle>Post goods receipt</SheetTitle>
                 </SheetHeader>
-                <div className="space-y-4 py-4">
-                  <div className="space-y-1.5">
-                    <Label>Supplier</Label>
-                    <SupplierSelect value={supplierId} onValueChange={setSupplierId} />
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
+
+                <div className="flex-1 space-y-5 py-2">
+                  {/* ── Supplier + Warehouse ── */}
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label>Warehouse</Label>
+                      <Label>
+                        Supplier <span className="text-destructive">*</span>
+                      </Label>
+                      <SupplierSelect value={supplierId} onValueChange={setSupplierId} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>
+                        Warehouse <span className="text-destructive">*</span>
+                      </Label>
                       <Select value={warehouseId} onValueChange={setWarehouseId}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select…" />
+                        <SelectTrigger id="grn-warehouse">
+                          <SelectValue placeholder="Select warehouse…" />
                         </SelectTrigger>
                         <SelectContent>
                           {warehouses.map((w) => (
@@ -170,162 +208,319 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
                         </SelectContent>
                       </Select>
                     </div>
+                  </div>
+
+                  {/* ── PO ID + Date ── */}
+                  <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <Label>Received date</Label>
+                      <Label htmlFor="grn-po">PO ID (optional)</Label>
                       <Input
+                        id="grn-po"
+                        type="number"
+                        placeholder="Link to Purchase Order #"
+                        value={poId}
+                        onChange={(e) => setPoId(e.target.value)}
+                      />
+                      {poId && (
+                        <p className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                          <AlertCircle className="h-3 w-3" />
+                          Linked to PO #{poId} — qty capped by remaining ordered lines
+                        </p>
+                      )}
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="grn-date">Received date</Label>
+                      <Input
+                        id="grn-date"
                         type="date"
                         value={receivedDate}
                         onChange={(e) => setReceivedDate(e.target.value)}
                       />
                     </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>PO ID (optional)</Label>
-                    <Input
-                      type="number"
-                      placeholder="Purchase order id"
-                      value={poId}
-                      onChange={(e) => setPoId(e.target.value)}
-                    />
-                  </div>
+
+                  <Separator />
+
+                  {/* ── Receipt Lines ── */}
                   <div className="space-y-2">
-                    <Label>Lines</Label>
-                    <div className="grid grid-cols-[1fr_72px_88px_96px_110px_32px] gap-2 text-xs font-medium text-muted-foreground">
+                    <div className="flex items-center justify-between">
+                      <Label>Receipt Lines</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {items.filter((i) => i.sku && i.qty > 0).length} active line(s)
+                      </span>
+                    </div>
+
+                    {/* Column headers */}
+                    <div className="grid grid-cols-[2fr_70px_90px_80px_90px_120px_32px] gap-2 rounded-md bg-muted/50 px-2 py-1.5 text-xs font-medium text-muted-foreground">
                       <span>Product (SKU)</span>
-                      <span>Quantity</span>
+                      <span>Qty</span>
                       <span>Unit cost</span>
-                      <span>Lot</span>
-                      <span>Expiry</span>
+                      <span className="text-right">Line total</span>
+                      <span>Lot/batch</span>
+                      <span>Expiry date</span>
                       <span />
                     </div>
-                    {items.map((line, idx) => (
-                      <div key={idx} className="grid grid-cols-[1fr_72px_88px_96px_110px_32px] gap-2">
-                        <SkuPicker
-                          value={line.sku}
-                          onValueChange={(sku) => {
-                            const next = [...items];
-                            next[idx] = { ...next[idx], sku };
-                            setItems(next);
-                          }}
-                          placeholder="SKU"
-                        />
-                        <Input
-                          type="number"
-                          min={0}
-                          step="any"
-                          aria-label={`Line ${idx + 1} quantity`}
-                          value={line.qty || ""}
-                          onChange={(e) => {
-                            const next = [...items];
-                            next[idx] = { ...next[idx], qty: Number(e.target.value) };
-                            setItems(next);
-                          }}
-                        />
-                        <Input
-                          type="number"
-                          min={0}
-                          step="0.01"
-                          aria-label={`Line ${idx + 1} unit cost`}
-                          value={line.cost || ""}
-                          onChange={(e) => {
-                            const next = [...items];
-                            next[idx] = { ...next[idx], cost: Number(e.target.value) };
-                            setItems(next);
-                          }}
-                        />
-                        <Input
-                          placeholder="Lot"
-                          aria-label={`Line ${idx + 1} batch`}
-                          value={line.batch ?? ""}
-                          onChange={(e) => {
-                            const next = [...items];
-                            next[idx] = { ...next[idx], batch: e.target.value };
-                            setItems(next);
-                          }}
-                        />
-                        <Input
-                          type="date"
-                          aria-label={`Line ${idx + 1} expiry`}
-                          value={line.expiry ?? ""}
-                          onChange={(e) => {
-                            const next = [...items];
-                            next[idx] = { ...next[idx], expiry: e.target.value };
-                            setItems(next);
-                          }}
-                        />
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          disabled={items.length <= 1}
-                          onClick={() => setItems(items.filter((_, i) => i !== idx))}
+
+                    <div className="space-y-1.5">
+                      {items.map((line, idx) => (
+                        <div
+                          key={idx}
+                          className="grid grid-cols-[2fr_70px_90px_80px_90px_120px_32px] items-center gap-2"
                         >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
+                          <SkuPicker
+                            value={line.sku}
+                            onValueChange={(sku) => {
+                              const next = [...items];
+                              next[idx] = { ...next[idx], sku };
+                              setItems(next);
+                            }}
+                            placeholder="SKU"
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            step="any"
+                            aria-label={`Line ${idx + 1} quantity`}
+                            value={line.qty || ""}
+                            onChange={(e) => {
+                              const next = [...items];
+                              next[idx] = { ...next[idx], qty: Number(e.target.value) };
+                              setItems(next);
+                            }}
+                          />
+                          <Input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            aria-label={`Line ${idx + 1} unit cost`}
+                            value={line.cost || ""}
+                            onChange={(e) => {
+                              const next = [...items];
+                              next[idx] = { ...next[idx], cost: Number(e.target.value) };
+                              setItems(next);
+                            }}
+                          />
+                          {/* Live line total */}
+                          <div className="pr-1 text-right text-sm font-medium tabular-nums">
+                            {formatMoney(line.qty * line.cost)}
+                          </div>
+                          <Input
+                            placeholder="Lot"
+                            aria-label={`Line ${idx + 1} batch`}
+                            value={line.batch ?? ""}
+                            onChange={(e) => {
+                              const next = [...items];
+                              next[idx] = { ...next[idx], batch: e.target.value };
+                              setItems(next);
+                            }}
+                          />
+                          <Input
+                            type="date"
+                            aria-label={`Line ${idx + 1} expiry`}
+                            value={line.expiry ?? ""}
+                            onChange={(e) => {
+                              const next = [...items];
+                              next[idx] = { ...next[idx], expiry: e.target.value };
+                              setItems(next);
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 text-muted-foreground hover:text-destructive"
+                            disabled={items.length <= 1}
+                            onClick={() => setItems(items.filter((_, i) => i !== idx))}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+
                     <Button
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => setItems([...items, { sku: "", qty: 1, cost: 0, batch: "", expiry: "" }])}
+                      onClick={() =>
+                        setItems([...items, { sku: "", qty: 1, cost: 0, batch: "", expiry: "" }])
+                      }
                     >
+                      <Plus className="mr-1.5 h-3.5 w-3.5" />
                       Add line
                     </Button>
                   </div>
+
+                  <Separator />
+
+                  {/* ── Bottom section: Costs (left) + Summary (right) ── */}
+                  <div className="grid grid-cols-2 gap-6">
+                    {/* Left: Landed costs + notes + options */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Landed Costs &amp; Tax</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Freight</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              value={freightCost}
+                              onChange={(e) => setFreightCost(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Duty</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              value={dutyCost}
+                              onChange={(e) => setDutyCost(e.target.value)}
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Tax</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              placeholder="0.00"
+                              value={headerTax}
+                              onChange={(e) => setHeaderTax(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="grn-notes">Notes (optional)</Label>
+                        <Textarea
+                          id="grn-notes"
+                          placeholder="Internal remarks for this receipt…"
+                          rows={2}
+                          value={notes}
+                          onChange={(e) => setNotes(e.target.value)}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm font-semibold">Options</Label>
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="grn-qc"
+                            checked={requiresQc}
+                            onCheckedChange={(v) => setRequiresQc(v === true)}
+                            className="mt-0.5"
+                          />
+                          <div>
+                            <Label htmlFor="grn-qc" className="text-sm font-normal leading-snug">
+                              Send to QC quarantine
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Stock not sellable until QC accepted
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <Checkbox
+                            id="grn-cost-update"
+                            checked={updateProductCost}
+                            onCheckedChange={(v) => setUpdateProductCost(v === true)}
+                            className="mt-0.5"
+                          />
+                          <div>
+                            <Label
+                              htmlFor="grn-cost-update"
+                              className="text-sm font-normal leading-snug"
+                            >
+                              Update product cost from receipt
+                            </Label>
+                            <p className="text-xs text-muted-foreground">
+                              Uses tenant cost mode (last / weighted average)
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Live GRN summary */}
+                    <div className="rounded-lg border bg-muted/30 p-4">
+                      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        GRN Summary
+                      </p>
+                      <div className="space-y-1.5 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Lines subtotal</span>
+                          <span className="tabular-nums">{formatMoney(subtotal)}</span>
+                        </div>
+                        {Number(freightCost) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Freight</span>
+                            <span className="tabular-nums">+ {formatMoney(Number(freightCost))}</span>
+                          </div>
+                        )}
+                        {Number(dutyCost) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Duty</span>
+                            <span className="tabular-nums">+ {formatMoney(Number(dutyCost))}</span>
+                          </div>
+                        )}
+                        {Number(headerTax) > 0 && (
+                          <div className="flex justify-between">
+                            <span className="text-muted-foreground">Tax</span>
+                            <span className="tabular-nums">+ {formatMoney(Number(headerTax))}</span>
+                          </div>
+                        )}
+                        <Separator className="my-1.5" />
+                        <div className="flex justify-between text-base font-semibold">
+                          <span>Grand Total</span>
+                          <span className="tabular-nums">{formatMoney(grandTotal)}</span>
+                        </div>
+                      </div>
+
+                      {requiresQc && (
+                        <div className="mt-3 rounded-md border border-warning/30 bg-warning/10 px-3 py-2 text-xs text-warning">
+                          ⚠ Stock will go to QC quarantine — not available to sell until accepted
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="grid grid-cols-2 gap-3 px-1">
-                  <div className="space-y-1.5">
-                    <Label>Freight (base)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={freightCost}
-                      onChange={(e) => setFreightCost(e.target.value)}
-                    />
+
+                <SheetFooter className="border-t pt-4">
+                  <div className="flex w-full items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Total:{" "}
+                      <strong className="text-foreground">{formatMoney(grandTotal)}</strong>
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setOpen(false);
+                          resetForm();
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => void submit()}
+                        disabled={
+                          createGrn.isPending ||
+                          items.filter((i) => i.sku && i.qty > 0).length === 0
+                        }
+                      >
+                        {createGrn.isPending && (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        )}
+                        Post GRN
+                      </Button>
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label>Header tax (base)</Label>
-                    <Input
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={headerTax}
-                      onChange={(e) => setHeaderTax(e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="flex flex-col gap-2 px-1">
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="grn-requires-qc"
-                      checked={requiresQc}
-                      onCheckedChange={(v) => setRequiresQc(v === true)}
-                    />
-                    <Label htmlFor="grn-requires-qc" className="text-sm font-normal">
-                      Send to QC quarantine
-                    </Label>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="grn-update-product-cost"
-                      checked={updateProductCost}
-                      onCheckedChange={(v) => setUpdateProductCost(v === true)}
-                    />
-                    <Label htmlFor="grn-update-product-cost" className="text-sm font-normal">
-                      Update product cost from receipt
-                    </Label>
-                  </div>
-                </div>
-                <SheetFooter>
-                  <Button variant="outline" onClick={() => setOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button onClick={() => void submit()} disabled={createGrn.isPending}>
-                    {createGrn.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                    Post GRN
-                  </Button>
                 </SheetFooter>
               </SheetContent>
             </Sheet>
@@ -333,6 +528,7 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
         }
       />
 
+      {/* ── Filter Bar ── */}
       <Card>
         <CardContent className="flex flex-wrap items-end gap-4 p-4">
           <div className="min-w-[160px] space-y-1.5">
@@ -373,6 +569,7 @@ export function GrnListPage({ initialSupplierId, openNew }: GrnListPageProps) {
         </CardContent>
       </Card>
 
+      {/* ── GRN Table ── */}
       <Card>
         <CardContent className="p-0">
           {isLoading && grns.length === 0 ? (
