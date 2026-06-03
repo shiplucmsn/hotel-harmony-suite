@@ -6,9 +6,11 @@ import { productionApi } from "@/modules/production/production-api";
 import type {
   CompleteProductionWorkOrderInput,
   CreateProductionBomInput,
+  CreateProductionMachineInput,
   CreateProductionWorkOrderInput,
   RegisterProductionRawMaterialInput,
   UpdateProductionBomInput,
+  UpdateProductionMachineInput,
 } from "@/modules/production/types";
 
 export const productionKeys = {
@@ -18,6 +20,8 @@ export const productionKeys = {
   finishedGoods: (params?: Record<string, unknown>) => ["production", "finished-goods", params] as const,
   productSkus: (params?: Record<string, unknown>) => ["production", "product-skus", params] as const,
   planning: (params?: Record<string, unknown>) => ["production", "planning", params] as const,
+  machines: (params?: Record<string, unknown>) => ["production", "machines", params] as const,
+  machine: (id: number | string) => ["production", "machines", id] as const,
   bom: (id: number | string) => ["production", "boms", id] as const,
   workOrders: (params?: Record<string, unknown>) => ["production", "work-orders", params] as const,
   workOrder: (id: number | string) => ["production", "work-orders", id] as const,
@@ -44,6 +48,45 @@ export function useProductionPlanning(weekStart?: string) {
   return useQuery({
     queryKey: productionKeys.planning({ week_start: weekStart }),
     queryFn: () => productionApi.planning({ week_start: weekStart }),
+  });
+}
+
+export function useProductionMachines(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  status?: string;
+}) {
+  return useQuery({
+    queryKey: productionKeys.machines(params),
+    queryFn: () => productionApi.machines(params),
+  });
+}
+
+export function useCreateProductionMachine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateProductionMachineInput) => productionApi.createMachine(body),
+    onSuccess: (res) => {
+      invalidateProduction(qc);
+      showSideEffects(res.meta);
+      toast.success("Machine saved");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to save machine")),
+  });
+}
+
+export function useUpdateProductionMachine() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateProductionMachineInput }) =>
+      productionApi.updateMachine(id, body),
+    onSuccess: (res) => {
+      invalidateProduction(qc);
+      showSideEffects(res.meta);
+      toast.success("Machine updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update machine")),
   });
 }
 

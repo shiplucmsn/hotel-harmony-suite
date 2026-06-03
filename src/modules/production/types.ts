@@ -262,6 +262,47 @@ export type ProductionPlanningDashboardDto = {
   capacity: ProductionPlanningCapacityDto[];
 };
 
+export type ProductionMachineDto = {
+  id: number;
+  uuid?: string;
+  code: string;
+  name: string;
+  production_line?: string | null;
+  line?: string | null;
+  status: "running" | "idle" | "maintenance" | "down" | string;
+  uptime: number;
+  uptime_pct?: number;
+  oee: number;
+  oee_pct?: number;
+  last_service?: string | null;
+  last_service_date?: string | null;
+  notes?: string | null;
+};
+
+export type ProductionMachinesSummaryDto = {
+  total: number;
+  running: number;
+  down_or_maintenance: number;
+  avg_oee: number;
+};
+
+export type ProductionMachinesListResult = PaginatedResult<ProductionMachineDto> & {
+  summary?: ProductionMachinesSummaryDto;
+};
+
+export type CreateProductionMachineInput = {
+  code?: string;
+  name: string;
+  production_line?: string;
+  status?: ProductionMachineDto["status"];
+  uptime_pct?: number;
+  oee_pct?: number;
+  last_service_date?: string;
+  notes?: string;
+};
+
+export type UpdateProductionMachineInput = Partial<CreateProductionMachineInput>;
+
 export type ProductionMutationMeta = {
   sideEffects?: ApiMetaSideEffect[];
 };

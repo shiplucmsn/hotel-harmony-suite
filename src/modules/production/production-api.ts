@@ -9,9 +9,13 @@ import type {
   PaginatedResult,
   ProductionBomDto,
   ProductionFinishedGoodsDto,
+  ProductionMachinesListResult,
+  ProductionMachineDto,
   ProductionPlanningDashboardDto,
   ProductionRawMaterialDto,
   ProductionWorkOrderDto,
+  CreateProductionMachineInput,
+  UpdateProductionMachineInput,
   RegisterProductionRawMaterialInput,
   UpdateProductionBomInput,
 } from "@/modules/production/types";
@@ -67,6 +71,22 @@ export const productionApi = {
     api
       .get<ApiEnvelope<ProductionPlanningDashboardDto>>(`/v1/production/planning${buildQuery(params)}`)
       .then((r) => r.data),
+
+  machines: (params?: ListParams) =>
+    api.get<ApiEnvelope<ProductionMachineDto[]>>(`/v1/production/machines${buildQuery(params)}`).then((r) => ({
+      data: Array.isArray(r.data) ? r.data : [],
+      pagination: r.meta?.pagination,
+      summary: r.meta?.summary as ProductionMachinesListResult["summary"],
+    })),
+
+  machine: (id: number | string) =>
+    api.get<ApiEnvelope<ProductionMachineDto>>(`/v1/production/machines/${id}`).then((r) => r.data),
+
+  createMachine: (body: CreateProductionMachineInput) =>
+    api.post<ApiEnvelope<ProductionMachineDto>>("/v1/production/machines", body, { idempotent: true }),
+
+  updateMachine: (id: number | string, body: UpdateProductionMachineInput) =>
+    api.patch<ApiEnvelope<ProductionMachineDto>>(`/v1/production/machines/${id}`, body, { idempotent: true }),
 
   registerRawMaterial: (body: RegisterProductionRawMaterialInput) =>
     api.post<ApiEnvelope<{ material: ProductionRawMaterialDto; product_supplier_id?: number | null }>>(
