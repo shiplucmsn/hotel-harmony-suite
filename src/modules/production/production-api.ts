@@ -9,9 +9,15 @@ import type {
   PaginatedResult,
   ProductionBomDto,
   ProductionFinishedGoodsDto,
+  ProductionFinishedGoodsListResult,
+  ProductionOutputHistoryDto,
+  ProductionOutputHistoryListResult,
   ProductionMachinesListResult,
   ProductionMachineDto,
   ProductionPlanningDashboardDto,
+  ProductionWorkflowDashboardDto,
+  ProductionAnalyticsDto,
+  ProductionAnalyticsFilters,
   ProductionRawMaterialDto,
   ProductionWorkOrderDto,
   CreateProductionMachineInput,
@@ -66,10 +72,21 @@ export const productionApi = {
       .get<ApiEnvelope<ProductionRawMaterialDto[]>>(`/v1/production/raw-materials${buildQuery(params)}`)
       .then(paginated),
 
-  finishedGoods: (params?: ListParams) =>
+  finishedGoods: (params?: ListParams & { bom_status?: string; stock_status?: string }) =>
+    api.get<ApiEnvelope<ProductionFinishedGoodsDto[]>>(`/v1/production/finished-goods${buildQuery(params)}`).then((r) => ({
+      data: Array.isArray(r.data) ? r.data : [],
+      pagination: r.meta?.pagination,
+      summary: r.meta?.summary as ProductionFinishedGoodsListResult["summary"],
+    })),
+
+  finishedGoodsOutputHistory: (params?: ListParams & { sku?: string }) =>
     api
-      .get<ApiEnvelope<ProductionFinishedGoodsDto[]>>(`/v1/production/finished-goods${buildQuery(params)}`)
-      .then(paginated),
+      .get<ApiEnvelope<ProductionOutputHistoryDto[]>>(`/v1/production/finished-goods/output-history${buildQuery(params)}`)
+      .then((r) => ({
+        data: Array.isArray(r.data) ? r.data : [],
+        pagination: r.meta?.pagination,
+        summary: r.meta?.summary as ProductionOutputHistoryListResult["summary"],
+      })),
 
   /** BOM / production SKU autocomplete (production.boms.view — no inventory.stock.view required). */
   productSkus: (params?: ListParams & { purpose?: "component" | "finished" }) =>
@@ -78,6 +95,14 @@ export const productionApi = {
   planning: (params?: { week_start?: string }) =>
     api
       .get<ApiEnvelope<ProductionPlanningDashboardDto>>(`/v1/production/planning${buildQuery(params)}`)
+      .then((r) => r.data),
+
+  workflow: () =>
+    api.get<ApiEnvelope<ProductionWorkflowDashboardDto>>("/v1/production/workflow").then((r) => r.data),
+
+  analytics: (params?: ProductionAnalyticsFilters) =>
+    api
+      .get<ApiEnvelope<ProductionAnalyticsDto>>(`/v1/production/analytics${buildQuery(params)}`)
       .then((r) => r.data),
 
   machines: (params?: ListParams) =>

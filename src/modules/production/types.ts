@@ -28,6 +28,45 @@ export type ProductionRawMaterialDto = {
   fill_percent: number;
 };
 
+export type ProductionFinishedGoodsSummaryDto = {
+  total_skus: number;
+  low_stock: number;
+  out_of_stock: number;
+  total_stock_qty: number;
+  inventory_value: number;
+};
+
+export type ProductionFinishedGoodsListResult = PaginatedResult<ProductionFinishedGoodsDto> & {
+  summary?: ProductionFinishedGoodsSummaryDto;
+};
+
+export type ProductionOutputHistoryDto = {
+  id: string;
+  output_line_id: number;
+  work_order_id: number;
+  work_order_number: string;
+  batch?: string;
+  sku: string;
+  product_name: string;
+  qty: number;
+  actual_qty: number;
+  unit_cost: number;
+  line_cost: number;
+  cost: number;
+  completed_at?: string | null;
+  date?: string | null;
+};
+
+export type ProductionOutputHistorySummaryDto = {
+  total_lines: number;
+  total_qty: number;
+  total_cost: number;
+};
+
+export type ProductionOutputHistoryListResult = PaginatedResult<ProductionOutputHistoryDto> & {
+  summary?: ProductionOutputHistorySummaryDto;
+};
+
 export type ProductionFinishedGoodsDto = {
   id: number;
   product_id: number;
@@ -244,6 +283,102 @@ export type ProductionPlanningCapacityDto = {
   planned_qty: number;
   load_percent: number;
   work_order_count: number;
+};
+
+export type ProductionWorkflowStageDto = {
+  key: string;
+  label: string;
+  count: number;
+  load_percent: number;
+  hint: string;
+};
+
+export type ProductionWorkflowActiveOrderDto = {
+  id: number;
+  number: string;
+  status: string;
+  bom_id?: number | null;
+  bom_name?: string | null;
+  product_label: string;
+  planned_qty: number;
+  actual_qty: number;
+  scheduled_date?: string | null;
+  progress_percent: number;
+  progress_label: string;
+};
+
+export type ProductionWorkflowThroughputDto = {
+  name: string;
+  actual: number;
+  target: number;
+  load_percent: number;
+};
+
+export type ProductionWorkflowDashboardDto = {
+  summary: {
+    raw_material_skus: number;
+    raw_low_stock: number;
+    planning_queue: number;
+    in_production: number;
+    qc_attention_30d: number;
+    finished_skus: number;
+    finished_on_hand: number;
+    completed_this_week: number;
+    active_boms: number;
+  };
+  stages: ProductionWorkflowStageDto[];
+  active_work_orders: ProductionWorkflowActiveOrderDto[];
+  throughput: ProductionWorkflowThroughputDto[];
+};
+
+export type ProductionAnalyticsFilters = {
+  from?: string;
+  to?: string;
+  group_by?: "day" | "week" | "month";
+};
+
+export type ProductionAnalyticsOutputPoint = {
+  period: string;
+  label: string;
+  actual: number;
+};
+
+export type ProductionAnalyticsYieldPoint = {
+  period: string;
+  label: string;
+  yield_percent: number;
+  actual_qty: number;
+  planned_qty: number;
+};
+
+export type ProductionAnalyticsQcPoint = {
+  result: string;
+  count: number;
+};
+
+export type ProductionAnalyticsDto = {
+  range: { from: string; to: string };
+  summary: {
+    output_qty: number;
+    planned_qty: number;
+    yield_percent: number;
+    qc_pass_rate: number;
+    qc_inspections: number;
+    throughput_per_wo: number;
+    work_orders_completed: number;
+    work_orders_open: number;
+    production_cost_total: number;
+    waste_cost_total: number;
+    machine_oee_avg: number;
+  };
+  output_trend: ProductionAnalyticsOutputPoint[];
+  yield_trend: ProductionAnalyticsYieldPoint[];
+  cost_breakdown: {
+    raw_material_cost: number;
+    overhead_cost: number;
+    total_cost: number;
+  };
+  qc_by_result: ProductionAnalyticsQcPoint[];
 };
 
 export type ProductionPlanningDashboardDto = {

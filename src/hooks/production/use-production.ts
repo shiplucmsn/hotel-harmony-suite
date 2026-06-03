@@ -22,8 +22,12 @@ export const productionKeys = {
   boms: (params?: Record<string, unknown>) => ["production", "boms", params] as const,
   rawMaterials: (params?: Record<string, unknown>) => ["production", "raw-materials", params] as const,
   finishedGoods: (params?: Record<string, unknown>) => ["production", "finished-goods", params] as const,
+  finishedGoodsOutputHistory: (params?: Record<string, unknown>) =>
+    ["production", "finished-goods-output", params] as const,
   productSkus: (params?: Record<string, unknown>) => ["production", "product-skus", params] as const,
   planning: (params?: Record<string, unknown>) => ["production", "planning", params] as const,
+  workflow: () => ["production", "workflow"] as const,
+  analytics: (params?: Record<string, unknown>) => ["production", "analytics", params] as const,
   machines: (params?: Record<string, unknown>) => ["production", "machines", params] as const,
   machine: (id: number | string) => ["production", "machines", id] as const,
   qualityInspections: (params?: Record<string, unknown>) => ["production", "quality-inspections", params] as const,
@@ -56,6 +60,20 @@ export function useProductionPlanning(weekStart?: string) {
   return useQuery({
     queryKey: productionKeys.planning({ week_start: weekStart }),
     queryFn: () => productionApi.planning({ week_start: weekStart }),
+  });
+}
+
+export function useProductionWorkflow() {
+  return useQuery({
+    queryKey: productionKeys.workflow(),
+    queryFn: () => productionApi.workflow(),
+  });
+}
+
+export function useProductionAnalytics(params?: { from?: string; to?: string; group_by?: string }) {
+  return useQuery({
+    queryKey: productionKeys.analytics(params),
+    queryFn: () => productionApi.analytics(params),
   });
 }
 
@@ -194,10 +212,23 @@ export function useProductionFinishedGoods(params?: {
   per_page?: number;
   search?: string;
   bom_status?: string;
+  stock_status?: string;
 }) {
   return useQuery({
     queryKey: productionKeys.finishedGoods(params),
     queryFn: () => productionApi.finishedGoods(params),
+  });
+}
+
+export function useProductionFinishedGoodsOutputHistory(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  sku?: string;
+}) {
+  return useQuery({
+    queryKey: productionKeys.finishedGoodsOutputHistory(params),
+    queryFn: () => productionApi.finishedGoodsOutputHistory(params),
   });
 }
 

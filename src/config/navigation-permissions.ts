@@ -56,4 +56,6 @@ export const ROUTE_NAV_PERMISSION_MAP: Record<string, string> = {
   "/app/prod/finished-goods": "production.materials.view",
   "/app/prod/planning": "production.boms.view",
   "/app/prod/work-orders": "production.boms.view",
+  "/app/prod/workflow": "production.boms.view",
+  "/app/prod/analytics": "production.boms.view",
 };
