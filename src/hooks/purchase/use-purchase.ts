@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { showSideEffects } from "@/lib/api-meta";
+import { withTenantKey } from "@/lib/tenant-query";
 import { purchaseApi } from "@/modules/purchase/purchase-api";
 import type {
   CreateGrnInput,
@@ -15,24 +16,27 @@ import type {
 } from "@/modules/purchase/types";
 
 export const purchaseKeys = {
-  all: ["purchase"] as const,
-  suppliers: (params?: Record<string, unknown>) => [...purchaseKeys.all, "suppliers", params] as const,
-  supplier: (id: number | string) => [...purchaseKeys.all, "supplier", id] as const,
+  all: () => withTenantKey(["purchase"] as const),
+  suppliers: (params?: Record<string, unknown>) =>
+    withTenantKey(["purchase", "suppliers", params] as const),
+  supplier: (id: number | string) => withTenantKey(["purchase", "supplier", id] as const),
   supplierLedger: (id: number | string, params?: Record<string, unknown>) =>
-    [...purchaseKeys.all, "supplier-ledger", id, params] as const,
-  orders: (params?: Record<string, unknown>) => [...purchaseKeys.all, "orders", params] as const,
-  /** Prefix for invalidating every orders list query (any page/tab/filter). */
-  ordersList: () => [...purchaseKeys.all, "orders"] as const,
-  order: (id: number | string) => [...purchaseKeys.all, "order", id] as const,
-  orderActivity: (id: number | string) => [...purchaseKeys.all, "order-activity", id] as const,
-  payments: (params?: Record<string, unknown>) => [...purchaseKeys.all, "payments", params] as const,
-  grns: (params?: Record<string, unknown>) => [...purchaseKeys.all, "grns", params] as const,
-  grn: (id: number | string) => [...purchaseKeys.all, "grn", id] as const,
-  grnQcQueue: (params?: Record<string, unknown>) => [...purchaseKeys.all, "grn-qc-queue", params] as const,
-  returns: (params?: Record<string, unknown>) => [...purchaseKeys.all, "returns", params] as const,
+    withTenantKey(["purchase", "supplier-ledger", id, params] as const),
+  orders: (params?: Record<string, unknown>) => withTenantKey(["purchase", "orders", params] as const),
+  ordersList: () => withTenantKey(["purchase", "orders"] as const),
+  order: (id: number | string) => withTenantKey(["purchase", "order", id] as const),
+  orderActivity: (id: number | string) => withTenantKey(["purchase", "order-activity", id] as const),
+  payments: (params?: Record<string, unknown>) => withTenantKey(["purchase", "payments", params] as const),
+  grns: (params?: Record<string, unknown>) => withTenantKey(["purchase", "grns", params] as const),
+  grn: (id: number | string) => withTenantKey(["purchase", "grn", id] as const),
+  grnQcQueue: (params?: Record<string, unknown>) =>
+    withTenantKey(["purchase", "grn-qc-queue", params] as const),
+  returns: (params?: Record<string, unknown>) => withTenantKey(["purchase", "returns", params] as const),
   supplierInvoices: (params?: Record<string, unknown>) =>
-    [...purchaseKeys.all, "supplier-invoices", params] as const,
-  supplierInvoice: (id: number | string) => [...purchaseKeys.all, "supplier-invoice", id] as const,
+    withTenantKey(["purchase", "supplier-invoices", params] as const),
+  supplierInvoice: (id: number | string) => withTenantKey(["purchase", "supplier-invoice", id] as const),
+  openSummary: () => withTenantKey(["purchase", "open-summary"] as const),
+  apSummary: () => withTenantKey(["purchase", "ap-summary"] as const),
 };
 
 export function useSuppliers(params?: {
@@ -71,7 +75,7 @@ export function useCreateSupplier() {
   return useMutation({
     mutationFn: (body: CreateSupplierInput) => purchaseApi.createSupplier(body),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       toast.success("Supplier created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create supplier")),
@@ -84,7 +88,7 @@ export function useUpdateSupplier() {
     mutationFn: ({ id, body }: { id: number | string; body: UpdateSupplierInput }) =>
       purchaseApi.updateSupplier(id, body),
     onSuccess: (_data, vars) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       void qc.invalidateQueries({ queryKey: purchaseKeys.supplier(vars.id) });
       toast.success("Supplier updated");
     },
@@ -94,14 +98,14 @@ export function useUpdateSupplier() {
 
 export function usePurchaseOpenSummary() {
   return useQuery({
-    queryKey: [...purchaseKeys.all, "open-summary"] as const,
+    queryKey: purchaseKeys.openSummary(),
     queryFn: () => purchaseApi.openOrdersSummary(),
   });
 }
 
 export function usePurchaseApSummary() {
   return useQuery({
-    queryKey: [...purchaseKeys.all, "ap-summary"] as const,
+    queryKey: purchaseKeys.apSummary(),
     queryFn: () => purchaseApi.apSummary(),
   });
 }
@@ -222,7 +226,7 @@ export function useCreateVendorPayment() {
   return useMutation({
     mutationFn: (body: CreateVendorPaymentInput) => purchaseApi.createPayment(body),
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       showSideEffects(res.meta);
       toast.success("Payment recorded");
     },
@@ -263,7 +267,7 @@ export function useCreateGrn() {
   return useMutation({
     mutationFn: (body: CreateGrnInput) => purchaseApi.createGrn(body),
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       showSideEffects(res.meta);
       toast.success("GRN posted");
     },
@@ -283,7 +287,7 @@ export function useQcAcceptGrn() {
   return useMutation({
     mutationFn: (id: number | string) => purchaseApi.qcAcceptGrn(id),
     onSuccess: (res, id) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       void qc.invalidateQueries({ queryKey: purchaseKeys.grn(id) });
       showSideEffects(res.meta);
       toast.success("QC accepted — stock moved to sellable");
@@ -303,7 +307,7 @@ export function useQcRejectGrn() {
       body?: { create_return?: boolean; notes?: string };
     }) => purchaseApi.qcRejectGrn(id, body),
     onSuccess: (res, vars) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       void qc.invalidateQueries({ queryKey: purchaseKeys.grn(vars.id) });
       showSideEffects(res.meta);
       toast.success("QC rejected");
@@ -317,7 +321,7 @@ export function useVoidGrn() {
   return useMutation({
     mutationFn: (id: number | string) => purchaseApi.voidGrn(id),
     onSuccess: (res, id) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       void qc.invalidateQueries({ queryKey: purchaseKeys.grn(id) });
       showSideEffects(res.meta);
       toast.success("GRN voided");
@@ -364,7 +368,7 @@ export function useCreateSupplierInvoice() {
   return useMutation({
     mutationFn: (body: CreateSupplierInvoiceInput) => purchaseApi.createSupplierInvoice(body),
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       showSideEffects(res.meta);
       toast.success("Supplier invoice created");
     },
@@ -378,7 +382,7 @@ export function useMatchSupplierInvoice() {
     mutationFn: ({ id, force }: { id: number | string; force?: boolean }) =>
       purchaseApi.matchSupplierInvoice(id, { force }),
     onSuccess: (res, vars) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       void qc.invalidateQueries({ queryKey: purchaseKeys.supplierInvoice(vars.id) });
       showSideEffects(res.meta);
       toast.success("3-way match completed");
@@ -392,7 +396,7 @@ export function useApproveSupplierInvoice() {
   return useMutation({
     mutationFn: (id: number | string) => purchaseApi.approveSupplierInvoice(id),
     onSuccess: (res, id) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       void qc.invalidateQueries({ queryKey: purchaseKeys.supplierInvoice(id) });
       showSideEffects(res.meta);
       toast.success("Invoice approved");
@@ -406,7 +410,7 @@ export function useCreatePurchaseReturn() {
   return useMutation({
     mutationFn: (body: CreatePurchaseReturnInput) => purchaseApi.createReturn(body),
     onSuccess: (res) => {
-      void qc.invalidateQueries({ queryKey: purchaseKeys.all });
+      void qc.invalidateQueries({ queryKey: purchaseKeys.all() });
       showSideEffects(res.meta);
       toast.success("Purchase return posted");
     },

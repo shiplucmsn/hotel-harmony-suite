@@ -39,7 +39,7 @@ export function NotificationBell() {
         setOpen(next);
         if (next) {
           void refetch();
-          void queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount });
+          void queryClient.invalidateQueries({ queryKey: notificationKeys.unreadCount() });
         }
       }}
     >

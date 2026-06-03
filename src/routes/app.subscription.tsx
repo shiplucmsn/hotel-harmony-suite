@@ -1,94 +1,150 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { PageHeader } from "@/components/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Download, ExternalLink } from "lucide-react";
+import { Check, Sparkles } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { tenantSubscriptionApi } from "@/modules/platform/tenant-subscription-api";
+import { getApiErrorMessage } from "@/lib/api-errors";
+import { withTenantKey } from "@/lib/tenant-query";
+import { useAuthStore } from "@/stores/auth-store";
+import { authApi } from "@/modules/auth/auth-api";
 
 export const Route = createFileRoute("/app/subscription")({ component: SubscriptionPage });
 
-const invoices = [
-  { id: "INV-2049", date: "Nov 1, 2026", amount: "$245.00", status: "Paid" },
-  { id: "INV-2018", date: "Oct 1, 2026", amount: "$245.00", status: "Paid" },
-  { id: "INV-1990", date: "Sep 1, 2026", amount: "$245.00", status: "Paid" },
-  { id: "INV-1962", date: "Aug 1, 2026", amount: "$215.00", status: "Paid" },
-];
-
 function SubscriptionPage() {
+  const queryClient = useQueryClient();
+  const setUser = useAuthStore((s) => s.setUser);
+  const token = useAuthStore((s) => s.token);
+
+  const { data: plansRes, isLoading: plansLoading } = useQuery({
+    queryKey: withTenantKey(["tenant", "subscription", "plans"]),
+    queryFn: () => tenantSubscriptionApi.listPlans(),
+  });
+
+  const { data: currentRes, isLoading: currentLoading } = useQuery({
+    queryKey: withTenantKey(["tenant", "subscription", "current"]),
+    queryFn: () => tenantSubscriptionApi.current(),
+  });
+
+  const plans = plansRes?.data ?? [];
+  const current = currentRes?.data?.subscription;
+  const currentPlanCode = current?.plan?.code ?? "starter";
+
+  useEffect(() => {
+    if (!token || !currentRes) return;
+    void authApi.me().then(setUser);
+  }, [token, currentRes, setUser]);
+
+  const upgrade = useMutation({
+    mutationFn: (planCode: string) => tenantSubscriptionApi.upgrade(planCode),
+    onSuccess: async (res) => {
+      toast.success(`Upgraded to ${res.data?.plan?.name ?? "new plan"}. Payment can be added later.`);
+      await queryClient.invalidateQueries({ queryKey: withTenantKey(["tenant"]) });
+      const user = await authApi.me();
+      setUser(user);
+    },
+    onError: (err) => toast.error(getApiErrorMessage(err, "Could not upgrade plan")),
+  });
+
   return (
     <div className="space-y-6">
-      <PageHeader title="Subscription" description="Manage your plan, payment method and invoices." breadcrumbs={[{ label: "Account" }, { label: "Subscription" }]} />
+      <PageHeader
+        title="Subscription & plans"
+        description="Choose a package for your workspace. Upgrades apply immediately — billing integration comes later."
+        breadcrumbs={[{ label: "Account" }, { label: "Subscription" }]}
+      />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2 relative overflow-hidden">
-          <div className="absolute inset-0 gradient-mesh opacity-30" />
-          <CardContent className="relative p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <Badge className="gradient-primary text-primary-foreground border-0 mb-2">Current plan</Badge>
-                <h2 className="text-2xl font-semibold">Business</h2>
-                <p className="text-sm text-muted-foreground mt-1">Renews on December 12, 2026</p>
-              </div>
-              <div className="text-right">
-                <p className="text-3xl font-semibold">$245<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-              </div>
-            </div>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div>
-                <div className="flex justify-between text-sm mb-1.5"><span className="text-muted-foreground">Users</span><span className="font-medium">28 / 50</span></div>
-                <Progress value={56} />
-              </div>
-              <div>
-                <div className="flex justify-between text-sm mb-1.5"><span className="text-muted-foreground">Storage</span><span className="font-medium">62 / 100 GB</span></div>
-                <Progress value={62} />
-              </div>
-            </div>
-            <div className="mt-6 flex flex-wrap gap-2">
-              <Button asChild className="gradient-primary text-primary-foreground border-0"><Link to="/pricing">Change plan</Link></Button>
-              <Button variant="outline">Cancel subscription</Button>
-            </div>
-          </CardContent>
-        </Card>
-
+      {current && (
         <Card>
-          <CardHeader><CardTitle className="text-base">Payment method</CardTitle></CardHeader>
-          <CardContent className="space-y-4">
-            <div className="rounded-xl gradient-primary p-4 text-primary-foreground shadow-elegant">
-              <p className="text-xs opacity-80">Visa</p>
-              <p className="mt-6 font-mono">•••• •••• •••• 4242</p>
-              <div className="mt-2 flex justify-between text-xs opacity-80"><span>Alicia Romero</span><span>12/27</span></div>
+          <CardHeader>
+            <CardTitle className="text-base">Current plan</CardTitle>
+            <CardDescription>
+              Status: <span className="font-medium text-foreground">{current.status}</span>
+              {current.trial_ends_at ? (
+                <>
+                  {" "}
+                  · Trial ends {new Date(current.trial_ends_at).toLocaleDateString()}
+                </>
+              ) : null}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-2">
+              <Badge className="gradient-primary border-0 text-primary-foreground">
+                {current.plan?.name ?? currentPlanCode}
+              </Badge>
+              <span className="text-sm text-muted-foreground">
+                ${Number(current.plan?.price_monthly ?? 0).toFixed(0)}/month
+              </span>
             </div>
-            <Button variant="outline" className="w-full">Update payment method</Button>
           </CardContent>
         </Card>
-      </div>
+      )}
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div><CardTitle>Billing history</CardTitle><CardDescription>Download your past invoices.</CardDescription></div>
-            <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" />Export all</Button>
-          </div>
-        </CardHeader>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader><TableRow><TableHead>Invoice</TableHead><TableHead>Date</TableHead><TableHead>Amount</TableHead><TableHead>Status</TableHead><TableHead /></TableRow></TableHeader>
-            <TableBody>
-              {invoices.map((i) => (
-                <TableRow key={i.id}>
-                  <TableCell className="font-medium">{i.id}</TableCell>
-                  <TableCell className="text-muted-foreground">{i.date}</TableCell>
-                  <TableCell>{i.amount}</TableCell>
-                  <TableCell><Badge variant="outline" className="bg-success/15 text-success border-success/20">{i.status}</Badge></TableCell>
-                  <TableCell><Button variant="ghost" size="sm"><ExternalLink className="h-3.5 w-3.5" /></Button></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-3">
+        {(plansLoading || currentLoading) && (
+          <p className="text-sm text-muted-foreground md:col-span-3">Loading plans…</p>
+        )}
+        {plans.map((plan) => {
+          const isCurrent = plan.code === currentPlanCode && current?.status === "active";
+          const highlighted = plan.code === "professional";
+
+          return (
+            <Card
+              key={plan.code}
+              className={cn(
+                "relative flex flex-col",
+                highlighted && "border-primary shadow-md",
+                isCurrent && "ring-2 ring-primary/40",
+              )}
+            >
+              {highlighted ? (
+                <Badge className="absolute -top-2.5 left-1/2 -translate-x-1/2 gradient-primary border-0 text-primary-foreground text-[10px]">
+                  Popular
+                </Badge>
+              ) : null}
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  {plan.code === "enterprise" ? <Sparkles className="h-4 w-4 text-primary" /> : null}
+                  {plan.name}
+                </CardTitle>
+                <CardDescription>{plan.description ?? plan.code}</CardDescription>
+              </CardHeader>
+              <CardContent className="flex flex-1 flex-col">
+                <p className="text-3xl font-semibold">
+                  ${Number(plan.price_monthly).toFixed(0)}
+                  <span className="text-sm font-normal text-muted-foreground">/mo</span>
+                </p>
+                {plan.trial_days > 0 ? (
+                  <p className="mt-1 text-xs text-muted-foreground">{plan.trial_days}-day free trial</p>
+                ) : null}
+                <ul className="mt-4 flex-1 space-y-1.5 text-sm text-muted-foreground">
+                  {(plan.module_keys ?? []).slice(0, 8).map((key) => (
+                    <li key={key} className="flex items-center gap-2">
+                      <Check className="h-3.5 w-3.5 shrink-0 text-success" />
+                      <span className="capitalize">{key.replace(/_/g, " ")}</span>
+                    </li>
+                  ))}
+                </ul>
+                <Button
+                  className={cn("mt-6 w-full", highlighted && "gradient-primary border-0 text-primary-foreground")}
+                  variant={highlighted ? "default" : "outline"}
+                  disabled={isCurrent || upgrade.isPending}
+                  onClick={() => upgrade.mutate(plan.code)}
+                >
+                  {isCurrent ? "Current plan" : upgrade.isPending ? "Upgrading…" : "Upgrade now"}
+                </Button>
+                <p className="mt-2 text-center text-[10px] text-muted-foreground">No payment required yet</p>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
     </div>
   );
 }

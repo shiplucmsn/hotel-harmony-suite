@@ -9,8 +9,10 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as WorkspaceNotFoundRouteImport } from './routes/workspace-not-found'
 import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as TwoFactorRouteImport } from './routes/two-factor'
+import { Route as SignupRouteImport } from './routes/signup'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as PricingRouteImport } from './routes/pricing'
@@ -145,6 +147,11 @@ import { Route as AppHrEmployeesEmployeeIdRouteImport } from './routes/app.hr.em
 import { Route as AppHrAttendanceDailyRouteImport } from './routes/app.hr.attendance.daily'
 import { Route as AppCrmCustomersCustomerIdRouteImport } from './routes/app.crm.customers.$customerId'
 
+const WorkspaceNotFoundRoute = WorkspaceNotFoundRouteImport.update({
+  id: '/workspace-not-found',
+  path: '/workspace-not-found',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const VerifyEmailRoute = VerifyEmailRouteImport.update({
   id: '/verify-email',
   path: '/verify-email',
@@ -153,6 +160,11 @@ const VerifyEmailRoute = VerifyEmailRouteImport.update({
 const TwoFactorRoute = TwoFactorRouteImport.update({
   id: '/two-factor',
   path: '/two-factor',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SignupRoute = SignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -838,8 +850,10 @@ export interface FileRoutesByFullPath {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/two-factor': typeof TwoFactorRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/workspace-not-found': typeof WorkspaceNotFoundRoute
   '/app/activity': typeof AppActivityRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/components': typeof AppComponentsRoute
@@ -975,8 +989,10 @@ export interface FileRoutesByTo {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/two-factor': typeof TwoFactorRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/workspace-not-found': typeof WorkspaceNotFoundRoute
   '/app/activity': typeof AppActivityRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/components': typeof AppComponentsRoute
@@ -1109,8 +1125,10 @@ export interface FileRoutesById {
   '/pricing': typeof PricingRoute
   '/register': typeof RegisterRoute
   '/reset-password': typeof ResetPasswordRoute
+  '/signup': typeof SignupRoute
   '/two-factor': typeof TwoFactorRoute
   '/verify-email': typeof VerifyEmailRoute
+  '/workspace-not-found': typeof WorkspaceNotFoundRoute
   '/app/activity': typeof AppActivityRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/components': typeof AppComponentsRoute
@@ -1248,8 +1266,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/signup'
     | '/two-factor'
     | '/verify-email'
+    | '/workspace-not-found'
     | '/app/activity'
     | '/app/analytics'
     | '/app/components'
@@ -1385,8 +1405,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/signup'
     | '/two-factor'
     | '/verify-email'
+    | '/workspace-not-found'
     | '/app/activity'
     | '/app/analytics'
     | '/app/components'
@@ -1518,8 +1540,10 @@ export interface FileRouteTypes {
     | '/pricing'
     | '/register'
     | '/reset-password'
+    | '/signup'
     | '/two-factor'
     | '/verify-email'
+    | '/workspace-not-found'
     | '/app/activity'
     | '/app/analytics'
     | '/app/components'
@@ -1656,13 +1680,22 @@ export interface RootRouteChildren {
   PricingRoute: typeof PricingRoute
   RegisterRoute: typeof RegisterRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
+  SignupRoute: typeof SignupRoute
   TwoFactorRoute: typeof TwoFactorRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  WorkspaceNotFoundRoute: typeof WorkspaceNotFoundRoute
   SupportTokenRoute: typeof SupportTokenRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/workspace-not-found': {
+      id: '/workspace-not-found'
+      path: '/workspace-not-found'
+      fullPath: '/workspace-not-found'
+      preLoaderRoute: typeof WorkspaceNotFoundRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/verify-email': {
       id: '/verify-email'
       path: '/verify-email'
@@ -1675,6 +1708,13 @@ declare module '@tanstack/react-router' {
       path: '/two-factor'
       fullPath: '/two-factor'
       preLoaderRoute: typeof TwoFactorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/signup': {
+      id: '/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof SignupRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -3024,8 +3064,10 @@ const rootRouteChildren: RootRouteChildren = {
   PricingRoute: PricingRoute,
   RegisterRoute: RegisterRoute,
   ResetPasswordRoute: ResetPasswordRoute,
+  SignupRoute: SignupRoute,
   TwoFactorRoute: TwoFactorRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  WorkspaceNotFoundRoute: WorkspaceNotFoundRoute,
   SupportTokenRoute: SupportTokenRoute,
 }
 export const routeTree = rootRouteImport

@@ -85,7 +85,7 @@ function RootShell({ children }: { children: React.ReactNode }) {
       <head>
         <HeadContent />
       </head>
-      <body className="min-h-screen bg-background antialiased">
+      <body className="min-h-screen bg-background antialiased" suppressHydrationWarning>
         <div id="__erp_preloader" className="fixed inset-0 z-[9999]">
           <AppPreloader message="Checking session…" />
         </div>

@@ -7,6 +7,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/
 import { redirectIfAuthenticated } from "@/core/auth/redirect-if-authenticated";
 import { DEFAULT_APP_ROUTE } from "@/config/routes";
 import { useGuestGate } from "@/hooks/use-guest-gate";
+import { useTenantHostGate } from "@/hooks/use-tenant-host-gate";
 import { useRegister } from "@/hooks/auth/use-register";
 import { registerSchema, type RegisterFormValues } from "@/modules/auth/schemas";
 import { createZodResolver } from "@/shared/components/forms/zod-form";
@@ -22,6 +23,7 @@ export const Route = createFileRoute("/register")({
 });
 
 function RegisterPage() {
+  const hostReady = useTenantHostGate();
   const guestReady = useGuestGate();
   const register = useRegister();
 
@@ -40,17 +42,21 @@ function RegisterPage() {
   const password = form.watch("password");
   const passwordConfirmation = form.watch("passwordConfirmation");
 
-  if (!guestReady) {
+  if (!hostReady || !guestReady) {
     return null;
   }
 
   return (
     <AuthLayout
-      title="Create your workspace"
-      subtitle="Start your 14-day free trial — no credit card required."
+      title="Join your workspace"
+      subtitle="Your company already has a workspace. Ask your admin for the subdomain, then create your account."
       footer={
         <>
-          Already have an account?{" "}
+          Need a new company workspace?{" "}
+          <Link to="/signup" className="font-medium text-primary hover:underline">
+            Start 7-day trial
+          </Link>
+          {" · "}
           <Link to="/login" search={{}} className="font-medium text-primary hover:underline">
             Sign in
           </Link>

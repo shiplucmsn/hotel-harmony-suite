@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { warehouseFormSchema, type WarehouseFormValues } from "@/modules/inventory/schemas";
 import { useCreateWarehouse } from "@/hooks/inventory/use-inventory-warehouses";
+import { useTenantContext } from "@/hooks/use-tenant-context";
 
 type WarehouseFormSheetProps = {
   open: boolean;
@@ -22,6 +23,8 @@ type WarehouseFormSheetProps = {
 
 export function WarehouseFormSheet({ open, onOpenChange }: WarehouseFormSheetProps) {
   const createWarehouse = useCreateWarehouse();
+  const { data: tenantCtx } = useTenantContext();
+  const branches = tenantCtx?.branches ?? [];
 
   const form = useForm<WarehouseFormValues>({
     resolver: createZodResolver(warehouseFormSchema),
@@ -31,6 +34,7 @@ export function WarehouseFormSheet({ open, onOpenChange }: WarehouseFormSheetPro
       location: "",
       status: "active",
       is_default: false,
+      branch_id: tenantCtx?.active_branch_id ?? undefined,
     },
   });
 
@@ -45,6 +49,7 @@ export function WarehouseFormSheet({ open, onOpenChange }: WarehouseFormSheetPro
       location: values.location,
       status: values.status,
       is_default: values.is_default,
+      branch_id: values.branch_id,
     });
     onOpenChange(false);
   };
@@ -119,6 +124,35 @@ export function WarehouseFormSheet({ open, onOpenChange }: WarehouseFormSheetPro
             </FormItem>
           )}
         />
+        {branches.length > 0 ? (
+          <FormField
+            control={form.control}
+            name="branch_id"
+            render={({ field }) => (
+              <FormItem className="sm:col-span-2">
+                <FormLabel>Branch</FormLabel>
+                <Select
+                  value={field.value ? String(field.value) : undefined}
+                  onValueChange={(v) => field.onChange(Number(v))}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select branch" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {branches.map((b) => (
+                      <SelectItem key={b.id} value={String(b.id)}>
+                        {b.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : null}
         <FormField
           control={form.control}
           name="is_default"

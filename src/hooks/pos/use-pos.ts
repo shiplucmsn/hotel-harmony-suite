@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { withTenantKey } from "@/lib/tenant-query";
 import { posApi } from "@/modules/pos/pos-api";
 import type { CheckoutInput, CreateCartLineInput } from "@/modules/pos/types";
 
@@ -22,10 +23,10 @@ function showPosErrorToast(error: unknown, fallback: string) {
 }
 
 export const posKeys = {
-  all: ["pos"] as const,
-  cart: (id: number | string) => ["pos", "cart", id] as const,
-  sale: (id: number | string) => ["pos", "sale", id] as const,
-  sales: ["pos", "sales"] as const,
+  all: () => withTenantKey(["pos"] as const),
+  cart: (id: number | string) => withTenantKey(["pos", "cart", id] as const),
+  sale: (id: number | string) => withTenantKey(["pos", "sale", id] as const),
+  sales: () => withTenantKey(["pos", "sales"] as const),
 };
 
 export function usePosCart(cartId: number | null | undefined) {
@@ -132,7 +133,7 @@ export function usePosCheckout() {
   return useMutation({
     mutationFn: ({ cartId, body }: CartScopedCheckoutInput) => posApi.checkout(cartId, body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: posKeys.all });
+      qc.invalidateQueries({ queryKey: posKeys.all() });
     },
     onError: (e) => showPosErrorToast(e, "Checkout failed"),
   });
@@ -140,7 +141,7 @@ export function usePosCheckout() {
 
 export function usePosSales(params?: { per_page?: number }) {
   return useQuery({
-    queryKey: [...posKeys.sales, params] as const,
+    queryKey: [...posKeys.sales(), params] as const,
     queryFn: () => posApi.sales(params),
   });
 }
@@ -150,7 +151,7 @@ export function usePosReturn() {
   return useMutation({
     mutationFn: posApi.postReturn,
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: posKeys.all });
+      qc.invalidateQueries({ queryKey: posKeys.all() });
       toast.success("Return processed");
     },
     onError: (e) => showPosErrorToast(e, "Return failed"),

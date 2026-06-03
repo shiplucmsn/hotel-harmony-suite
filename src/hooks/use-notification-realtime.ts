@@ -54,7 +54,7 @@ export function useNotificationRealtime(authReady = true) {
           if (!n) return;
 
           queryClient.setQueriesData<{ data: NotificationDto[]; meta?: unknown }>(
-            { queryKey: notificationKeys.all },
+            { queryKey: notificationKeys.all() },
             (old) => {
               const rows = old?.data ?? [];
               if (rows.some((row) => row.id === n.id)) {
@@ -64,7 +64,7 @@ export function useNotificationRealtime(authReady = true) {
             },
           );
 
-          void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+          void queryClient.invalidateQueries({ queryKey: notificationKeys.all() });
 
           if (n.unread) {
             const messageId =

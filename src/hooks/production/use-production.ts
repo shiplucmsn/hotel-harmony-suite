@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { showSideEffects } from "@/lib/api-meta";
+import { matchesTenantQueryKey, withTenantKey } from "@/lib/tenant-query";
 import { productionApi } from "@/modules/production/production-api";
 import type {
   CompleteProductionWorkOrderInput,
@@ -18,29 +19,36 @@ import type {
 } from "@/modules/production/types";
 
 export const productionKeys = {
-  all: ["production"] as const,
-  boms: (params?: Record<string, unknown>) => ["production", "boms", params] as const,
-  rawMaterials: (params?: Record<string, unknown>) => ["production", "raw-materials", params] as const,
-  finishedGoods: (params?: Record<string, unknown>) => ["production", "finished-goods", params] as const,
+  all: () => withTenantKey(["production"] as const),
+  boms: (params?: Record<string, unknown>) => withTenantKey(["production", "boms", params] as const),
+  rawMaterials: (params?: Record<string, unknown>) =>
+    withTenantKey(["production", "raw-materials", params] as const),
+  finishedGoods: (params?: Record<string, unknown>) =>
+    withTenantKey(["production", "finished-goods", params] as const),
   finishedGoodsOutputHistory: (params?: Record<string, unknown>) =>
-    ["production", "finished-goods-output", params] as const,
-  productSkus: (params?: Record<string, unknown>) => ["production", "product-skus", params] as const,
-  planning: (params?: Record<string, unknown>) => ["production", "planning", params] as const,
-  workflow: () => ["production", "workflow"] as const,
-  analytics: (params?: Record<string, unknown>) => ["production", "analytics", params] as const,
-  machines: (params?: Record<string, unknown>) => ["production", "machines", params] as const,
-  machine: (id: number | string) => ["production", "machines", id] as const,
-  qualityInspections: (params?: Record<string, unknown>) => ["production", "quality-inspections", params] as const,
-  qualityInspection: (id: number | string) => ["production", "quality-inspections", id] as const,
-  wasteRecords: (params?: Record<string, unknown>) => ["production", "waste-records", params] as const,
-  wasteRecord: (id: number | string) => ["production", "waste-records", id] as const,
-  bom: (id: number | string) => ["production", "boms", id] as const,
-  workOrders: (params?: Record<string, unknown>) => ["production", "work-orders", params] as const,
-  workOrder: (id: number | string) => ["production", "work-orders", id] as const,
+    withTenantKey(["production", "finished-goods-output", params] as const),
+  productSkus: (params?: Record<string, unknown>) =>
+    withTenantKey(["production", "product-skus", params] as const),
+  planning: (params?: Record<string, unknown>) => withTenantKey(["production", "planning", params] as const),
+  workflow: () => withTenantKey(["production", "workflow"] as const),
+  analytics: (params?: Record<string, unknown>) => withTenantKey(["production", "analytics", params] as const),
+  machines: (params?: Record<string, unknown>) => withTenantKey(["production", "machines", params] as const),
+  machine: (id: number | string) => withTenantKey(["production", "machines", id] as const),
+  qualityInspections: (params?: Record<string, unknown>) =>
+    withTenantKey(["production", "quality-inspections", params] as const),
+  qualityInspection: (id: number | string) =>
+    withTenantKey(["production", "quality-inspections", id] as const),
+  wasteRecords: (params?: Record<string, unknown>) =>
+    withTenantKey(["production", "waste-records", params] as const),
+  wasteRecord: (id: number | string) => withTenantKey(["production", "waste-records", id] as const),
+  bom: (id: number | string) => withTenantKey(["production", "boms", id] as const),
+  workOrders: (params?: Record<string, unknown>) =>
+    withTenantKey(["production", "work-orders", params] as const),
+  workOrder: (id: number | string) => withTenantKey(["production", "work-orders", id] as const),
 };
 
 function invalidateProduction(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: productionKeys.all });
+  qc.invalidateQueries({ queryKey: productionKeys.all() });
 }
 
 export function useProductionRawMaterials(params?: {
@@ -185,7 +193,7 @@ export function useCreateProductionWasteRecord() {
     mutationFn: (body: CreateProductionWasteRecordInput) => productionApi.createWasteRecord(body),
     onSuccess: (res) => {
       invalidateProduction(qc);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory"]) });
       showSideEffects(res.meta);
       toast.success("Waste logged");
     },
@@ -238,8 +246,8 @@ export function useRegisterProductionRawMaterial() {
     mutationFn: (body: RegisterProductionRawMaterialInput) => productionApi.registerRawMaterial(body),
     onSuccess: (res) => {
       invalidateProduction(qc);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
-      qc.invalidateQueries({ queryKey: ["purchase"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory"]) });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["purchase"]) });
       showSideEffects(res.meta);
       toast.success("Raw material saved");
     },
@@ -278,7 +286,7 @@ export function useProductionWorkOrder(id: number | string | null | undefined) {
 
 export function useProductionMaterialAvailability(bomId: number | string | null | undefined) {
   return useQuery({
-    queryKey: ["production", "material-availability", bomId],
+    queryKey: withTenantKey(["production", "material-availability", bomId] as const),
     queryFn: () => productionApi.materialAvailability({ bom_id: Number(bomId) }),
     enabled: bomId != null && bomId !== "",
   });
@@ -345,8 +353,8 @@ export function useCompleteProductionWorkOrder() {
       invalidateProduction(qc);
       qc.invalidateQueries({ queryKey: productionKeys.workOrder(id) });
       showSideEffects(res.meta);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
-      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory"]) });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["finance"]) });
       toast.success("Work order completed");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to complete work order")),

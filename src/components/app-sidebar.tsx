@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { ChevronRight, Sparkles } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import {
@@ -25,14 +25,26 @@ import {
 } from "@/config/navigation";
 import { useUiStore } from "@/stores/ui-store";
 import { useAuth } from "@/hooks/use-auth";
+import { useTenantContext } from "@/hooks/use-tenant-context";
 
  
 export function AppSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
+  const navigate = useNavigate();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
-  const menu = useMemo(() => resolveNavMenu(undefined, user), [user]);
+  const { data: tenantCtx } = useTenantContext();
+  const appName = tenantCtx?.branding?.app_name ?? tenantCtx?.name ?? "Nebula ERP";
+  const logoUrl = tenantCtx?.branding?.logo_url;
+  const menu = useMemo(() => {
+    const modules = tenantCtx?.enabled_modules;
+    const navUser =
+      user && modules?.length
+        ? { ...user, enabledModules: modules }
+        : user;
+    return resolveNavMenu(undefined, navUser);
+  }, [user, tenantCtx?.enabled_modules]);
   const sidebarSectionsOpen = useUiStore((s) => s.sidebarSectionsOpen);
   const setSectionOpen = useUiStore((s) => s.setSectionOpen);
   const setSectionsOpen = useUiStore((s) => s.setSectionsOpen);
@@ -50,13 +62,17 @@ export function AppSidebar() {
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">
       <SidebarHeader className="border-b border-sidebar-border">
         <Link to="/app/dashboard" className="flex items-center gap-2 px-2 py-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow shrink-0">
-            <Sparkles className="h-5 w-5 text-primary-foreground" />
-          </div>
+          {logoUrl ? (
+            <img src={logoUrl} alt="" className="h-9 w-9 shrink-0 rounded-lg object-contain" />
+          ) : (
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg gradient-primary shadow-glow shrink-0">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+          )}
           {!collapsed && (
             <div className="flex flex-col leading-tight">
-              <span className="text-sm font-semibold">Nebula ERP</span>
-              <span className="text-xs text-muted-foreground">{user?.name ?? "Acme Industries"}</span>
+              <span className="text-sm font-semibold">{appName}</span>
+              <span className="text-xs text-muted-foreground">{user?.name ?? tenantCtx?.name ?? ""}</span>
             </div>
           )}
         </Link>
@@ -127,11 +143,21 @@ export function AppSidebar() {
       <SidebarFooter className="border-t border-sidebar-border">
         {!collapsed ? (
           <div className="rounded-lg bg-sidebar-accent/60 p-3 text-xs">
-            <div className="font-semibold text-sidebar-accent-foreground">Upgrade to Enterprise</div>
-            <div className="mt-1 text-sidebar-foreground/70">Unlock SSO, audit logs and dedicated support.</div>
-            <Link to="/pricing" className="mt-2 inline-flex text-primary font-medium hover:underline">
-              View plans →
-            </Link>
+            <div className="font-semibold text-sidebar-accent-foreground">
+              {tenantCtx?.subscription_status === "trial" ? "Trial active" : "Upgrade your plan"}
+            </div>
+            <div className="mt-1 text-sidebar-foreground/70">
+              {tenantCtx?.subscription_status === "trial" && tenantCtx?.trial_ends_at
+                ? `Ends ${new Date(tenantCtx.trial_ends_at).toLocaleDateString()} · Full ERP access during trial`
+                : "Choose Starter, Professional, or Enterprise."}
+            </div>
+            <button
+              type="button"
+              className="mt-2 inline-flex cursor-pointer text-left text-primary font-medium hover:underline"
+              onClick={() => navigate({ to: "/app/subscription" })}
+            >
+              View plans & upgrade →
+            </button>
           </div>
         ) : null}
       </SidebarFooter>

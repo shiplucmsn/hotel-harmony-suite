@@ -264,7 +264,7 @@ export const NAV_MENU: NavSectionMeta[] = [
     title: "Account",
     iconName: "settings",
     items: [
-      { title: "Subscription", url: "/app/subscription", iconName: "creditCard" },
+      { title: "Subscription", url: "/app/subscription", iconName: "creditCard", permission: undefined },
       { title: "Components", url: "/app/components", iconName: "sparkles" },
       { title: "Settings", url: "/app/settings", iconName: "settings" },
     ],

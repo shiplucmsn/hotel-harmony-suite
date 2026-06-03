@@ -2,10 +2,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { financeApi } from "@/modules/finance/finance-api";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { matchesTenantQueryKey, withTenantKey } from "@/lib/tenant-query";
 import type { JournalFormValues } from "@/modules/finance/schemas";
 
 const keys = {
-  journal: (page: number, perPage: number) => ["finance", "journal", page, perPage] as const,
+  journal: (page: number, perPage: number) => withTenantKey(["finance", "journal", page, perPage] as const),
 };
 
 export function useJournalEntries(page = 1, perPage = 15) {
@@ -31,9 +32,9 @@ export function usePostJournalEntry() {
         })),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["finance", "journal"] });
-      qc.invalidateQueries({ queryKey: ["finance", "ledger"] });
-      qc.invalidateQueries({ queryKey: ["finance", "accounts"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["finance", "journal"]) });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["finance", "ledger"]) });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["finance", "accounts"]) });
       toast.success("Journal entry posted");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to post journal entry")),

@@ -5,10 +5,12 @@ import { Topbar } from "@/components/topbar";
 import { useAuthGate } from "@/hooks/use-auth-gate";
 import { useNotificationRealtime } from "@/hooks/use-notification-realtime";
 import { useTicketRealtime } from "@/hooks/use-ticket-realtime";
+import { useRestrictedSubscriptionGate } from "@/hooks/use-restricted-subscription-gate";
 
 export function AppShell() {
   const href = useRouterState({ select: (s) => s.location.href });
   const allowed = useAuthGate(href);
+  useRestrictedSubscriptionGate(allowed);
   useTicketRealtime(allowed);
   useNotificationRealtime(allowed);
 

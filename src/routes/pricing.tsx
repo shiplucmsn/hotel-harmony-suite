@@ -57,7 +57,7 @@ function Pricing() {
                   <span className="pb-1 text-sm text-muted-foreground">/user/month</span>
                 </div>
                 <Button asChild className={cn("mt-5 w-full", p.highlighted ? "gradient-primary text-primary-foreground border-0" : "")} variant={p.highlighted ? "default" : "outline"}>
-                  <Link to="/register">Start free trial</Link>
+                  <Link to="/signup">Start free trial</Link>
                 </Button>
                 <ul className="mt-6 space-y-2.5 text-sm">
                   {p.features.map((f) => (

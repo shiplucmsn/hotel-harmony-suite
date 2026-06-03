@@ -92,7 +92,7 @@ export function useTicketRealtime(authReady = true) {
           void queryClient.invalidateQueries({ queryKey: crmKeys.ticket(payload.ticket_id) });
 
           if (msg.from === "customer") {
-            void queryClient.invalidateQueries({ queryKey: notificationKeys.all });
+            void queryClient.invalidateQueries({ queryKey: notificationKeys.all() });
             showCustomerMessageToast(payload, msg);
           }
         };

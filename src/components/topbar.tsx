@@ -1,5 +1,7 @@
-import { Link, useNavigate } from "@tanstack/react-router";
-import { Search, Sun, Moon, LogOut, User, Settings, CreditCard, HelpCircle, Check, ChevronDown, Building2 } from "lucide-react";
+import { useNavigate } from "@tanstack/react-router";
+import { Search, Sun, Moon, LogOut, User, Settings, CreditCard, HelpCircle, Building2 } from "lucide-react";
+import { BranchSwitcher } from "@/components/branch-switcher";
+import { WorkspaceMenu } from "@/components/workspace-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SidebarTrigger } from "@/components/ui/sidebar";
@@ -10,57 +12,31 @@ import {
   DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
-import { tenants } from "@/lib/mock-data";
 import { NotificationBell } from "@/components/notification-bell";
-import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLogout } from "@/hooks/auth/use-logout";
+
+function personInitials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length >= 2) {
+    return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+  }
+  return name.slice(0, 2).toUpperCase();
+}
 
 export function Topbar() {
   const { theme, toggle } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
   const logout = useLogout();
-  const [tenant, setTenant] = useState(tenants[0]);
   return (
     <header className="sticky top-0 z-40 flex h-16 items-center gap-3 border-b bg-background/70 px-4 backdrop-blur-xl supports-[backdrop-filter]:bg-background/60">
       <SidebarTrigger />
       <Separator orientation="vertical" className="h-6" />
 
-      {/* Tenant switcher */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="gap-2 px-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-md gradient-primary text-xs font-semibold text-primary-foreground">
-              {tenant.initials}
-            </div>
-            <div className="hidden flex-col items-start leading-tight md:flex">
-              <span className="text-sm font-medium">{tenant.name}</span>
-              <span className="text-[10px] text-muted-foreground">{tenant.plan} plan</span>
-            </div>
-            <ChevronDown className="h-4 w-4 text-muted-foreground" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="start" className="w-64">
-          <DropdownMenuLabel>Workspaces</DropdownMenuLabel>
-          {tenants.map((t) => (
-            <DropdownMenuItem key={t.id} onClick={() => setTenant(t)} className="gap-2">
-              <div className="flex h-7 w-7 items-center justify-center rounded-md gradient-primary text-xs font-semibold text-primary-foreground">
-                {t.initials}
-              </div>
-              <div className="flex flex-col">
-                <span className="text-sm">{t.name}</span>
-                <span className="text-[10px] text-muted-foreground">{t.plan}</span>
-              </div>
-              {t.id === tenant.id && <Check className="ml-auto h-4 w-4 text-primary" />}
-            </DropdownMenuItem>
-          ))}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem className="gap-2"><Building2 className="h-4 w-4" /> New workspace</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <WorkspaceMenu />
+      <BranchSwitcher />
 
-      {/* Search */}
       <div className="ml-2 hidden flex-1 max-w-md md:flex">
         <div className="relative w-full">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -75,17 +51,18 @@ export function Topbar() {
         </Button>
         <NotificationBell />
 
-        {/* User menu */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 px-2">
               <Avatar className="h-8 w-8">
                 <AvatarImage src="" />
-                <AvatarFallback className="gradient-primary text-primary-foreground text-xs">AR</AvatarFallback>
+                <AvatarFallback className="gradient-primary text-primary-foreground text-xs">
+                  {user?.name ? personInitials(user.name) : "U"}
+                </AvatarFallback>
               </Avatar>
               <div className="hidden flex-col items-start leading-tight lg:flex">
                 <span className="text-sm font-medium">{user?.name ?? "User"}</span>
-                <span className="text-[10px] text-muted-foreground">Administrator</span>
+                <span className="text-[10px] text-muted-foreground">Account</span>
               </div>
             </Button>
           </DropdownMenuTrigger>
@@ -101,7 +78,16 @@ export function Topbar() {
               <DropdownMenuItem onClick={() => navigate({ to: "/app/profile" })} className="gap-2">
                 <User className="h-4 w-4" /> Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate({ to: "/app/settings" })} className="gap-2">
+              <DropdownMenuItem
+                onClick={() => navigate({ to: "/app/settings", search: { tab: "workspace" } })}
+                className="gap-2"
+              >
+                <Building2 className="h-4 w-4" /> Workspace
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate({ to: "/app/settings", search: { tab: "company" } })}
+                className="gap-2"
+              >
                 <Settings className="h-4 w-4" /> Settings
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate({ to: "/app/subscription" })} className="gap-2">

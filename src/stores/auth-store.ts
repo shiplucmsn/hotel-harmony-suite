@@ -2,7 +2,12 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { authApi } from "@/modules/auth/auth-api";
 import type { AuthSessionResponse, AuthUser } from "@/modules/auth/types";
-import { getAccessToken, setAccessToken as persistToken, setTenantId as persistTenant } from "@/lib/api-auth";
+import {
+  getAccessToken,
+  setAccessToken as persistToken,
+  setBranchId as persistBranch,
+  setTenantId as persistTenant,
+} from "@/lib/api-auth";
 
 type AuthState = {
   user: AuthUser | null;
@@ -42,6 +47,7 @@ export const useAuthStore = create<AuthState>()(
 
       clearSession: () => {
         persistToken(null);
+        persistBranch(null);
         set({ token: null, user: null, isAuthenticated: false, isHydrated: true });
       },
 

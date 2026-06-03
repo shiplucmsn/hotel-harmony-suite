@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import { isAuthenticated } from "@/lib/auth-session";
+import { bootstrapTenantFromHostAsync } from "@/lib/tenant-resolve";
 import { useAuthStore } from "@/stores/auth-store";
 
 /** Restores persisted session and validates with /auth/me when a token exists. */
@@ -13,6 +14,11 @@ export function useAuthBootstrap() {
     if (ran.current) return;
     ran.current = true;
 
+    void bootstrapTenantFromHostAsync().then((status) => {
+      if (status === "not_found" && typeof window !== "undefined") {
+        window.location.replace("/workspace-not-found");
+      }
+    });
     hydrate();
 
     if (!isAuthenticated()) {

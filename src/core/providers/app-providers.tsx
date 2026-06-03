@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AppErrorBoundary } from "@/shared/components/feedback/app-error-boundary";
 import { AuthBootstrap } from "@/shared/components/auth/auth-bootstrap";
+import { TenantBrandingProvider } from "@/modules/platform/tenant-branding-provider";
 
 type AppProvidersProps = {
   queryClient: QueryClient;
@@ -26,7 +27,7 @@ export function AppProviders({ queryClient, children }: AppProvidersProps) {
           <AppErrorBoundary>
             <PreloaderController />
             <AuthBootstrap />
-            {children}
+            <TenantBrandingProvider>{children}</TenantBrandingProvider>
             <Toaster richColors closeButton position="top-right" />
           </AppErrorBoundary>
         </TooltipProvider>

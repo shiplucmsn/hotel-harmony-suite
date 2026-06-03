@@ -1,17 +1,18 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { withTenantKey } from "@/lib/tenant-query";
 import { reportingApi } from "@/modules/reporting/reporting-api";
 import type { ReportFilters, ReportingModule } from "@/modules/reporting/types";
 
 export const reportingKeys = {
-  all: ["reporting"] as const,
-  dashboard: (filters?: ReportFilters) => ["reporting", "dashboard", filters] as const,
-  modules: (filters?: ReportFilters) => ["reporting", "modules", filters] as const,
+  all: () => withTenantKey(["reporting"] as const),
+  dashboard: (filters?: ReportFilters) => withTenantKey(["reporting", "dashboard", filters] as const),
+  modules: (filters?: ReportFilters) => withTenantKey(["reporting", "modules", filters] as const),
   moduleReport: (module: ReportingModule, filters?: ReportFilters) =>
-    ["reporting", "module-report", module, filters] as const,
+    withTenantKey(["reporting", "module-report", module, filters] as const),
   moduleChart: (module: ReportingModule, filters?: ReportFilters) =>
-    ["reporting", "module-chart", module, filters] as const,
+    withTenantKey(["reporting", "module-chart", module, filters] as const),
 };
 
 export function useReportsDashboard(filters?: ReportFilters) {

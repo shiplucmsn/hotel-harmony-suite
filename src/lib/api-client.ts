@@ -1,4 +1,5 @@
 import { buildApiHeaders } from "@/lib/api-auth";
+import { handleTenantApiError } from "@/lib/tenant-errors";
 
 type ApiMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -92,12 +93,14 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
     const payload = contentType.includes("application/json") ? await res.json() : await res.text();
 
     if (!res.ok) {
-      const envelope = payload as { error?: { message?: string }; message?: string };
+      const envelope = payload as { error?: { code?: string; message?: string }; message?: string };
       const message =
         envelope?.error?.message ??
         envelope?.message ??
         `Request failed with status ${res.status}`;
-      throw new ApiError(message, res.status, payload);
+      const err = new ApiError(message, res.status, payload);
+      handleTenantApiError(err);
+      throw err;
     }
 
     return payload as T;

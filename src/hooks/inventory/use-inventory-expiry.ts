@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
+import { withTenantKey } from "@/lib/tenant-query";
 import { inventoryApi } from "@/modules/inventory/inventory-api";
 
 export const expiryKeys = {
-  all: ["inventory", "expiry"] as const,
-  summary: () => [...expiryKeys.all, "summary"] as const,
-  list: (params?: Record<string, unknown>) => [...expiryKeys.all, "list", params] as const,
+  all: () => withTenantKey(["inventory", "expiry"] as const),
+  summary: () => withTenantKey(["inventory", "expiry", "summary"] as const),
+  list: (params?: Record<string, unknown>) => withTenantKey(["inventory", "expiry", "list", params] as const),
 };
 
 export function useInventoryExpirySummary() {

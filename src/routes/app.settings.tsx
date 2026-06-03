@@ -2,9 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Building2, MapPin, DollarSign, Receipt, Mail, MessageSquare, CreditCard,
-  Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil, Radio, Bell,
+  Palette, Globe, User, Plus, Trash2, Sun, Moon, Monitor, ShieldCheck, Pencil, Radio, Bell, LayoutTemplate,
 } from "lucide-react";
 import { NotificationsTab } from "@/modules/settings/notifications-tab";
+import { BranchesTab } from "@/modules/settings/branches-tab";
+import { WorkspaceBrandingTab } from "@/modules/settings/workspace-branding-tab";
 import { SmsTab } from "@/modules/settings/sms-tab";
 import { toast } from "sonner";
 
@@ -31,8 +33,6 @@ import { useTheme } from "@/components/theme-provider";
 import { api } from "@/lib/api-client";
 import { getApiErrorMessage } from "@/lib/api-errors";
 
-export const Route = createFileRoute("/app/settings")({ component: SettingsPage });
-
 const tabs = [
   { id: "company", label: "Company", icon: Building2 },
   { id: "branches", label: "Branches", icon: MapPin },
@@ -43,12 +43,31 @@ const tabs = [
   { id: "sms", label: "SMS Gateway", icon: MessageSquare },
   { id: "notifications", label: "Notifications", icon: Bell },
   { id: "payments", label: "Payments", icon: CreditCard },
+  { id: "workspace", label: "Workspace", icon: LayoutTemplate },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "locale", label: "Localization", icon: Globe },
   { id: "profile", label: "Profile", icon: User },
 ];
 
+const SETTINGS_TAB_IDS = new Set(tabs.map((t) => t.id));
+
+export const Route = createFileRoute("/app/settings")({
+  validateSearch: (search: Record<string, unknown>) => {
+    const raw = typeof search.tab === "string" ? search.tab : undefined;
+    const tab = raw && SETTINGS_TAB_IDS.has(raw) ? raw : "company";
+    return { tab };
+  },
+  component: SettingsPage,
+});
+
 function SettingsPage() {
+  const { tab } = Route.useSearch();
+  const [activeTab, setActiveTab] = useState(tab);
+
+  useEffect(() => {
+    setActiveTab(tab);
+  }, [tab]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -57,7 +76,12 @@ function SettingsPage() {
         breadcrumbs={[{ label: "Account" }, { label: "Settings" }]}
       />
 
-      <Tabs defaultValue="company" orientation="vertical" className="flex flex-col gap-6 lg:flex-row">
+      <Tabs
+        value={activeTab}
+        onValueChange={setActiveTab}
+        orientation="vertical"
+        className="flex flex-col gap-6 lg:flex-row"
+      >
         <TabsList className="h-auto flex-row flex-wrap justify-start lg:flex-col lg:w-56 lg:items-stretch lg:bg-muted/40 lg:p-2">
           {tabs.map(t => (
             <TabsTrigger key={t.id} value={t.id} className="justify-start gap-2 lg:w-full">
@@ -76,6 +100,7 @@ function SettingsPage() {
           <TabsContent value="sms"><SmsTab /></TabsContent>
           <TabsContent value="notifications"><NotificationsTab /></TabsContent>
           <TabsContent value="payments"><PaymentsTab /></TabsContent>
+          <TabsContent value="workspace"><WorkspaceBrandingTab /></TabsContent>
           <TabsContent value="theme"><ThemeTab /></TabsContent>
           <TabsContent value="locale"><LocaleTab /></TabsContent>
           <TabsContent value="profile"><ProfileTab /></TabsContent>
@@ -110,70 +135,6 @@ function CompanyTab() {
         </form>
       </CardContent>
     </Card>
-  );
-}
-
-/* ============ Branches ============ */
-function BranchesTab() {
-  const branches = [
-    { id: 1, name: "Berlin HQ", city: "Berlin, DE", manager: "Alicia Romero", staff: 84, status: "Active" },
-    { id: 2, name: "London Office", city: "London, UK", manager: "Liam O'Connor", staff: 32, status: "Active" },
-    { id: 3, name: "NYC Showroom", city: "New York, US", manager: "Marcus Chen", staff: 18, status: "Active" },
-    { id: 4, name: "Mumbai Hub", city: "Mumbai, IN", manager: "Priya Natarajan", staff: 46, status: "Setup" },
-  ];
-  return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between">
-        <div><CardTitle>Branches</CardTitle><CardDescription>Manage office and warehouse locations.</CardDescription></div>
-        <BranchSheet />
-      </CardHeader>
-      <CardContent>
-        <Table>
-          <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Location</TableHead><TableHead>Manager</TableHead><TableHead className="text-right">Staff</TableHead><TableHead>Status</TableHead><TableHead></TableHead></TableRow></TableHeader>
-          <TableBody>
-            {branches.map(b => (
-              <TableRow key={b.id}>
-                <TableCell className="font-medium">{b.name}</TableCell>
-                <TableCell className="text-muted-foreground">{b.city}</TableCell>
-                <TableCell>{b.manager}</TableCell>
-                <TableCell className="text-right">{b.staff}</TableCell>
-                <TableCell><Badge variant={b.status === "Active" ? "default" : "secondary"}>{b.status}</Badge></TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-3.5 w-3.5" /></Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive"><Trash2 className="h-3.5 w-3.5" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </CardContent>
-    </Card>
-  );
-}
-
-function BranchSheet() {
-  const [open, setOpen] = useState(false);
-  return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild><Button size="sm" className="gradient-primary text-primary-foreground border-0"><Plus className="mr-2 h-4 w-4" />Add branch</Button></SheetTrigger>
-      <SheetContent className="w-[420px] sm:w-[480px]">
-        <SheetHeader><SheetTitle>New branch</SheetTitle><SheetDescription>Create a new location for your business.</SheetDescription></SheetHeader>
-        <div className="mt-6 space-y-4">
-          <div className="space-y-1.5"><Label>Branch name</Label><Input placeholder="e.g. Tokyo Office" /></div>
-          <div className="space-y-1.5"><Label>City / country</Label><Input placeholder="Tokyo, JP" /></div>
-          <div className="space-y-1.5"><Label>Manager</Label><Input placeholder="Pick a user…" /></div>
-          <div className="space-y-1.5"><Label>Address</Label><Textarea rows={2} /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Timezone</Label><Input defaultValue="UTC+9" /></div>
-            <div className="space-y-1.5"><Label>Currency</Label><Input defaultValue="JPY" /></div>
-          </div>
-        </div>
-        <SheetFooter className="mt-6">
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="gradient-primary text-primary-foreground border-0" onClick={() => { setOpen(false); toast.success("Branch created"); }}>Create branch</Button>
-        </SheetFooter>
-      </SheetContent>
-    </Sheet>
   );
 }
 

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { formatCrmStockError } from "@/modules/crm/utils";
 import { showSideEffects } from "@/lib/api-meta";
+import { matchesTenantQueryKey, withTenantKey } from "@/lib/tenant-query";
 import { notificationKeys } from "@/hooks/use-notifications";
 import { crmApi } from "@/modules/crm/crm-api";
 import type {
@@ -25,28 +26,28 @@ import type {
 } from "@/modules/crm/types";
 
 export const crmKeys = {
-  all: ["crm"] as const,
-  analytics: (params?: CrmAnalyticsFilters) => ["crm", "analytics", params] as const,
-  leads: (params?: Record<string, unknown>) => ["crm", "leads", params] as const,
-  contacts: (params?: Record<string, unknown>) => ["crm", "contacts", params] as const,
-  contact: (id: string | number) => ["crm", "contacts", id] as const,
-  pipeline: (params?: Record<string, unknown>) => ["crm", "pipeline", params] as const,
-  deals: (params?: Record<string, unknown>) => ["crm", "deals", params] as const,
-  deal: (id: string | number) => ["crm", "deals", id] as const,
-  customers: (params?: Record<string, unknown>) => ["crm", "customers", params] as const,
-  customer: (id: string | number) => ["crm", "customers", id] as const,
+  all: () => withTenantKey(["crm"] as const),
+  analytics: (params?: CrmAnalyticsFilters) => withTenantKey(["crm", "analytics", params] as const),
+  leads: (params?: Record<string, unknown>) => withTenantKey(["crm", "leads", params] as const),
+  contacts: (params?: Record<string, unknown>) => withTenantKey(["crm", "contacts", params] as const),
+  contact: (id: string | number) => withTenantKey(["crm", "contacts", id] as const),
+  pipeline: (params?: Record<string, unknown>) => withTenantKey(["crm", "pipeline", params] as const),
+  deals: (params?: Record<string, unknown>) => withTenantKey(["crm", "deals", params] as const),
+  deal: (id: string | number) => withTenantKey(["crm", "deals", id] as const),
+  customers: (params?: Record<string, unknown>) => withTenantKey(["crm", "customers", params] as const),
+  customer: (id: string | number) => withTenantKey(["crm", "customers", id] as const),
   ledger: (id: string | number, params?: Record<string, unknown>) =>
-    ["crm", "customers", id, "ledger", params] as const,
-  orders: (params?: Record<string, unknown>) => ["crm", "orders", params] as const,
-  quotations: (params?: Record<string, unknown>) => ["crm", "quotations", params] as const,
-  quotation: (id: string | number) => ["crm", "quotations", id] as const,
-  invoices: (params?: Record<string, unknown>) => ["crm", "invoices", params] as const,
-  payments: (params?: Record<string, unknown>) => ["crm", "payments", params] as const,
-  tickets: (params?: Record<string, unknown>) => ["crm", "tickets", params] as const,
-  ticket: (id: string | number) => ["crm", "tickets", id] as const,
-  followups: (params?: Record<string, unknown>) => ["crm", "followups", params] as const,
+    withTenantKey(["crm", "customers", id, "ledger", params] as const),
+  orders: (params?: Record<string, unknown>) => withTenantKey(["crm", "orders", params] as const),
+  quotations: (params?: Record<string, unknown>) => withTenantKey(["crm", "quotations", params] as const),
+  quotation: (id: string | number) => withTenantKey(["crm", "quotations", id] as const),
+  invoices: (params?: Record<string, unknown>) => withTenantKey(["crm", "invoices", params] as const),
+  payments: (params?: Record<string, unknown>) => withTenantKey(["crm", "payments", params] as const),
+  tickets: (params?: Record<string, unknown>) => withTenantKey(["crm", "tickets", params] as const),
+  ticket: (id: string | number) => withTenantKey(["crm", "tickets", id] as const),
+  followups: (params?: Record<string, unknown>) => withTenantKey(["crm", "followups", params] as const),
   orderStockAvailability: (orderId: string | number, warehouseId: number) =>
-    ["crm", "orders", orderId, "stock-availability", warehouseId] as const,
+    withTenantKey(["crm", "orders", orderId, "stock-availability", warehouseId] as const),
 };
 
 export function useCrmAnalytics(params?: CrmAnalyticsFilters) {
@@ -200,7 +201,7 @@ export function useCrmPayments(params?: { per_page?: number; customer_id?: strin
 }
 
 function invalidateCrm(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: crmKeys.all });
+  qc.invalidateQueries({ queryKey: crmKeys.all() });
 }
 
 export function useCreateLead() {
@@ -369,8 +370,8 @@ export function useFulfillOrder() {
       ),
     onSuccess: (res) => {
       invalidateCrm(qc);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
-      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory"]) });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["finance"]) });
       const effects = res.meta?.sideEffects ?? [];
       const cogsPosted = effects.some(
         (e) => e.domain === "finance" && e.action === "posted",
@@ -406,7 +407,7 @@ export function useConfirmOrder() {
       crmApi.confirmOrder(vars.id, { warehouse_id: vars.warehouse_id }),
     onSuccess: (res) => {
       invalidateCrm(qc);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory"]) });
       showSideEffects(res.meta);
       toast.success("Order confirmed — stock reserved");
     },
@@ -420,7 +421,7 @@ export function useCancelOrder() {
     mutationFn: (id: number | string) => crmApi.cancelOrder(id),
     onSuccess: (res) => {
       invalidateCrm(qc);
-      qc.invalidateQueries({ queryKey: ["inventory"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory"]) });
       showSideEffects(res.meta);
       toast.success("Order cancelled");
     },
@@ -519,7 +520,7 @@ export function useCreateTicketMessage() {
       invalidateCrm(qc);
       qc.invalidateQueries({ queryKey: crmKeys.ticket(id) });
       if (body.author_type === "agent") {
-        void qc.invalidateQueries({ queryKey: notificationKeys.all });
+        void qc.invalidateQueries({ queryKey: notificationKeys.all() });
       }
       showSideEffects(res.meta);
       const emailed = res.meta?.sideEffects?.some((s) => s.action === "emailed");

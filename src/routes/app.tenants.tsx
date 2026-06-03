@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, MoreHorizontal, Users, CreditCard, Puzzle } from "lucide-react";
 import { erpApi } from "@/lib/erp-api";
-import { setTenantId } from "@/lib/api-auth";
+import { buildWorkspaceUrl } from "@/lib/tenant-resolve";
+import { openApexSignup } from "@/lib/workspace-links";
+import { useAuth } from "@/hooks/use-auth";
+import { userHasPermission } from "@/modules/auth/auth-redirect";
 import { CompanyModulesDialog } from "@/components/company-modules-dialog";
 import {
   DropdownMenu,
@@ -26,9 +29,25 @@ type TenantRow = {
 };
 
 function TenantsPage() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const isPlatformAdmin =
+    user?.userType === "super_admin" || userHasPermission(user, "platform.tenants.manage");
   const [tenantList, setTenantList] = useState<TenantRow[]>([]);
   const [modulesOpen, setModulesOpen] = useState(false);
   const [modulesTarget, setModulesTarget] = useState<TenantRow | null>(null);
+
+  const onNewWorkspace = () => {
+    if (isPlatformAdmin) {
+      void navigate({ to: "/app/saas/tenants" });
+      return;
+    }
+    openApexSignup();
+  };
+
+  const openWorkspace = (slug: string) => {
+    window.location.href = buildWorkspaceUrl(slug, "/app/dashboard");
+  };
 
   useEffect(() => {
     void erpApi.tenants.list().then((rows) => setTenantList(rows as TenantRow[])).catch(() => setTenantList([]));
@@ -46,9 +65,13 @@ function TenantsPage() {
         description="Switch between workspaces or manage module access per company."
         breadcrumbs={[{ label: "Administration" }, { label: "Workspaces" }]}
         actions={
-          <Button size="sm" className="gradient-primary border-0 text-primary-foreground">
+          <Button
+            size="sm"
+            className="gradient-primary border-0 text-primary-foreground"
+            onClick={onNewWorkspace}
+          >
             <Plus className="mr-2 h-4 w-4" />
-            New workspace
+            {isPlatformAdmin ? "Provision workspace" : "Register another company"}
           </Button>
         }
       />
@@ -98,7 +121,7 @@ function TenantsPage() {
                 </div>
               </div>
               <div className="mt-4 flex gap-2">
-                <Button variant="outline" className="flex-1" onClick={() => setTenantId(t.slug)}>
+                <Button variant="outline" className="flex-1" onClick={() => openWorkspace(t.slug)}>
                   Open workspace
                 </Button>
                 {t.company_id ? (

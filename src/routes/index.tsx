@@ -42,7 +42,7 @@ function Landing() {
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild><Link to="/login">Sign in</Link></Button>
             <Button size="sm" asChild className="gradient-primary text-primary-foreground border-0 shadow-elegant">
-              <Link to="/register">Start free</Link>
+              <Link to="/signup">Start free</Link>
             </Button>
           </div>
         </div>
@@ -64,13 +64,13 @@ function Landing() {
             </p>
             <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
               <Button size="lg" asChild className="gradient-primary text-primary-foreground border-0 shadow-elegant">
-                <Link to="/register">Start free trial <ArrowRight className="ml-1 h-4 w-4" /></Link>
+                <Link to="/signup">Start free trial <ArrowRight className="ml-1 h-4 w-4" /></Link>
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link to="/app/dashboard">View live demo</Link>
               </Button>
             </div>
-            <p className="mt-4 text-xs text-muted-foreground">14-day free trial · No credit card required</p>
+            <p className="mt-4 text-xs text-muted-foreground">7-day free trial · No credit card required</p>
           </div>
 
           {/* Hero preview */}

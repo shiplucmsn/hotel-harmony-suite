@@ -33,6 +33,7 @@ export const warehouseFormSchema = z.object({
   location: z.string().optional(),
   status: z.enum(["active", "inactive", "maintenance"]).default("active"),
   is_default: z.boolean().optional(),
+  branch_id: z.coerce.number().optional(),
 });
 
 export type WarehouseFormValues = z.infer<typeof warehouseFormSchema>;

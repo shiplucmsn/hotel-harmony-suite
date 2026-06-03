@@ -1,4 +1,5 @@
 import { useQuery, type UseQueryOptions } from "@tanstack/react-query";
+import { withTenantKey } from "@/lib/tenant-query";
 import { api } from "@/services/api/client";
 import type { ApiEnvelope } from "@/services/api/types";
 
@@ -15,7 +16,7 @@ export function useApiQuery<T>(
   options?: Omit<UseQueryOptions<T>, "queryKey" | "queryFn">
 ) {
   return useQuery({
-    queryKey,
+    queryKey: withTenantKey(queryKey),
     queryFn: async () => {
       const res = await api.get<ApiEnvelope<T> | T>(path);
       return unwrap(res);

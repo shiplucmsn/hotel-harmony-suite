@@ -89,6 +89,7 @@ export type WarehouseDto = {
   location?: string | null;
   status: string;
   is_default: boolean;
+  branch_id?: number | null;
 };
 
 export type PaginatedResult<T> = {

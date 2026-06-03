@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { showSideEffects } from "@/lib/api-meta";
+import { withTenantKey } from "@/lib/tenant-query";
 import { pmApi } from "@/modules/pm/pm-api";
 import type {
   CreatePmProjectInput,
@@ -11,14 +12,14 @@ import type {
 } from "@/modules/pm/types";
 
 export const pmKeys = {
-  all: ["pm"] as const,
-  projects: (params?: Record<string, unknown>) => ["pm", "projects", params] as const,
-  tasks: (params?: Record<string, unknown>) => ["pm", "tasks", params] as const,
-  task: (id: number | string) => ["pm", "tasks", id] as const,
+  all: () => withTenantKey(["pm"] as const),
+  projects: (params?: Record<string, unknown>) => withTenantKey(["pm", "projects", params] as const),
+  tasks: (params?: Record<string, unknown>) => withTenantKey(["pm", "tasks", params] as const),
+  task: (id: number | string) => withTenantKey(["pm", "tasks", id] as const),
 };
 
 function invalidatePm(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: pmKeys.all });
+  qc.invalidateQueries({ queryKey: pmKeys.all() });
 }
 
 export function usePmProjects(params?: { per_page?: number; search?: string; status?: string }) {

@@ -1,16 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { matchesTenantQueryKey, withTenantKey } from "@/lib/tenant-query";
 import { inventoryApi } from "@/modules/inventory/inventory-api";
 import type { CreateWarehouseInput } from "@/modules/inventory/types";
 
 export const warehouseKeys = {
-  all: ["inventory", "warehouses"] as const,
+  all: () => withTenantKey(["inventory", "warehouses"] as const),
 };
 
 export function useInventoryWarehouses() {
   return useQuery({
-    queryKey: warehouseKeys.all,
+    queryKey: warehouseKeys.all(),
     queryFn: () => inventoryApi.warehouses({ per_page: 100 }),
   });
 }
@@ -20,8 +21,8 @@ export function useCreateWarehouse() {
   return useMutation({
     mutationFn: (body: CreateWarehouseInput) => inventoryApi.createWarehouse(body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: warehouseKeys.all });
-      qc.invalidateQueries({ queryKey: ["inventory", "stock-levels"] });
+      qc.invalidateQueries({ queryKey: warehouseKeys.all() });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["inventory", "stock-levels"]) });
       toast.success("Warehouse created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create warehouse")),

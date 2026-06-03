@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { withTenantKey } from "@/lib/tenant-query";
 import { notificationsApi } from "@/modules/core/notifications-api";
 
 export const notificationKeys = {
-  all: ["notifications"] as const,
-  list: (params?: { unread?: boolean }) => ["notifications", "list", params] as const,
-  unreadCount: ["notifications", "unread-count"] as const,
+  all: () => withTenantKey(["notifications"] as const),
+  list: (params?: { unread?: boolean }) => withTenantKey(["notifications", "list", params] as const),
+  unreadCount: () => withTenantKey(["notifications", "unread-count"] as const),
 };
 
 const NOTIFICATION_POLL_MS = 15_000;
@@ -21,7 +22,7 @@ export function useNotifications(params?: { per_page?: number; unread?: boolean 
 
 export function useUnreadNotificationCount() {
   return useQuery({
-    queryKey: notificationKeys.unreadCount,
+    queryKey: notificationKeys.unreadCount(),
     queryFn: () => notificationsApi.unreadCount(),
     staleTime: 0,
     refetchInterval: NOTIFICATION_POLL_MS,
@@ -34,14 +35,14 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: (id: number | string) => notificationsApi.markRead(id),
     onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: notificationKeys.all });
+      await qc.cancelQueries({ queryKey: notificationKeys.all() });
 
       const previousLists = qc.getQueriesData<{ data: { id: number | string; unread?: boolean }[] }>({
-        queryKey: notificationKeys.all,
+        queryKey: notificationKeys.all(),
       });
 
       qc.setQueriesData<{ data: { id: number | string; unread?: boolean }[] }>(
-        { queryKey: notificationKeys.all },
+        { queryKey: notificationKeys.all() },
         (old) => {
           if (!old?.data) return old;
           return {
@@ -51,9 +52,9 @@ export function useMarkNotificationRead() {
         },
       );
 
-      const previousCount = qc.getQueryData<number>(notificationKeys.unreadCount);
+      const previousCount = qc.getQueryData<number>(notificationKeys.unreadCount());
       if (typeof previousCount === "number" && previousCount > 0) {
-        qc.setQueryData(notificationKeys.unreadCount, previousCount - 1);
+        qc.setQueryData(notificationKeys.unreadCount(), previousCount - 1);
       }
 
       return { previousLists, previousCount };
@@ -65,11 +66,11 @@ export function useMarkNotificationRead() {
         }
       }
       if (context?.previousCount !== undefined) {
-        qc.setQueryData(notificationKeys.unreadCount, context.previousCount);
+        qc.setQueryData(notificationKeys.unreadCount(), context.previousCount);
       }
     },
     onSettled: () => {
-      void qc.invalidateQueries({ queryKey: notificationKeys.all });
+      void qc.invalidateQueries({ queryKey: notificationKeys.all() });
     },
   });
 }
@@ -79,7 +80,7 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: () => notificationsApi.markAllRead(),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: notificationKeys.all });
+      void qc.invalidateQueries({ queryKey: notificationKeys.all() });
     },
   });
 }
@@ -89,7 +90,7 @@ export function useMarkTicketNotificationsRead() {
   return useMutation({
     mutationFn: (ticketId: number | string) => notificationsApi.markTicketRead(ticketId),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: notificationKeys.all });
+      void qc.invalidateQueries({ queryKey: notificationKeys.all() });
     },
   });
 }

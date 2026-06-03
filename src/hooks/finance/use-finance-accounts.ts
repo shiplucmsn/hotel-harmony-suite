@@ -2,15 +2,16 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { financeApi } from "@/modules/finance/finance-api";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { withTenantKey } from "@/lib/tenant-query";
 import type { AccountFormValues } from "@/modules/finance/schemas";
 
 const keys = {
-  accounts: ["finance", "accounts"] as const,
+  accounts: () => withTenantKey(["finance", "accounts"] as const),
 };
 
 export function useFinanceAccounts() {
   return useQuery({
-    queryKey: keys.accounts,
+    queryKey: keys.accounts(),
     queryFn: () => financeApi.accounts(),
   });
 }
@@ -27,7 +28,7 @@ export function useCreateFinanceAccount() {
         is_postable: values.is_postable,
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: keys.accounts });
+      qc.invalidateQueries({ queryKey: keys.accounts() });
       toast.success("Account created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to create account")),

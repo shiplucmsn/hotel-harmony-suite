@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
 import { showSideEffects } from "@/lib/api-meta";
+import { matchesTenantQueryKey, withTenantKey } from "@/lib/tenant-query";
 import { hrApi } from "@/modules/hr/hr-api";
 import type {
   CreateHrAttendanceInput,
@@ -16,17 +17,17 @@ import type {
 } from "@/modules/hr/types";
 
 export const hrKeys = {
-  all: ["hr"] as const,
-  departments: (params?: Record<string, unknown>) => ["hr", "departments", params] as const,
-  designations: (params?: Record<string, unknown>) => ["hr", "designations", params] as const,
-  employees: (params?: Record<string, unknown>) => ["hr", "employees", params] as const,
-  attendances: (params?: Record<string, unknown>) => ["hr", "attendances", params] as const,
-  leaves: (params?: Record<string, unknown>) => ["hr", "leaves", params] as const,
-  payrolls: (params?: Record<string, unknown>) => ["hr", "payrolls", params] as const,
+  all: () => withTenantKey(["hr"] as const),
+  departments: (params?: Record<string, unknown>) => withTenantKey(["hr", "departments", params] as const),
+  designations: (params?: Record<string, unknown>) => withTenantKey(["hr", "designations", params] as const),
+  employees: (params?: Record<string, unknown>) => withTenantKey(["hr", "employees", params] as const),
+  attendances: (params?: Record<string, unknown>) => withTenantKey(["hr", "attendances", params] as const),
+  leaves: (params?: Record<string, unknown>) => withTenantKey(["hr", "leaves", params] as const),
+  payrolls: (params?: Record<string, unknown>) => withTenantKey(["hr", "payrolls", params] as const),
 };
 
 function invalidateHr(qc: ReturnType<typeof useQueryClient>) {
-  qc.invalidateQueries({ queryKey: hrKeys.all });
+  qc.invalidateQueries({ queryKey: hrKeys.all() });
 }
 
 export function useHrEmployees(params?: { per_page?: number; search?: string; status?: string; department?: string }) {
@@ -233,7 +234,7 @@ export function usePostHrPayroll() {
     onSuccess: (res) => {
       invalidateHr(qc);
       showSideEffects(res.meta);
-      qc.invalidateQueries({ queryKey: ["finance"] });
+      qc.invalidateQueries({ predicate: matchesTenantQueryKey(["finance"]) });
       toast.success("Payroll posted and journals created");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to post payroll")),

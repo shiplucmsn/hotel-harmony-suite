@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { withTenantKey } from "@/lib/tenant-query";
 import { financeApi } from "@/modules/finance/finance-api";
 
 const keys = {
   ledger: (page: number, perPage: number, accountCode?: string) =>
-    ["finance", "ledger", page, perPage, accountCode ?? "all"] as const,
+    withTenantKey(["finance", "ledger", page, perPage, accountCode ?? "all"] as const),
 };
 
 export function useLedgerEntries(page = 1, perPage = 20, accountCode?: string) {

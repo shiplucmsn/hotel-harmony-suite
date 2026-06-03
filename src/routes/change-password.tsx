@@ -1,5 +1,5 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AuthLayout } from "@/components/auth-layout";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,11 @@ export const Route = createFileRoute("/change-password")({
     if (!isAuthenticated()) {
       throw redirect({ to: "/login", search: {} });
     }
+
+    const user = useAuthStore.getState().user;
+    if (user && !user.mustChangePassword) {
+      throw redirect({ to: getPostAuthRoute(user) });
+    }
   },
   component: ChangePasswordPage,
 });
@@ -30,10 +35,13 @@ function ChangePasswordPage() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (user && !user.mustChangePassword) {
+      navigate({ to: getPostAuthRoute(user), replace: true });
+    }
+  }, [user, navigate]);
 
-  if (!user.mustChangePassword) {
-    navigate({ to: getPostAuthRoute(user), replace: true });
+  if (!user?.mustChangePassword) {
     return null;
   }
 
@@ -62,11 +70,24 @@ function ChangePasswordPage() {
       >
         <div className="space-y-2">
           <Label htmlFor="current_password">Current password</Label>
-          <Input id="current_password" type="password" value={currentPassword} onChange={(event) => setCurrentPassword(event.target.value)} required />
+          <Input
+            id="current_password"
+            type="password"
+            value={currentPassword}
+            onChange={(event) => setCurrentPassword(event.target.value)}
+            required
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="password">New password</Label>
-          <Input id="password" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />
+          <Input
+            id="password"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            required
+            minLength={8}
+          />
         </div>
         <div className="space-y-2">
           <Label htmlFor="password_confirmation">Confirm new password</Label>
@@ -86,4 +107,3 @@ function ChangePasswordPage() {
     </AuthLayout>
   );
 }
-

@@ -41,13 +41,18 @@ function unwrapSession(res: ApiEnvelope<{ token: string; user: Record<string, un
 
 export const authApi = {
   login: async (body: { email: string; password: string; tenantSlug?: string }) => {
-    if (body.tenantSlug) setTenantId(body.tenantSlug);
+    const slug = body.tenantSlug?.trim() ?? "";
+    if (slug) setTenantId(slug);
     const res = await api.post<ApiEnvelope<{ token: string; user: Record<string, unknown> }>>(
       "/v1/auth/login",
       { email: body.email, password: body.password },
-      { headers: tenantHeaders(body.tenantSlug) }
+      { headers: tenantHeaders(slug || undefined) }
     );
-    return unwrapSession(res);
+    const session = unwrapSession(res);
+    if (session.user.tenantId) {
+      setTenantId(session.user.tenantId);
+    }
+    return session;
   },
 
   register: async (body: {

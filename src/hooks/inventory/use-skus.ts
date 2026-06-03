@@ -2,15 +2,16 @@ import { useDeferredValue } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { getApiErrorMessage } from "@/lib/api-errors";
+import { withTenantKey } from "@/lib/tenant-query";
 import { productionKeys } from "@/hooks/production/use-production";
 import { inventoryApi } from "@/modules/inventory/inventory-api";
 import { productionApi } from "@/modules/production/production-api";
 import type { GenerateSkuInput } from "@/modules/inventory/types";
 
 export const skuKeys = {
-  all: ["inventory", "skus"] as const,
-  list: (params?: Record<string, unknown>) => ["inventory", "skus", "list", params] as const,
-  lookup: (sku: string) => ["inventory", "skus", "lookup", sku] as const,
+  all: () => withTenantKey(["inventory", "skus"] as const),
+  list: (params?: Record<string, unknown>) => withTenantKey(["inventory", "skus", "list", params] as const),
+  lookup: (sku: string) => withTenantKey(["inventory", "skus", "lookup", sku] as const),
 };
 
 export function useSkuRegistry(params?: {
@@ -83,7 +84,7 @@ export function useGenerateSku() {
   return useMutation({
     mutationFn: (body: GenerateSkuInput) => inventoryApi.generateSku(body),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: skuKeys.all });
+      qc.invalidateQueries({ queryKey: skuKeys.all() });
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to generate SKU")),
   });
