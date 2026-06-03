@@ -13,14 +13,19 @@ export const useUiStore = create<UiState>()(
     (set) => ({
       sidebarSectionsOpen: {},
       setSectionOpen: (title, open) =>
-        set((s) => ({ sidebarSectionsOpen: { ...s.sidebarSectionsOpen, [title]: open } })),
+        set(() => {
+          if (open) {
+            return { sidebarSectionsOpen: { [title]: true } };
+          }
+          return { sidebarSectionsOpen: { [title]: false } };
+        }),
       toggleSection: (title) =>
-        set((s) => ({
-          sidebarSectionsOpen: {
-            ...s.sidebarSectionsOpen,
-            [title]: !s.sidebarSectionsOpen[title],
-          },
-        })),
+        set((s) => {
+          if (s.sidebarSectionsOpen[title]) {
+            return { sidebarSectionsOpen: { [title]: false } };
+          }
+          return { sidebarSectionsOpen: { [title]: true } };
+        }),
       setSectionsOpen: (next) =>
         set((s) => ({
           sidebarSectionsOpen: typeof next === "function" ? next(s.sidebarSectionsOpen) : next,

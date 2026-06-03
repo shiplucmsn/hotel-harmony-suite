@@ -15,7 +15,15 @@ import type {
   ProductionRawMaterialDto,
   ProductionWorkOrderDto,
   CreateProductionMachineInput,
+  CreateProductionQualityInspectionInput,
   UpdateProductionMachineInput,
+  UpdateProductionQualityInspectionInput,
+  CreateProductionWasteRecordInput,
+  UpdateProductionWasteRecordInput,
+  ProductionQualityInspectionDto,
+  ProductionQualityListResult,
+  ProductionWasteRecordDto,
+  ProductionWasteListResult,
   RegisterProductionRawMaterialInput,
   UpdateProductionBomInput,
 } from "@/modules/production/types";
@@ -87,6 +95,48 @@ export const productionApi = {
 
   updateMachine: (id: number | string, body: UpdateProductionMachineInput) =>
     api.patch<ApiEnvelope<ProductionMachineDto>>(`/v1/production/machines/${id}`, body, { idempotent: true }),
+
+  qualityInspections: (params?: ListParams & { result?: string; work_order_id?: number }) =>
+    api
+      .get<ApiEnvelope<ProductionQualityInspectionDto[]>>(`/v1/production/quality-inspections${buildQuery(params)}`)
+      .then((r) => ({
+        data: Array.isArray(r.data) ? r.data : [],
+        pagination: r.meta?.pagination,
+        summary: r.meta?.summary as ProductionQualityListResult["summary"],
+      })),
+
+  qualityInspection: (id: number | string) =>
+    api
+      .get<ApiEnvelope<ProductionQualityInspectionDto>>(`/v1/production/quality-inspections/${id}`)
+      .then((r) => r.data),
+
+  createQualityInspection: (body: CreateProductionQualityInspectionInput) =>
+    api.post<ApiEnvelope<ProductionQualityInspectionDto>>("/v1/production/quality-inspections", body, {
+      idempotent: true,
+    }),
+
+  updateQualityInspection: (id: number | string, body: UpdateProductionQualityInspectionInput) =>
+    api.patch<ApiEnvelope<ProductionQualityInspectionDto>>(`/v1/production/quality-inspections/${id}`, body, {
+      idempotent: true,
+    }),
+
+  wasteRecords: (params?: ListParams & { reason?: string }) =>
+    api
+      .get<ApiEnvelope<ProductionWasteRecordDto[]>>(`/v1/production/waste-records${buildQuery(params)}`)
+      .then((r) => ({
+        data: Array.isArray(r.data) ? r.data : [],
+        pagination: r.meta?.pagination,
+        summary: r.meta?.summary as ProductionWasteListResult["summary"],
+      })),
+
+  wasteRecord: (id: number | string) =>
+    api.get<ApiEnvelope<ProductionWasteRecordDto>>(`/v1/production/waste-records/${id}`).then((r) => r.data),
+
+  createWasteRecord: (body: CreateProductionWasteRecordInput) =>
+    api.post<ApiEnvelope<ProductionWasteRecordDto>>("/v1/production/waste-records", body, { idempotent: true }),
+
+  updateWasteRecord: (id: number | string, body: UpdateProductionWasteRecordInput) =>
+    api.patch<ApiEnvelope<ProductionWasteRecordDto>>(`/v1/production/waste-records/${id}`, body, { idempotent: true }),
 
   registerRawMaterial: (body: RegisterProductionRawMaterialInput) =>
     api.post<ApiEnvelope<{ material: ProductionRawMaterialDto; product_supplier_id?: number | null }>>(

@@ -303,6 +303,129 @@ export type CreateProductionMachineInput = {
 
 export type UpdateProductionMachineInput = Partial<CreateProductionMachineInput>;
 
+export type ProductionQualityInspectionDto = {
+  id: number;
+  uuid?: string;
+  ref: string;
+  reference: string;
+  product_id?: number | null;
+  product_sku?: string | null;
+  product: string;
+  product_name: string;
+  batch?: string | null;
+  batch_number?: string | null;
+  production_work_order_id?: number | null;
+  work_order_number?: string | null;
+  inspector?: string | null;
+  inspector_name?: string | null;
+  date: string;
+  inspected_at?: string;
+  defects: number;
+  defects_count: number;
+  sample_size?: number | null;
+  result: "pass" | "fail" | "rework" | string;
+  notes?: string | null;
+};
+
+export type ProductionQualitySummaryDto = {
+  total: number;
+  pass_count: number;
+  rework_count: number;
+  fail_count: number;
+  pass_rate: number;
+};
+
+export type ProductionQualityListResult = PaginatedResult<ProductionQualityInspectionDto> & {
+  summary?: ProductionQualitySummaryDto;
+};
+
+export type CreateProductionQualityInspectionInput = {
+  reference?: string;
+  product_id?: number;
+  product_sku?: string;
+  product_name?: string;
+  batch_number?: string;
+  production_work_order_id?: number;
+  inspector_name?: string;
+  inspected_at?: string;
+  defects_count?: number;
+  sample_size?: number;
+  result: ProductionQualityInspectionDto["result"];
+  notes?: string;
+};
+
+export type UpdateProductionQualityInspectionInput = Partial<CreateProductionQualityInspectionInput>;
+
+export type ProductionWasteRecordDto = {
+  id: number;
+  uuid?: string;
+  ref: string;
+  reference: string;
+  source?: string | null;
+  reason: string;
+  reason_label?: string;
+  product_id?: number | null;
+  product_sku?: string | null;
+  product_name?: string | null;
+  production_work_order_id?: number | null;
+  work_order_number?: string | null;
+  production_quality_inspection_id?: number | null;
+  qty: number;
+  quantity: number;
+  unit_cost: number;
+  cost: number;
+  total_cost: number;
+  recovered_amount: number;
+  deduct_stock: boolean;
+  stock_movement_id?: number | null;
+  date: string;
+  waste_date?: string;
+  notes?: string | null;
+};
+
+export type ProductionWasteByReasonDto = {
+  reason: string;
+  cost: number;
+};
+
+export type ProductionWasteSummaryDto = {
+  total_records: number;
+  total_cost: number;
+  total_recovered: number;
+  total_quantity: number;
+  by_reason: ProductionWasteByReasonDto[];
+};
+
+export type ProductionWasteListResult = PaginatedResult<ProductionWasteRecordDto> & {
+  summary?: ProductionWasteSummaryDto;
+};
+
+export type CreateProductionWasteRecordInput = {
+  reference?: string;
+  source?: string;
+  reason: string;
+  product_id?: number;
+  product_sku?: string;
+  product_name?: string;
+  production_work_order_id?: number;
+  production_quality_inspection_id?: number;
+  warehouse_id?: number;
+  quantity: number;
+  unit_cost?: number;
+  total_cost?: number;
+  recovered_amount?: number;
+  deduct_stock?: boolean;
+  waste_date?: string;
+  notes?: string;
+};
+
+export type UpdateProductionWasteRecordInput = Partial<
+  Pick<
+    CreateProductionWasteRecordInput,
+    "reference" | "source" | "reason" | "recovered_amount" | "waste_date" | "notes"
+  >
+>;
+
 export type ProductionMutationMeta = {
   sideEffects?: ApiMetaSideEffect[];
 };

@@ -17,7 +17,12 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { isNavItemActive, mergeSectionsOpen, resolveNavMenu, sectionHasActiveRoute } from "@/config/navigation";
+import {
+  activeSectionTitleForPath,
+  isNavItemActive,
+  resolveNavMenu,
+  sectionHasActiveRoute,
+} from "@/config/navigation";
 import { useUiStore } from "@/stores/ui-store";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -32,14 +37,14 @@ export function AppSidebar() {
   const setSectionOpen = useUiStore((s) => s.setSectionOpen);
   const setSectionsOpen = useUiStore((s) => s.setSectionsOpen);
 
-  const open = useMemo(
-    () => mergeSectionsOpen(sidebarSectionsOpen, pathname),
-    [pathname, sidebarSectionsOpen]
-  );
+  const open = sidebarSectionsOpen;
 
   useEffect(() => {
-    setSectionsOpen((prev) => mergeSectionsOpen(prev, pathname));
-  }, [pathname, setSectionsOpen]);
+    const title = activeSectionTitleForPath(pathname, menu);
+    if (title) {
+      setSectionsOpen({ [title]: true });
+    }
+  }, [pathname, menu, setSectionsOpen]);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border">

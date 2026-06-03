@@ -7,10 +7,14 @@ import type {
   CompleteProductionWorkOrderInput,
   CreateProductionBomInput,
   CreateProductionMachineInput,
+  CreateProductionQualityInspectionInput,
+  CreateProductionWasteRecordInput,
   CreateProductionWorkOrderInput,
   RegisterProductionRawMaterialInput,
   UpdateProductionBomInput,
   UpdateProductionMachineInput,
+  UpdateProductionQualityInspectionInput,
+  UpdateProductionWasteRecordInput,
 } from "@/modules/production/types";
 
 export const productionKeys = {
@@ -22,6 +26,10 @@ export const productionKeys = {
   planning: (params?: Record<string, unknown>) => ["production", "planning", params] as const,
   machines: (params?: Record<string, unknown>) => ["production", "machines", params] as const,
   machine: (id: number | string) => ["production", "machines", id] as const,
+  qualityInspections: (params?: Record<string, unknown>) => ["production", "quality-inspections", params] as const,
+  qualityInspection: (id: number | string) => ["production", "quality-inspections", id] as const,
+  wasteRecords: (params?: Record<string, unknown>) => ["production", "waste-records", params] as const,
+  wasteRecord: (id: number | string) => ["production", "waste-records", id] as const,
   bom: (id: number | string) => ["production", "boms", id] as const,
   workOrders: (params?: Record<string, unknown>) => ["production", "work-orders", params] as const,
   workOrder: (id: number | string) => ["production", "work-orders", id] as const,
@@ -87,6 +95,97 @@ export function useUpdateProductionMachine() {
       toast.success("Machine updated");
     },
     onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update machine")),
+  });
+}
+
+export function useProductionProductSkus(params?: {
+  per_page?: number;
+  search?: string;
+  purpose?: "component" | "finished";
+}) {
+  return useQuery({
+    queryKey: productionKeys.productSkus(params),
+    queryFn: () => productionApi.productSkus(params),
+  });
+}
+
+export function useProductionQualityInspections(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  result?: string;
+  work_order_id?: number;
+}) {
+  return useQuery({
+    queryKey: productionKeys.qualityInspections(params),
+    queryFn: () => productionApi.qualityInspections(params),
+  });
+}
+
+export function useCreateProductionQualityInspection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateProductionQualityInspectionInput) => productionApi.createQualityInspection(body),
+    onSuccess: (res) => {
+      invalidateProduction(qc);
+      showSideEffects(res.meta);
+      toast.success("Inspection recorded");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to save inspection")),
+  });
+}
+
+export function useUpdateProductionQualityInspection() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateProductionQualityInspectionInput }) =>
+      productionApi.updateQualityInspection(id, body),
+    onSuccess: (res) => {
+      invalidateProduction(qc);
+      showSideEffects(res.meta);
+      toast.success("Inspection updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update inspection")),
+  });
+}
+
+export function useProductionWasteRecords(params?: {
+  page?: number;
+  per_page?: number;
+  search?: string;
+  reason?: string;
+}) {
+  return useQuery({
+    queryKey: productionKeys.wasteRecords(params),
+    queryFn: () => productionApi.wasteRecords(params),
+  });
+}
+
+export function useCreateProductionWasteRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: CreateProductionWasteRecordInput) => productionApi.createWasteRecord(body),
+    onSuccess: (res) => {
+      invalidateProduction(qc);
+      qc.invalidateQueries({ queryKey: ["inventory"] });
+      showSideEffects(res.meta);
+      toast.success("Waste logged");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to log waste")),
+  });
+}
+
+export function useUpdateProductionWasteRecord() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: number | string; body: UpdateProductionWasteRecordInput }) =>
+      productionApi.updateWasteRecord(id, body),
+    onSuccess: (res) => {
+      invalidateProduction(qc);
+      showSideEffects(res.meta);
+      toast.success("Waste record updated");
+    },
+    onError: (e) => toast.error(getApiErrorMessage(e, "Failed to update waste record")),
   });
 }
 

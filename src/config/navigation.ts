@@ -307,26 +307,24 @@ export function openSectionsForPath(pathname: string, sections: NavSectionMeta[]
   return open;
 }
 
-/** Merge user toggles with path: only force-open active sections, never force-close. */
+/** Section title for current route (first matching section). */
+export function activeSectionTitleForPath(
+  pathname: string,
+  sections: NavSectionMeta[] = NAV_MENU
+): string | null {
+  const hit = sections.find((section) => sectionHasActiveRoute(pathname, section));
+  return hit?.title ?? sections[0]?.title ?? null;
+}
+
+/** Accordion: at most one section open — prefers explicit user choice, else active route. */
 export function mergeSectionsOpen(
   userOpen: Record<string, boolean>,
   pathname: string,
   sections: NavSectionMeta[] = NAV_MENU
 ): Record<string, boolean> {
-  const merged = { ...userOpen };
-  const fromPath = openSectionsForPath(pathname, sections);
-
-  for (const [title, active] of Object.entries(fromPath)) {
-    if (active) {
-      merged[title] = true;
-    }
-  }
-
-  if (!Object.values(merged).some(Boolean) && sections[0]) {
-    merged[sections[0].title] = true;
-  }
-
-  return merged;
+  const userOpened = Object.entries(userOpen).find(([, open]) => open)?.[0];
+  const title = userOpened ?? activeSectionTitleForPath(pathname, sections);
+  return title ? { [title]: true } : {};
 }
 
 export const NAV_FILTER = {
