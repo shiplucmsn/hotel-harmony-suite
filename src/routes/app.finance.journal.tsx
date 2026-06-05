@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Eye, Plus } from "lucide-react";
+import { BranchContextChip } from "@/components/branch-context-chip";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -118,14 +119,17 @@ function JournalPage() {
         description="Manual debit/credit postings to your ledger."
         breadcrumbs={[{ label: "Finance" }, { label: "Journal" }]}
         actions={
-          <Button
-            size="sm"
-            className="gradient-primary border-0 text-primary-foreground"
-            onClick={() => setFormOpen(true)}
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            New entry
-          </Button>
+          <>
+            <BranchContextChip />
+            <Button
+              size="sm"
+              className="gradient-primary border-0 text-primary-foreground"
+              onClick={() => setFormOpen(true)}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New entry
+            </Button>
+          </>
         }
       />
 

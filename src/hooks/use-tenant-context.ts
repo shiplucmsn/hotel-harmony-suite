@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getBranchId, getTenantId, setBranchId } from "@/lib/api-auth";
+import { getTenantId, setBranchId } from "@/lib/api-auth";
 import { withTenantKey } from "@/lib/tenant-query";
 import { tenantApi } from "@/modules/platform/tenant-api";
 import { isAuthenticated } from "@/lib/auth-session";
@@ -15,10 +15,7 @@ export function useTenantContext() {
       const res = await tenantApi.context();
       const data = res.data;
       if (data.active_branch_id) {
-        const stored = getBranchId();
-        if (!stored || stored === String(data.active_branch_id)) {
-          setBranchId(data.active_branch_id);
-        }
+        setBranchId(data.active_branch_id);
       }
       return data;
     },

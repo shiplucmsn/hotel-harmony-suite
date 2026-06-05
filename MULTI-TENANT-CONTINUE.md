@@ -1,26 +1,19 @@
-# Multi-tenant / branch — frontend continue
+# Multi-tenant / branch — frontend status
 
-**Branch:** `multi-tanant`  
-**Pair with:** `erp-backend/MULTI-TENANT-CONTINUE.md` on the same branch.
+**Branch:** `multi-tanant`
 
-## Done on this branch
+## Done
 
-- `getBranchId` / `setBranchId` + `X-Branch-Id` in `src/lib/api-auth.ts`
-- `withTenantKey()` includes tenant + branch (`src/lib/tenant-query.ts`)
-- `BranchSwitcher` in topbar (`src/components/branch-switcher.tsx`)
-- `useTenantContext` + `tenant-api.ts` (`branches`, `active_branch_id`)
-- Workspace menu, host guard, branches settings tab, warehouse form branch select
+- `BranchSwitcher` + `X-Branch-Id` header (`src/lib/api-auth.ts`)
+- Tenant context syncs `active_branch_id` from server (`use-tenant-context.ts`)
+- `withTenantKey` / query invalidation on branch switch
+- Settings → Branches tab (CRUD API)
+- Settings → Tax tab: rates API + branch-scoped preference toggles
+- `BranchContextChip` on Finance Journal, Users, Inventory pages
 
-## Phase 2+ UI (pick up in Cursor)
+## Optional next
 
-Say: *"Continue MULTI-TENANT-CONTINUE.md frontend tasks"*
+- Branch chip on Reports and other list pages
+- Persist branch preference indicator in profile settings
 
-1. **Branch chip** on Finance journals, RBAC users, inventory warehouse pages (read-only active branch name from `useTenantContext`)
-2. **Invalidate queries** on branch switch — verify module hooks use `withTenantKey` (most hooks already updated)
-3. **Tax/settings** screens when backend tax API exists
-4. **Signup/workspace** flows — ensure `setBranchId` after first context load
-
-## Env
-
-- `VITE_API_BASE_URL` must point to API host
-- Use workspace subdomain in dev (not wrong tenant slug on another host)
+See `erp-backend/MULTI-TENANT-CONTINUE.md` and `docs/architecture/BRANCH-SCOPE.md`.

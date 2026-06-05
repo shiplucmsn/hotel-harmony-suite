@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { NotificationsTab } from "@/modules/settings/notifications-tab";
 import { BranchesTab } from "@/modules/settings/branches-tab";
+import { TaxTab } from "@/modules/settings/tax-tab";
 import { WorkspaceBrandingTab } from "@/modules/settings/workspace-branding-tab";
 import { SmsTab } from "@/modules/settings/sms-tab";
 import { toast } from "sonner";
@@ -171,85 +172,6 @@ function CurrencyTab() {
         </Table>
       </CardContent>
     </Card>
-  );
-}
-
-/* ============ Tax ============ */
-function TaxTab() {
-  const taxes = [
-    { name: "VAT (Standard)", rate: "19%", region: "Germany", type: "Inclusive" },
-    { name: "VAT (Reduced)", rate: "7%", region: "Germany", type: "Inclusive" },
-    { name: "GST", rate: "18%", region: "India", type: "Exclusive" },
-    { name: "Sales Tax", rate: "8.875%", region: "New York, US", type: "Exclusive" },
-  ];
-  return (
-    <div className="space-y-4">
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <div><CardTitle>Tax rates</CardTitle><CardDescription>Configure rates per region or product type.</CardDescription></div>
-          <TaxDialog />
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Rate</TableHead><TableHead>Region</TableHead><TableHead>Type</TableHead><TableHead></TableHead></TableRow></TableHeader>
-            <TableBody>
-              {taxes.map(t => (
-                <TableRow key={t.name}>
-                  <TableCell className="font-medium">{t.name}</TableCell>
-                  <TableCell className="font-mono">{t.rate}</TableCell>
-                  <TableCell>{t.region}</TableCell>
-                  <TableCell><Badge variant="outline">{t.type}</Badge></TableCell>
-                  <TableCell className="text-right"><Button variant="ghost" size="icon" className="h-8 w-8"><Pencil className="h-3.5 w-3.5" /></Button></TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Tax preferences</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {[
-            { t: "Prices include tax", d: "Display product prices with tax included by default." },
-            { t: "Charge tax on shipping", d: "Apply tax to shipping fees on orders." },
-            { t: "Round at line item", d: "Round taxes per line instead of order total." },
-          ].map((s,i) => (
-            <div key={s.t} className="flex items-center justify-between rounded-lg border p-4">
-              <div><p className="font-medium">{s.t}</p><p className="text-xs text-muted-foreground">{s.d}</p></div>
-              <Switch defaultChecked={i === 0} />
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function TaxDialog() {
-  const [open, setOpen] = useState(false);
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button size="sm" className="gradient-primary text-primary-foreground border-0"><Plus className="mr-2 h-4 w-4" />Add tax</Button></DialogTrigger>
-      <DialogContent>
-        <DialogHeader><DialogTitle>New tax rate</DialogTitle><DialogDescription>Define a tax rate to apply on invoices.</DialogDescription></DialogHeader>
-        <div className="space-y-3">
-          <div className="space-y-1.5"><Label>Name</Label><Input placeholder="e.g. VAT 21%" /></div>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5"><Label>Rate (%)</Label><Input type="number" placeholder="21" /></div>
-            <div className="space-y-1.5"><Label>Type</Label>
-              <Select defaultValue="exclusive"><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>
-                <SelectItem value="inclusive">Inclusive</SelectItem><SelectItem value="exclusive">Exclusive</SelectItem>
-              </SelectContent></Select>
-            </div>
-          </div>
-          <div className="space-y-1.5"><Label>Region</Label><Input placeholder="e.g. Netherlands" /></div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button className="gradient-primary text-primary-foreground border-0" onClick={() => { setOpen(false); toast.success("Tax added"); }}>Create</Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   );
 }
 

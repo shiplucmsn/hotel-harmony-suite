@@ -5,6 +5,7 @@ import { useRbacUsers } from "@/hooks/rbac/use-roles";
 import { UserRolesDialog } from "@/components/user-roles-dialog";
 import type { RbacUserDto } from "@/modules/rbac/types";
 import { useMemo, useState } from "react";
+import { BranchContextChip } from "@/components/branch-context-chip";
 import { PageHeader } from "@/components/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -78,6 +79,7 @@ function UsersPage() {
         description="Manage team members, roles and access."
         breadcrumbs={[{ label: "Administration" }, { label: "Users" }]}
         actions={<>
+          <BranchContextChip />
           <Button variant="outline" size="sm"><Download className="mr-2 h-4 w-4" />Export</Button>
           <Button asChild variant="outline" size="sm"><Link to="/app/users/new">Page form</Link></Button>
           <Button size="sm" onClick={() => { setEditing(undefined); setOpen(true); }} className="gradient-primary text-primary-foreground border-0">

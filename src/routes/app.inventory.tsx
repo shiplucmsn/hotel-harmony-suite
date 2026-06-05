@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { BranchContextChip } from "@/components/branch-context-chip";
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -172,6 +173,8 @@ function InventoryPage() {
         description="Track stock levels across warehouses and manage items."
         breadcrumbs={[{ label: "Operations" }, { label: "Inventory" }]}
         actions={
+          <>
+          <BranchContextChip />
           <Button
             className="gradient-primary text-primary-foreground border-0"
             onClick={() => {
@@ -182,6 +185,7 @@ function InventoryPage() {
             <Plus className="mr-2 h-4 w-4" />
             Create Item
           </Button>
+          </>
         }
       />
 
